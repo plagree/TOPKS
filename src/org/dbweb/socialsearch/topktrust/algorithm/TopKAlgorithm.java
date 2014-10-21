@@ -59,8 +59,6 @@ import com.ibm.icu.util.Calendar;
  */
 public class TopKAlgorithm{
 
-
-
 	//debug purpose
 	public ArrayList<Integer> visitedNodes;
 
@@ -137,7 +135,6 @@ public class TopKAlgorithm{
 
 	protected float userWeight;
 	protected UserEntry<Float> currentUser;
-
 
 	protected DBConnection dbConnection;
 
@@ -261,6 +258,9 @@ public class TopKAlgorithm{
 		this.number_users = number_users;
 	}
 
+	/*
+	 * OLD CODE NOT USED
+	 * 
 	public int basicexecuteQuery(String seeker, HashSet<String> query, int k, int maxLoops) throws SQLException{
 		System.out.println("270");
 		this.time_dji = 0;
@@ -438,9 +438,6 @@ public class TopKAlgorithm{
 				d_hist.setVals(tag, 0, 1.0f);
 			}
 		}
-		/*else{
-
-    	}*/
     	//this.d_distr = new DataDistribution(1.0f, 0.0f, this.number_users, query);
 
 		Comparator comparator = new MinScoreItemComparator();   
@@ -516,9 +513,11 @@ public class TopKAlgorithm{
 		this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
 		return 0;
 
-	}
+	}*/
 
-	public int executeQuery(String seeker, HashSet<String> query, int k, int maxLoops) throws SQLException{
+	/*
+	 * OLD CODE NOT USEDpublic int executeQuery(String seeker, HashSet<String> query, int k, int maxLoops) throws SQLException{
+	 *
 
 		this.time_dji = 0;
 		this.time_term = 0;
@@ -697,9 +696,6 @@ public class TopKAlgorithm{
 				d_hist.setVals(tag, 0, 1.0f);
 			}
 		}
-		/*else{
-
-    	}*/
     	//this.d_distr = new DataDistribution(1.0f, 0.0f, this.number_users, query);
 
 		Comparator comparator = new MinScoreItemComparator();   
@@ -778,11 +774,11 @@ public class TopKAlgorithm{
 		this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
 
 		return 0;
-	}
+	}*/
 
-	/* 
+	/**
 	 * Main call from TopKAlgorithm class, call this after building a new object to run algorithm
-	 * l 787- 1035
+	 * l 783- 1035
 	 */
 	public int executeQuery(String seeker, HashSet<String> query, int k) throws SQLException{
 		System.out.println("784");
@@ -811,7 +807,7 @@ public class TopKAlgorithm{
 		connection.setAutoCommit(false);
 		this.optpath.setValues(values);
 		this.optpath.setDistFunc(distFunc);
-		long time = System.currentTimeMillis();
+		//long time = System.currentTimeMillis();
 		if((this.approxMethod&Methods.MET_APPR_LAND)==Methods.MET_APPR_LAND){
 			landmark.setSeeker(this.seeker);
 			landmark.setPathFunction(this.distFunc);
@@ -820,7 +816,7 @@ public class TopKAlgorithm{
 		else{
 			currentUser = optpath.initiateHeapCalculation(this.seeker, query);
 		}
-		time_heapinit = System.currentTimeMillis() - time;
+		//time_heapinit = System.currentTimeMillis() - time;
 		userWeight = 1.0f;
 
 		terminationCondition = false;
@@ -830,7 +826,7 @@ public class TopKAlgorithm{
 		//        String sqlGetNumberDocuments = String.format(sqlGetNumberDocumentsTemplate, this.tagTable);
 		//        String sqlGetNumberUsers = String.format(sqlGetNumberUsersTemplate, this.tagTable);
 
-		time = System.currentTimeMillis();
+		//time = System.currentTimeMillis();
 		//Establishing the global properties
 
 		//        ps = connection.prepareStatement(sqlGetNumberDocuments);
@@ -1022,7 +1018,7 @@ public class TopKAlgorithm{
 
 		//log.info("\t\t\tread documents");
 
-		time_preinit = System.currentTimeMillis() - time;
+		//time_preinit = System.currentTimeMillis() - time;
 
 		mainLoop(k, seeker, query); /* MAIN ALGORITHM */
 
@@ -1039,9 +1035,9 @@ public class TopKAlgorithm{
 	 */
 	protected void mainLoop(int k, String seeker, HashSet<String> query) throws SQLException{
 		int loops=0; //amine
-		int skipped_tests = 1000;
+		int skipped_tests = 10000;
 		int steps = 1;
-		long time = System.currentTimeMillis();
+		//long time = System.currentTimeMillis();
 		firstPossible = true;
 		needUnseen = true;
 		skipViews = false;
@@ -1078,7 +1074,7 @@ public class TopKAlgorithm{
 			}
 			if(social) this.total_lists_social++;
 
-			long time_1 = System.currentTimeMillis();
+			//long time_1 = System.currentTimeMillis();
 			steps = (steps+1)%skipped_tests;
 			if((steps==0)||(!needUnseen&&((approxMethod&Methods.MET_ET)==Methods.MET_ET))){
 				try {
@@ -1107,14 +1103,14 @@ public class TopKAlgorithm{
 			else{
 				terminationCondition=false;
 			}
-			long time_2 = System.currentTimeMillis();
-			this.time_term+=(time_2 - time_1);
+			//long time_2 = System.currentTimeMillis();
+			//this.time_term+=(time_2 - time_1);
 
 			loops++;
 		}while(!terminationCondition&&!finished);
 		this.numloops=loops;
 		System.out.println("loops="+loops);
-		time_loop = System.currentTimeMillis() - time;
+		//time_loop = System.currentTimeMillis() - time;
 	}
 
 	protected boolean chooseBranch(HashSet<String> query){
@@ -1199,7 +1195,7 @@ public class TopKAlgorithm{
 					if(docs_users.get(currentUserId).containsKey(tag)) {
 						for(String itemId:docs_users.get(currentUserId).get(tag)){
 							found_docs = true;
-							time_1 = System.currentTimeMillis();
+							//time_1 = System.currentTimeMillis();
 							Item<String> item = candidates.findItem(itemId);
 							float userW = 0;
 							if(item==null){
@@ -1219,8 +1215,8 @@ public class TopKAlgorithm{
 							candidates.addItem(item);
 
 
-							time_2 = System.currentTimeMillis();
-							this.time_queries+=(time_2 - time_1);
+							//time_2 = System.currentTimeMillis();
+							//this.time_queries+=(time_2 - time_1);
 							docs_inserted = true;
 							total_documents_social++;                            
 						}
@@ -1247,15 +1243,15 @@ public class TopKAlgorithm{
 			index++;
 		}/* END FOR ALL TAGS IN QUERY Q */
 
-		time_1 = System.currentTimeMillis();
+		//time_1 = System.currentTimeMillis();
 		if((this.approxMethod&Methods.MET_APPR_LAND)==Methods.MET_APPR_LAND){
 			currentUser = landmark.getNextUser();
 		}
 		else{
 			currentUser = optpath.advanceFriendsList(currentUser, query);
 		}
-		time_2 = System.currentTimeMillis();
-		this.time_heap+=(time_2 - time_1);
+		//time_2 = System.currentTimeMillis();
+		//this.time_heap+=(time_2 - time_1);
 		if(currentUser!=null)
 			userWeight = currentUser.getDist().floatValue();
 		else

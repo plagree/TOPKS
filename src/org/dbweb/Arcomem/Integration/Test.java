@@ -3,16 +3,11 @@ package org.dbweb.Arcomem.Integration;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.sql.Connection;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import org.dbweb.Arcomem.datastructures.BasicSearchResult;
-import org.dbweb.Arcomem.datastructures.ComplexSearchResult;
-import org.dbweb.Arcomem.datastructures.Seeker;
 import org.dbweb.socialsearch.general.connection.PostgresqlConnection;
 import org.dbweb.socialsearch.shared.ResultsEncoding;
 import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
@@ -21,13 +16,10 @@ import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
 import org.dbweb.socialsearch.topktrust.algorithm.score.BM25Score;
 import org.dbweb.socialsearch.topktrust.datastructure.UserLink;
-import org.postgresql.Driver;
-
-import com.ibm.icu.util.Calendar;
 
 public class Test{
 	public static final String dateFormat = "yyyyMMdd_HHmm";
-	private static PostgresqlConnection dbConn = new PostgresqlConnection("localhost:5432/testingdb", "postgres", "paul");
+	private static PostgresqlConnection dbConn = new PostgresqlConnection("localhost:5432/twitter", "postgres", "paul");
 	private static HashMap<String,ArrayList<UserLink<String,Float>>> net;
 
 	//test settings
@@ -36,14 +28,14 @@ public class Test{
 	private static final PathCompositionFunction[] func = {	new PathMultiplication()};
 
 	private static final String[] query1 = {
-		"car",
+		//"car", //testindb
+		"Obama", //twiiter dump
 	};
-	//	private static final String[] query2 = {"book","food","articles","tech","game"};
 
 	private static final String[][] seekers={
 		{
-			"2",
-			//"168885306",
+			//"2", //TESTINGDB
+			"168885306", //twitter dump
 			//"80087208"
 		}
 	};
@@ -55,8 +47,7 @@ public class Test{
 	private static final float[] alpha ={0.0f};
 	private static final boolean[] heap = {true};
 	public static final String[] network = {"soc_snet_tt"};
-	public static final String taggers = "tagging";//"soc_tag_80";
-	private static final int k1 = 2;
+	public static final String taggers = "soc_tag_80";//"tagging";
 	private static final int k = 10;
 	private static final int[] met = {0};//,1,2,4};
 	private static final String[] metname = {"exact"};//,"met1","met2","met4"};
@@ -65,31 +56,30 @@ public class Test{
 
 	public static void main(String[] args) throws IllegalArgumentException, ClassNotFoundException, SQLException{
 
-		//		Class.forName("postgresql.jdbc.driver.PostgresqlDriver");
-		//		System.exit(0);
-
 		String[] res = {"No results yet"};
 		ResultsEncoding results = new ResultsEncoding();
 		results.setResults(res);
 		TopKAlgorithm topk_alg;
 		FileWriter xmlFile;
 		FileWriter rFile;
-		//Calendar cal = Calendar.getInstance();
-		//SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
 		OptimalPaths optpath;
 		BM25Score score = new BM25Score();
-		//
 
 		//ComplexSearchResult complexTopkList = new   ComplexSearchResult();
 
 		try {
 			//ArrayList<BasicSearchResult> manyTopks=new ArrayList<BasicSearchResult>();
-
 			int test_num = 0;
+			
+			// loop on all given NETWORKS
 			for(int index_n=0; index_n<network.length;index_n++){ 
 				net = null;
 				optpath = new OptimalPaths(network[index_n],dbConn,true,null,coeff);
+				
+				// loop on all given ALGORITHMS (exact, ...)
 				for(int index_mt=0; index_mt<met.length;index_mt++){
+					
+					// loop on all given PATH_COMPOSITION_FUNCTIONS
 					for(int index_f=0; index_f<func.length;index_f++){
 
 						xmlFile = new FileWriter(String.format("tests_%s_%s_%s.xml", metname[index_mt], network[index_n], func[index_f].toString()));
@@ -99,18 +89,26 @@ public class Test{
 						xmlFile.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
 						xmlFile.write("<tests>");
 						// rFile.write("#Results");TODO
-
-						for(int index_m=0; index_m<heap.length;index_m++)
-							for(int index_q=0; index_q<query1.length;index_q++) //FOR EACH QUERY
-							{
+						
+						// loop on heap
+						for(int index_m=0; index_m<heap.length;index_m++) {
+							
+							// loop on QUERIES
+							for(int index_q=0; index_q<query1.length;index_q++) {
 								HashSet<String> query = new HashSet<String>();
-								query.add(query1[index_q]); 
-								// query.add(query2[index_q]);
-								for(int index_s=0; index_s<seekers[index_n].length;index_s++) //FOR EACH SEEKER
+								query.add(query1[index_q]);
+								
+								// loop on SEEKERS
+								for(int index_s=0; index_s<seekers[index_n].length;index_s++) {
+									
+									// loop on ALPHA VALUES
 									for(int index_a=0; index_a<alpha.length;index_a++)
 									{
 										topk_alg = new TopKAlgorithm(dbConn, taggers, network[index_n], met[index_mt], score, alpha[index_a], func[index_f], optpath, 1);
-										topk_alg.executeQuery(String.valueOf(seekers[index_n][index_s]), query, k);
+										long timeBefore = System.currentTimeMillis();
+										topk_alg.executeQuery(String.valueOf(seekers[index_n][index_s]), query, k); // TOPKS IS RUN HERE
+										long timeAfter = System.currentTimeMillis();
+										System.out.println("The algorithm ran in "+(timeAfter-timeBefore)/1000+" seconds.");
 										xmlFile.write(topk_alg.getResultsXML());
 										test_num++;
 										res[0] = String.format("Currently at test number %d...",test_num);
@@ -127,7 +125,9 @@ public class Test{
 								//aggregate lists 
 								//								rFile.write("aggregateRanks(nlist)");
 								//retrieve results
+								}
 							}
+						}
 						xmlFile.write("</tests>");							
 						xmlFile.close();
 					}

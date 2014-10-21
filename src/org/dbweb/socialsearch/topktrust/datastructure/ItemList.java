@@ -270,7 +270,6 @@ public class ItemList implements Cloneable{
     }
 
     private void processBoundary(float value, int k, int num_tags, float alpha, int num_users, HashMap<String, Float> idf, HashMap<String,Integer> high, float total_sum, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
-    	System.out.println("ICI");
         HashSet<String> newtopk = new HashSet<String>();
         int number = 0;
         int position = 0;
