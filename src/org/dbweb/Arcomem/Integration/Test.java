@@ -30,6 +30,14 @@ public class Test{
 	private static final String[] query1 = {
 		//"car", //testindb
 		"Obama", //twiiter dump
+		//"TFBJP",
+		
+		//"500ADAY",
+		//"90sBabyFollowTrain",
+		"Cancer",
+		"Syria",
+		"SOUGOFOLLOW",
+		"Apple",
 	};
 
 	private static final String[][] seekers={
@@ -46,11 +54,11 @@ public class Test{
 
 	private static final float[] alpha ={0.0f};
 	private static final boolean[] heap = {true};
-	public static final String[] network = {"soc_snet_tt"};
+	public static final String[] network = {"soc_snet_dt"};
 	public static final String taggers = "soc_tag_80";//"tagging";
 	private static final int k = 10;
 	private static final int[] met = {0};//,1,2,4};
-	private static final String[] metname = {"exact"};//,"met1","met2","met4"};
+	private static final String[] metname = {"met1"};//,"exact","met2","met4"};
 	private static double coeff = 2.0f;
 	private static String r_preporc = String.format("%s%n%s","require(gtools)","require(RobustRankAggreg)");
 
@@ -71,6 +79,9 @@ public class Test{
 			//ArrayList<BasicSearchResult> manyTopks=new ArrayList<BasicSearchResult>();
 			int test_num = 0;
 			
+			optpath = new OptimalPaths(network[0],dbConn,true,null,coeff);
+			int n = 0;
+			
 			// loop on all given NETWORKS
 			for(int index_n=0; index_n<network.length;index_n++){ 
 				net = null;
@@ -81,13 +92,10 @@ public class Test{
 					
 					// loop on all given PATH_COMPOSITION_FUNCTIONS
 					for(int index_f=0; index_f<func.length;index_f++){
-
-						xmlFile = new FileWriter(String.format("tests_%s_%s_%s.xml", metname[index_mt], network[index_n], func[index_f].toString()));
-						rFile = new FileWriter(String.format("RFile_%s_%s_%s.r", metname[index_mt], network[index_n], func[index_f].toString()));
-						// initialize
-						rFile.write(r_preporc);
-						xmlFile.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
-						xmlFile.write("<tests>");
+						
+						///////
+						///////
+						
 						// rFile.write("#Results");TODO
 						
 						// loop on heap
@@ -104,6 +112,13 @@ public class Test{
 									// loop on ALPHA VALUES
 									for(int index_a=0; index_a<alpha.length;index_a++)
 									{
+										n += 1;
+										xmlFile = new FileWriter(String.format("tests_%s_%s_%s"+n+".xml", metname[index_mt], network[index_n], func[index_f].toString()));
+										rFile = new FileWriter(String.format("RFile_%s_%s_%s.r", metname[index_mt], network[index_n], func[index_f].toString()));
+										// initialize
+										rFile.write(r_preporc);
+										xmlFile.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
+										xmlFile.write("<tests>");
 										topk_alg = new TopKAlgorithm(dbConn, taggers, network[index_n], met[index_mt], score, alpha[index_a], func[index_f], optpath, 1);
 										long timeBefore = System.currentTimeMillis();
 										topk_alg.executeQuery(String.valueOf(seekers[index_n][index_s]), query, k); // TOPKS IS RUN HERE
@@ -113,6 +128,8 @@ public class Test{
 										test_num++;
 										res[0] = String.format("Currently at test number %d...",test_num);
 										results.setResults(res);
+										xmlFile.write("</tests>");							
+										xmlFile.close();
 
 										//concatenate to current topk TODO
 										//										manyTopks.add(topk_alg.getResultsList());
@@ -128,15 +145,15 @@ public class Test{
 								}
 							}
 						}
-						xmlFile.write("</tests>");							
-						xmlFile.close();
+						
 					}
 				}
-			}	
+			}
 		} catch (IOException e) {
 			res[0]= e.getMessage();
 			results.setResults(res);
-		} catch (SQLException ex) {
+		}
+		catch (SQLException ex) {
 			res[0]= ex.getMessage();
 			results.setResults(res);
 		}

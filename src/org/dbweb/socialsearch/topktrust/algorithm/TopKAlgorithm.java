@@ -236,8 +236,8 @@ public class TopKAlgorithm{
 		this.optpath = optPathClass;
 		this.error = error;
 		this.score = itemScore;
-		this.number_documents = 595811;
-		this.number_users = 80000;
+		this.number_documents = 1570866;//595811;
+		this.number_users = 570347;//80000;
 	}
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error, int number_documents, int number_users){
@@ -781,7 +781,7 @@ public class TopKAlgorithm{
 	 * l 783- 1035
 	 */
 	public int executeQuery(String seeker, HashSet<String> query, int k) throws SQLException{
-		System.out.println("784");
+		
 		this.time_dji = 0;
 		this.time_term = 0;
 		this.time_clist = 0;
@@ -853,11 +853,16 @@ public class TopKAlgorithm{
 		pos = new int[query.size()];
 		docs = new ResultSet[query.size()];
 		int index = 0;
+		long time00 = System.currentTimeMillis();
 		for(String tag:query){
+			/*
+			 * INVERTED LISTS ARE HERE
+			 */
 			ps = connection.prepareStatement(sqlGetDocsListByTag);
 			ps.setString(1, tag);
 			docs[index] = ps.executeQuery();
 			if(docs[index].next()){
+				System.out.println("iiiii");
 				int getInt2 = docs[index].getInt(2);
 				String getString1 = docs[index].getString(1);
 				high_docs.put(tag, getInt2);
@@ -881,6 +886,8 @@ public class TopKAlgorithm{
 			this.tag_idf.put(tag, new Float(tagidf));
 		}
 		proximities.add((double)userWeight);
+		long time10 = System.currentTimeMillis();
+		System.out.println("Before mainLoop xx: "+(time10-time00)/1000+"sec.");
 
 		//getting the userviews
 		String sqlGetViews = sqlGetViewsTemplate;
@@ -923,7 +930,7 @@ public class TopKAlgorithm{
 		this.viewTransformer = new ViewTransformer(k,query,alpha,distFunc,score.toString(),tagTable,tagFreqs,tag_idf, networkTable,score, connection);
 
 		//getting the approximate statistics
-
+		
 		if((this.approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
 			String sqlGetDistribution = String.format(sqlGetDistributionTemplate, this.networkTable);
 			ps = connection.prepareStatement(sqlGetDistribution);
@@ -936,7 +943,6 @@ public class TopKAlgorithm{
 				this.d_distr = new DataDistribution(mean, variance, this.number_users, query);
 			}
 		}
-
 		if((this.approxMethod&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST){
 			String sqlGetHistogram = String.format(sqlGetHistogramTemplate, this.networkTable);
 			ps = connection.prepareStatement(sqlGetHistogram);
@@ -978,7 +984,7 @@ public class TopKAlgorithm{
 			}
 			idx++;
 		}
-
+		
 		total_users = 0;        
 		total_lists_social = 0;
 		total_documents_social = 0;
@@ -994,7 +1000,8 @@ public class TopKAlgorithm{
 		connection.setAutoCommit(false);
 		Statement stmt = connection.createStatement();
 		stmt.setFetchSize(1000);
-		result = stmt.executeQuery(sqlGetAllDocuments);
+		result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT
+		long time0 = System.currentTimeMillis();
 		while(result.next()){
 			int d_usr = result.getInt(1);
 			String d_itm = result.getString(2);
@@ -1007,6 +1014,9 @@ public class TopKAlgorithm{
 			}
 			this.docs_users.get(d_usr).get(d_tag).add(d_itm);
 		}
+		
+		long time1 = System.currentTimeMillis();
+		System.out.println("Before mainLoop 1: "+(time1-time0)/1000+"sec.");
 
 		//    	ps = connection.prepareStatement(sqlGetTaggers);
 		//    	ps.setFetchSize(1000);
@@ -1019,8 +1029,11 @@ public class TopKAlgorithm{
 		//log.info("\t\t\tread documents");
 
 		//time_preinit = System.currentTimeMillis() - time;
-
+		
+		time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query); /* MAIN ALGORITHM */
+		time1 = System.currentTimeMillis();
+		System.out.println("Only mainLoop : "+(time1-time0)/1000+"sec.");
 
 		//arcomem uncomment to have output in xml
 		//this.setQueryResultsXML(query, seeker, k, this.approxMethod, this.alpha);
@@ -1248,7 +1261,12 @@ public class TopKAlgorithm{
 			currentUser = landmark.getNextUser();
 		}
 		else{
+			long time_loading_before = System.currentTimeMillis();
 			currentUser = optpath.advanceFriendsList(currentUser, query);
+			long time_loading_after = System.currentTimeMillis();
+			long tl = (time_loading_after-time_loading_before)/1000;
+			if (tl>1)
+				System.out.println("Loading in : "+tl);
 		}
 		//time_2 = System.currentTimeMillis();
 		//this.time_heap+=(time_2 - time_1);
@@ -1501,9 +1519,10 @@ public class TopKAlgorithm{
 	//    	
 	//    }
 
-
+	/**
+	 * TOO lONG
+	 */
 	protected void setQueryResultsArrayList(HashSet<String> query, String seeker, int k, int method, float alpha){
-		//    	log.info("query res");
 		System.out.println("this.candidates.get_topk().size()="+this.candidates.get_topk().size());
 		String queryStr="";
 		//item 
@@ -1531,7 +1550,6 @@ public class TopKAlgorithm{
 
 		int position=0;
 
-
 		for(String itid:this.candidates.get_topk()){
 			Item<String> item = candidates.findItem(itid);
 			str=protectSpecialCharacters(item.getItemId());
@@ -1552,14 +1570,14 @@ public class TopKAlgorithm{
 
 
 		}
-
 		this.newXMLResults+="</TopkResults>\n";
-
+		
+		/* DUNNO WHAT IT DOES
 		//amine add bucket component
 		this.newBucketResults+="<BucketResults>\n";
 
 		Iterator<Entry<String, Item<String>>> iter=  this.candidates.getItems().entrySet().iterator();
-
+		System.out.println("4");
 		while(iter.hasNext()){
 			String currItem=iter.next().getKey();
 			if(! this.candidates.get_topk().contains(currItem)){ //proceed with items not in the topks only
@@ -1573,8 +1591,9 @@ public class TopKAlgorithm{
 													 item.getComputedScore(), item.getBestscore(), protectSpecialCharacters(item.getItemId()));
 				this.newBucketResults+="\n";
 			}
-		}
-
+		}*/
+		
+		/* DUNNO WHAT IT DOES
 		this.newBucketResults+="</BucketResults>\n";
 		//        	System.out.println(candidates.getMax_from_rest());
 		this.newBucketResults+=String.format(Locale.US,"<Unseen  Max_from_rest=\"%.5f\"/>\n",
@@ -1590,7 +1609,7 @@ public class TopKAlgorithm{
 		this.newXMLStats+=String.format("<social_docs>%d</social_docs>", total_documents_social);
 		this.newXMLStats+=String.format("<social_queries>%d</social_queries>", total_lists_social);
 		this.newXMLStats+=String.format("<normal_docs>%d</normal_docs>", total_documents_asocial);
-		this.newXMLStats+="</stats>";
+		this.newXMLStats+="</stats>";*/
 
 		//   	this.newXMLResults+="</ResultSet>";
 
@@ -1611,8 +1630,8 @@ public class TopKAlgorithm{
 		//		} catch (Exception ex) {
 		//			ex.printStackTrace();
 		//		}
-
 	}
+	
 	public void setLandmarkPaths(LandmarkPathsComputing landmark){
 		this.landmark = landmark;
 	}
@@ -1670,6 +1689,7 @@ public class TopKAlgorithm{
 	}
 
 	public ArrayList<Integer> getVisited(){
+		System.out.println("ping");
 		skr = new HashSet<Integer>();
 		for(int i=0;i<Params.seeker.length;i++) skr.add(Params.seeker[i]);
 		ArrayList<Integer> vst_u = new ArrayList<Integer>();
