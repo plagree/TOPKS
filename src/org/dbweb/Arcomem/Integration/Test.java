@@ -19,21 +19,16 @@ import org.dbweb.socialsearch.topktrust.datastructure.UserLink;
 
 public class Test{
 	public static final String dateFormat = "yyyyMMdd_HHmm";
-	private static PostgresqlConnection dbConn = new PostgresqlConnection("localhost:5432/twitter", "postgres", "paul");
+	private static PostgresqlConnection dbConn = new PostgresqlConnection("localhost:5432/twitter", "postgres", "postgrespass");
 	private static HashMap<String,ArrayList<UserLink<String,Float>>> net;
-
+	
 	//test settings
-	//private static final PathCompositionFunction[] func = {new PathOne()};
-	//	private static final PathCompositionFunction[] func = {new PathMinimum(), new PathMultiplication(), new PathPow()};
 	private static final PathCompositionFunction[] func = {	new PathMultiplication()};
 
 	private static final String[] query1 = {
 		//"car", //testindb
-		"Obama", //twiiter dump
-		//"TFBJP",
-		
-		//"500ADAY",
-		//"90sBabyFollowTrain",
+		"Obama", //twitter dump
+		"TFBJP",
 		"Cancer",
 		"Syria",
 		"SOUGOFOLLOW",
@@ -58,7 +53,7 @@ public class Test{
 	public static final String taggers = "soc_tag_80";//"tagging";
 	private static final int k = 10;
 	private static final int[] met = {0};//,1,2,4};
-	private static final String[] metname = {"met1"};//,"exact","met2","met4"};
+	private static final String[] metname = {"met1"};//,"met1","met2","met4"};
 	private static double coeff = 2.0f;
 	private static String r_preporc = String.format("%s%n%s","require(gtools)","require(RobustRankAggreg)");
 
@@ -69,7 +64,6 @@ public class Test{
 		results.setResults(res);
 		TopKAlgorithm topk_alg;
 		FileWriter xmlFile;
-		FileWriter rFile;
 		OptimalPaths optpath;
 		BM25Score score = new BM25Score();
 
@@ -78,45 +72,35 @@ public class Test{
 		try {
 			//ArrayList<BasicSearchResult> manyTopks=new ArrayList<BasicSearchResult>();
 			int test_num = 0;
-			
-			optpath = new OptimalPaths(network[0],dbConn,true,null,coeff);
 			int n = 0;
-			
+
 			// loop on all given NETWORKS
 			for(int index_n=0; index_n<network.length;index_n++){ 
 				net = null;
 				optpath = new OptimalPaths(network[index_n],dbConn,true,null,coeff);
-				
+
 				// loop on all given ALGORITHMS (exact, ...)
 				for(int index_mt=0; index_mt<met.length;index_mt++){
-					
+
 					// loop on all given PATH_COMPOSITION_FUNCTIONS
 					for(int index_f=0; index_f<func.length;index_f++){
-						
-						///////
-						///////
-						
-						// rFile.write("#Results");TODO
-						
-						// loop on heap
+
+						// loop on heap (actually, always heap)
 						for(int index_m=0; index_m<heap.length;index_m++) {
-							
+
 							// loop on QUERIES
 							for(int index_q=0; index_q<query1.length;index_q++) {
 								HashSet<String> query = new HashSet<String>();
 								query.add(query1[index_q]);
-								
+
 								// loop on SEEKERS
 								for(int index_s=0; index_s<seekers[index_n].length;index_s++) {
-									
+
 									// loop on ALPHA VALUES
 									for(int index_a=0; index_a<alpha.length;index_a++)
 									{
 										n += 1;
 										xmlFile = new FileWriter(String.format("tests_%s_%s_%s"+n+".xml", metname[index_mt], network[index_n], func[index_f].toString()));
-										rFile = new FileWriter(String.format("RFile_%s_%s_%s.r", metname[index_mt], network[index_n], func[index_f].toString()));
-										// initialize
-										rFile.write(r_preporc);
 										xmlFile.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
 										xmlFile.write("<tests>");
 										topk_alg = new TopKAlgorithm(dbConn, taggers, network[index_n], met[index_mt], score, alpha[index_a], func[index_f], optpath, 1);
@@ -131,21 +115,14 @@ public class Test{
 										xmlFile.write("</tests>");							
 										xmlFile.close();
 
-										//concatenate to current topk TODO
-										//										manyTopks.add(topk_alg.getResultsList());
-
-										//commenter on 8/9/14
-										//										complexTopkList.addToResults(new Seeker(seekers[index_n][index_s]), topk_alg.getResultsList());
+										// concatenate to current topk TODO
+										// manyTopks.add(topk_alg.getResultsList());
+										// commenter on 8/9/14
+										// complexTopkList.addToResults(new Seeker(seekers[index_n][index_s]), topk_alg.getResultsList());
 									}
-								//write once for all topklists
-								//								rFile.write(complexTopkList.toRMatrices());
-								//aggregate lists 
-								//								rFile.write("aggregateRanks(nlist)");
-								//retrieve results
 								}
 							}
 						}
-						
 					}
 				}
 			}

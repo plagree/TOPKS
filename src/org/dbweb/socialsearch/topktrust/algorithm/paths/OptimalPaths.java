@@ -13,6 +13,7 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.PriorityQueue;
 
+import org.dbweb.Arcomem.Integration.LoadIntoMemory;
 import org.dbweb.socialsearch.general.connection.DBConnection;
 import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathCompositionFunction;
@@ -58,6 +59,7 @@ public class OptimalPaths {
 		this.values = values;
 		this.heap = heap;
 		this.func[2]=new PathPow(coeff);
+		LoadIntoMemory.loadData(this.connection);
 //		if(heap) try {
 //			loadNetwork();
 //		} catch (SQLException e) {
@@ -176,7 +178,7 @@ public class OptimalPaths {
     	writeStatistics(seeker);
     }
 	
-	private void calculateHeap(FibonacciHeapNode<Integer> currentUser){    
+	private void calculateHeap(FibonacciHeapNode<Integer> currentUser){
     	boolean foundFirst = false;
     	ArrayList<UserLink<Integer,Float>> neighbl = getNeighbList(currentUser.getData());
     	if(neighbl!=null){
@@ -251,8 +253,7 @@ public class OptimalPaths {
 //	}
 	
 	private ArrayList<UserLink<Integer,Float>> getNeighbList(int user){
-		
-		
+
 		if(heap){
 			Network net = Network.getInstance(connection);
 			network = net.getNetwork(networkTable);

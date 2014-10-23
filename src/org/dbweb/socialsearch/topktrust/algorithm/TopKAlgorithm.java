@@ -16,6 +16,7 @@ import org.dbweb.socialsearch.shared.Methods;
 import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathCompositionFunction;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.LandmarkPathsComputing;
+import org.dbweb.socialsearch.topktrust.algorithm.paths.Network;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 import org.dbweb.socialsearch.topktrust.datastructure.DataDistribution;
@@ -807,16 +808,14 @@ public class TopKAlgorithm{
 		connection.setAutoCommit(false);
 		this.optpath.setValues(values);
 		this.optpath.setDistFunc(distFunc);
-		//long time = System.currentTimeMillis();
 		if((this.approxMethod&Methods.MET_APPR_LAND)==Methods.MET_APPR_LAND){
 			landmark.setSeeker(this.seeker);
 			landmark.setPathFunction(this.distFunc);
 			currentUser = new UserEntry<Float>(this.seeker,1.0f);
 		}
-		else{
+		 else{
 			currentUser = optpath.initiateHeapCalculation(this.seeker, query);
 		}
-		//time_heapinit = System.currentTimeMillis() - time;
 		userWeight = 1.0f;
 
 		terminationCondition = false;
@@ -826,7 +825,6 @@ public class TopKAlgorithm{
 		//        String sqlGetNumberDocuments = String.format(sqlGetNumberDocumentsTemplate, this.tagTable);
 		//        String sqlGetNumberUsers = String.format(sqlGetNumberUsersTemplate, this.tagTable);
 
-		//time = System.currentTimeMillis();
 		//Establishing the global properties
 
 		//        ps = connection.prepareStatement(sqlGetNumberDocuments);
@@ -862,7 +860,6 @@ public class TopKAlgorithm{
 			ps.setString(1, tag);
 			docs[index] = ps.executeQuery();
 			if(docs[index].next()){
-				System.out.println("iiiii");
 				int getInt2 = docs[index].getInt(2);
 				String getString1 = docs[index].getString(1);
 				high_docs.put(tag, getInt2);
@@ -1025,10 +1022,6 @@ public class TopKAlgorithm{
 		//    		this.taggers.add(result.getString(1));
 		//    	result.close();
 		//    	ps.close();
-
-		//log.info("\t\t\tread documents");
-
-		//time_preinit = System.currentTimeMillis() - time;
 		
 		time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query); /* MAIN ALGORITHM */
