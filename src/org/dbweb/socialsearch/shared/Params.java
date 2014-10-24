@@ -5,4 +5,5 @@ public class Params {
 	//public static String[] handles = {"Alice", "Bob", "Charlie", "Diana", "Ed", "Frank", "George", "Henry", "Ian", "Julie"};
 	public static String[] network = {"soc_snet_dt"};
 //	public static String[] network = {"soc_snet_tt","soc_snet_d","soc_snet_dt"};
+	public static String taggers = "soc_tag_80";
 }

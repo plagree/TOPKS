@@ -59,7 +59,12 @@ public class OptimalPaths {
 		this.values = values;
 		this.heap = heap;
 		this.func[2]=new PathPow(coeff);
-		LoadIntoMemory.loadData(this.connection);
+		try {
+			LoadIntoMemory.loadData(this.connection);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 //		if(heap) try {
 //			loadNetwork();
 //		} catch (SQLException e) {
@@ -116,11 +121,14 @@ public class OptimalPaths {
 //    		return retVal;    		
 //    	}
     	FibonacciHeapNode<Integer> currUser = null;
+    	
     	if(currentUser!=null)
     		if(nodes.containsKey(currentUser.getEntryId()))
     			currUser = nodes.get(currentUser.getEntryId());
-    	if(this.heap&&currentUser!=null&&currUser!=null){//if we don't have any new values -- calculate a new heap
+    	
+    	if(this.heap&&currentUser!=null&&currUser!=null){//if we don't have any new values -- calculate a new heap	
     		calculateHeap(currUser);
+    		
     		if(prioQueue.size()>0){
     			//prioQueue.rebuild_heap();
     			currUser = prioQueue.removeMin();
@@ -136,8 +144,9 @@ public class OptimalPaths {
     			values.add(retVal.getDist());
         		return retVal;
     		}
-    		else
+    		else {
     			return null;
+    		}
     	}
     	return null;
     }
@@ -180,8 +189,12 @@ public class OptimalPaths {
 	
 	private void calculateHeap(FibonacciHeapNode<Integer> currentUser){
     	boolean foundFirst = false;
+    	long time_loading_after = 0;
+		long time_loading_before = System.currentTimeMillis();
+		int i = 0;
     	ArrayList<UserLink<Integer,Float>> neighbl = getNeighbList(currentUser.getData());
     	if(neighbl!=null){
+    		
     		for(UserLink<Integer,Float> neighb:neighbl){
     			int neighbourId = neighb.getRecipient();
     			float weight = neighb.getWeight();
@@ -200,8 +213,13 @@ public class OptimalPaths {
         			}
         			relax(currentUser, neighbour, new Float(weight)); 
     			}
+    			i++;
     		}
     	}
+    	time_loading_after = System.currentTimeMillis();
+		long tl = (time_loading_after-time_loading_before)/1000;
+		if (tl>1)
+			System.out.println("bizarre :"+i);
     }
 	
 	private void relaxMax(UserEntry<Float> u, UserEntry<Float> v, Float w){
@@ -253,14 +271,16 @@ public class OptimalPaths {
 //	}
 	
 	private ArrayList<UserLink<Integer,Float>> getNeighbList(int user){
-
 		if(heap){
 			Network net = Network.getInstance(connection);
 			network = net.getNetwork(networkTable);
-			if(this.network.containsKey(user))
+			if(this.network.containsKey(user)) {
 				return this.network.get(user);
-			else
+			}
+				
+			else {
 				return null;
+			}
 		}
 		return null;
 //		else{
