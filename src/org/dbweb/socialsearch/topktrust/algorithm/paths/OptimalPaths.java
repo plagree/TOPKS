@@ -189,9 +189,6 @@ public class OptimalPaths {
 	
 	private void calculateHeap(FibonacciHeapNode<Integer> currentUser){
     	boolean foundFirst = false;
-    	long time_loading_after = 0;
-		long time_loading_before = System.currentTimeMillis();
-		int i = 0;
     	ArrayList<UserLink<Integer,Float>> neighbl = getNeighbList(currentUser.getData());
     	if(neighbl!=null){
     		
@@ -213,13 +210,8 @@ public class OptimalPaths {
         			}
         			relax(currentUser, neighbour, new Float(weight)); 
     			}
-    			i++;
     		}
     	}
-    	time_loading_after = System.currentTimeMillis();
-		long tl = (time_loading_after-time_loading_before)/1000;
-		if (tl>1)
-			System.out.println("bizarre :"+i);
     }
 	
 	private void relaxMax(UserEntry<Float> u, UserEntry<Float> v, Float w){
