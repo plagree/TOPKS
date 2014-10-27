@@ -1227,9 +1227,9 @@ public class TopKAlgorithm{
 			long time_loading_before = System.currentTimeMillis();
 			currentUser = optpath.advanceFriendsList(currentUser, query);
 			long time_loading_after = System.currentTimeMillis();
-			long tl = (time_loading_after-time_loading_before)/1000;
-			if (tl>1)
-				System.out.println("Loading in dd: "+tl);
+			long tl = (time_loading_after-time_loading_before);
+			if (tl>100)
+				System.out.println("Loading next friends in: "+tl);
 		}
 		//time_2 = System.currentTimeMillis();
 		//this.time_heap+=(time_2 - time_1);
@@ -1238,7 +1238,6 @@ public class TopKAlgorithm{
 		else
 			userWeight = 0.0f;
 		proximities.add((double)userWeight);
-
 	}
 
 	private void lookIntoList(HashSet<String> query){

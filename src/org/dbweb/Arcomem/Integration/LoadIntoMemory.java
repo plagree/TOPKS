@@ -65,6 +65,8 @@ public class LoadIntoMemory {
 		loadInvertedLists(conn);
 		long afterLoadIL = System.currentTimeMillis();
 		System.out.println("ILs load in memory in "+(afterLoadIL-beforeLoadIL)+" ms...");
+		
+		System.gc();
 
 		return;
 	}

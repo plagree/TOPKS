@@ -49,7 +49,7 @@ public class Test{
 
 	private static final float[] alpha ={0.0f};
 	private static final boolean[] heap = {true};
-	public static final String[] network = {"soc_snet_dt"};
+	public static final String[] network = {"soc_snet_tt"};
 	public static final String taggers = "soc_tag_80";//"tagging";
 	private static final int k = 10;
 	private static final int[] met = {0}; //,1,2,4};
@@ -107,13 +107,14 @@ public class Test{
 										long timeBefore = System.currentTimeMillis();
 										topk_alg.executeQuery(String.valueOf(seekers[index_n][index_s]), query, k); // TOPKS IS RUN HERE
 										long timeAfter = System.currentTimeMillis();
-										//System.out.println("The algorithm ran in "+(timeAfter-timeBefore)/1000+" seconds.");
+										System.out.println("The algorithm ran in "+(timeAfter-timeBefore)/1000+" seconds.");
 										xmlFile.write(topk_alg.getResultsXML());
 										test_num++;
 										res[0] = String.format("Currently at test number %d...",test_num);
 										results.setResults(res);
 										xmlFile.write("</tests>");							
 										xmlFile.close();
+										System.gc();
 
 										// concatenate to current topk TODO
 										// manyTopks.add(topk_alg.getResultsList());
