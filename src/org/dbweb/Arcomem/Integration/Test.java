@@ -52,8 +52,8 @@ public class Test{
 	public static final String[] network = {"soc_snet_dt"};
 	public static final String taggers = "soc_tag_80";//"tagging";
 	private static final int k = 10;
-	private static final int[] met = {0};//,1,2,4};
-	private static final String[] metname = {"met1"};//,"met1","met2","met4"};
+	private static final int[] met = {1};//,1,2,4};
+	private static final String[] metname = {"exact"};//,"met1","met2","met4"};
 	private static double coeff = 2.0f;
 	private static String r_preporc = String.format("%s%n%s","require(gtools)","require(RobustRankAggreg)");
 

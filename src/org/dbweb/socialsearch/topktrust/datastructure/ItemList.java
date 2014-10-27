@@ -276,7 +276,7 @@ public class ItemList implements Cloneable{
         double scoremin = 0.0f;
         double scoremax = 0.0f;
         thritem = null;
-        for(String tag:positions.keySet()) position = positions.get(tag).intValue();
+        //for(String tag:positions.keySet()) position = positions.get(tag).intValue();
         topk_changed = false;
         if(needUnseen){ //Upper bound on unseen items
         	for(String tag : high.keySet()){

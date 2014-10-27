@@ -130,8 +130,6 @@ public class LoadIntoMemory {
 			}
 			positions.put(tag, 0f);
 			userWeights.put(tag, userWeight);
-			//pos[index]=0;
-			//index++;
 			ps = connection.prepareStatement(sqlGetTagFrequency);
 			ps.setString(1, tag);
 			result = ps.executeQuery();

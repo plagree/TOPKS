@@ -813,22 +813,6 @@ public class TopKAlgorithm{
 		PreparedStatement ps;
 		ResultSet result;                
 
-		//        String sqlGetNumberDocuments = String.format(sqlGetNumberDocumentsTemplate, this.tagTable);
-		//        String sqlGetNumberUsers = String.format(sqlGetNumberUsersTemplate, this.tagTable);
-
-		//Establishing the global properties
-
-		//        ps = connection.prepareStatement(sqlGetNumberDocuments);
-		//    	result = ps.executeQuery();
-		//    	while(result.next()){
-		//    		this.number_documents = result.getInt(1);
-		//    	}
-		//    	ps = connection.prepareStatement(sqlGetNumberUsers);
-		//    	result = ps.executeQuery();
-		//    	while(result.next()){
-		//    		this.number_users = result.getInt(1);
-		//    	}
-
 		//Preparing the docs list
 		/* ChANGE FOR IMPROVEMENT
 		high_docs = new HashMap<String,Integer>();
@@ -861,6 +845,7 @@ public class TopKAlgorithm{
 		for(String tag:query){
 			docs[index] = LoadIntoMemory.docs.get(tag);
 			pos[index]=0;
+			next_docs[index] = LoadIntoMemory.next_docs.get(tag);
 			index++;
 		}
 		proximities.add((double)userWeight);
@@ -1264,7 +1249,7 @@ public class TopKAlgorithm{
 			tags[index] = tag;
 			index++;
 		}
-		System.out.println(next_docs[0]+"");//toString());
+		System.out.println("Look Into list : "+next_docs[0]+"");//toString());
 		while(found){
 			for(String tag:query){
 				found = false; // ?????
