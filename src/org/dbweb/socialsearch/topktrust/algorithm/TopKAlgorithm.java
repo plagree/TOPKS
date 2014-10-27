@@ -1085,7 +1085,7 @@ public class TopKAlgorithm{
 			loops++;
 		}while(!terminationCondition&&!finished);
 		this.numloops=loops;
-		System.out.println("loops="+loops);
+		//System.out.println("loops="+loops);
 		//time_loop = System.currentTimeMillis() - time;
 	}
 
@@ -1486,7 +1486,7 @@ public class TopKAlgorithm{
 	 * TOO lONG
 	 */
 	protected void setQueryResultsArrayList(HashSet<String> query, String seeker, int k, int method, float alpha){
-		System.out.println("this.candidates.get_topk().size()="+this.candidates.get_topk().size());
+		//System.out.println("this.candidates.get_topk().size()="+this.candidates.get_topk().size());
 		String queryStr="";
 		//item 
 		String singItem = "";

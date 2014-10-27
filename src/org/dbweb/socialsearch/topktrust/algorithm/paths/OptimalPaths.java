@@ -34,6 +34,8 @@ public class OptimalPaths {
 	
 	private static Logger log = LoggerFactory.getLogger(OptimalPaths.class); 
 	
+	private static int counter = 0;
+	
 	private HashMap<Integer,ArrayList<UserLink<Integer,Float>>> network;
 	private ArrayList<UserEntry<Float>> friends;
 	private ArrayList<Float> values;
@@ -97,7 +99,7 @@ public class OptimalPaths {
     	done = new HashSet<Integer>();
     	prioQueue = new FibonacciHeap<Integer>();
     	FibonacciHeapNode<Integer> seekerUser = new FibonacciHeapNode<Integer>(seeker,new Float(1.0));
-    	nodes = new HashMap<Integer,FibonacciHeapNode<Integer>>();
+    	nodes = new HashMap<Integer,FibonacciHeapNode<Integer>>((int)(280000/0.75));
     	done.add(seeker);
     	nodes.put(seeker, seekerUser);
     	prioQueue.insert(seekerUser,new Float(1.0));
@@ -189,29 +191,91 @@ public class OptimalPaths {
 	
 	private void calculateHeap(FibonacciHeapNode<Integer> currentUser){
     	boolean foundFirst = false;
+    	counter++;
+    	int cc = 0;
     	ArrayList<UserLink<Integer,Float>> neighbl = getNeighbList(currentUser.getData());
+    	long time0 = System.currentTimeMillis();
+    	long time1=time0, time2=time0, time3=time0, time4=time0, time5=time0;
     	if(neighbl!=null){
     		
     		for(UserLink<Integer,Float> neighb:neighbl){
+    			time0 = System.currentTimeMillis();
+    			
+    			// TIME //////////////////////////////
+    			time1 = System.currentTimeMillis();
+    	    	if ((time1-time0)>10) {
+    	    		System.out.println("(first)--");
+    	    		System.out.println((time1-time0)+", "+(time2-time0)+", "+(time3-time0)+", "+(time4-time0)+", "+(time5-time0));
+    	    	}/////////////////////////////////////
+    			cc++;
     			int neighbourId = neighb.getRecipient();
     			float weight = neighb.getWeight();
+    			
+    			// TIME ///////////////////////////////
+    			time1 = System.currentTimeMillis();
+    	    	if ((time1-time0)>10) {
+    	    		System.out.println("(neighb.get)--");
+    	    		System.out.println((time1-time0)+", "+(time2-time0)+", "+(time3-time0)+", "+(time4-time0)+", "+(time5-time0));
+    	    	}//////////////////////////////////////
+    	    	time0 = System.currentTimeMillis();
+    	    	
 //    			if(max_pos_val==1.0f) max_pos_val=weight;
 //    			else neighb.setWeight(weight/max_pos_val);
 //    			neighb.setWeight(weight/max_pos_val);
-    			FibonacciHeapNode<Integer> neighbour = new FibonacciHeapNode<Integer>(neighbourId,Float.POSITIVE_INFINITY);
+    			FibonacciHeapNode<Integer> neighbour = new FibonacciHeapNode<Integer>(neighbourId,Float.POSITIVE_INFINITY);  // ICI ICI ICI
+    			
+    			// TIME ////////////////////////////////
+    			time2 = System.currentTimeMillis();
+    	    	if ((time2-time0)>10) {
+    	    		System.out.println("(aqui)--");
+    	    		System.out.println((time1-time0)+", "+(time2-time0)+", "+(time3-time0)+", "+(time4-time0)+", "+(time5-time0));
+    	    	}///////////////////////////////////////
+    	    	time0 = System.currentTimeMillis();
+    	    	
     			if(!done.contains(neighbourId)){
         			if(!nodes.containsKey(neighbourId)){
         				nodes.put(neighbourId, neighbour);
         				prioQueue.insert(neighbour, Float.POSITIVE_INFINITY);
+        				
+        				//TIME //////////////////////////
+        				time3 = System.currentTimeMillis();
+            	    	if ((time3-time0)>10) {
+            	    		System.out.println("(containskey)--");
+            	    		System.out.println((time1-time0)+", "+(time2-time0)+", "+(time3-time0)+", "+(time4-time0)+", "+(time5-time0));
+            	    	}////////////////////////////////
+            	    	
         			}
-        			else{        				        			
-        				neighbour = nodes.get(neighbourId);
-//        				log.info("\t\t\t node old {} value {}",neighbour.getData(), 1.0f/neighbour.getKey());
+        			else{
+        				time0 = System.currentTimeMillis();       				        			
+        				neighbour = nodes.get(neighbourId); // ICICICICICICCICICICI
+        				
+        				//TIME ///////////////////////////
+        				time4 = System.currentTimeMillis();
+            	    	if ((time4-time0)>10) {
+            	    		System.out.println("(nodes)--");
+            	    		System.out.println((time1-time0)+", "+(time2-time0)+", "+(time3-time0)+", "+(time4-time0)+", "+(time5-time0));
+            	    	}//////////////////////////////////
+            	    	
         			}
-        			relax(currentUser, neighbour, new Float(weight)); 
+        			time0 = System.currentTimeMillis();
+        			relax(currentUser, neighbour, new Float(weight));
+        			
+        			// TIME ////////////////////////////////
+        			time5 = System.currentTimeMillis();
+        	    	if ((time5-time0)>10) {
+        	    		System.out.println("(relax)--");
+        	    		System.out.println((time1-time0)+", "+(time2-time0)+", "+(time3-time0)+", "+(time4-time0)+", "+(time5-time0));
+        	    	}///////////////////////////////////////
+        	    	time0 = System.currentTimeMillis();
     			}
     		}
     	}
+    	time1 = System.currentTimeMillis();
+    	if ((time1-time0)>100) {
+    		System.out.println(time1-time0);
+    		System.out.println(neighbl.size()+" is the size, counter : "+counter+", cc : "+cc);
+    	}
+    	
     }
 	
 	private void relaxMax(UserEntry<Float> u, UserEntry<Float> v, Float w){
@@ -226,17 +290,27 @@ public class OptimalPaths {
     }
 	
 	private void relax(FibonacciHeapNode<Integer> u, FibonacciHeapNode<Integer> v, Float w){
+		long time0 = System.currentTimeMillis();
 		float val_u = (float)u.getKey();
+		long time1 = System.currentTimeMillis();
 		val_u = (val_u==Float.POSITIVE_INFINITY)?0:max_pos_val/(val_u);
+		long time2 = System.currentTimeMillis();
 		float val_v = (float)v.getKey();
+		long time3 = System.currentTimeMillis();
 		val_v = (val_v==Float.POSITIVE_INFINITY)?0:max_pos_val/(val_v);
+		long time4 = System.currentTimeMillis();
         Comparable result = this.distFunc.compute(val_u, w);
+        long time5 = System.currentTimeMillis();
+        long time6 = System.currentTimeMillis();
         if(result.compareTo(val_v)>0){
 //        	if(max_pos_val==1.0f) max_pos_val = (Float)result;
         	//log.info("\t\t\t node old {} value {}",v.getData(), val_v);
         	prioQueue.decreaseKey(v, (Float)max_pos_val/(Float)result);
+        	time6 = System.currentTimeMillis();
         	//log.info("\t\t\t node new {} value {}",v.getData(), 1.0f/v.getKey());
         }
+        if ((time6-time0)>10)
+        	System.out.println(" time1: "+(time1-time0)+" time2: "+(time2-time0)+" time3: "+(time3-time0)+" time4: "+(time4-time0)+" time5: "+(time5-time0)+" time6: "+(time6-time0));
     }
 	
 //	private void loadNetwork() throws SQLException{
