@@ -90,22 +90,23 @@ public class Test{
 						// loop on heap (actually, always heap)
 						for(int index_m=0; index_m<heap.length;index_m++) {
 
-							// loop on QUERIES
-							for(int index_q=0; index_q<query1.length;index_q++) {
-								HashSet<String> query = new HashSet<String>();
-								query.add(query1[index_q]);
-
+							// loop on ALPHA VALUES
+							for(int index_a=0; index_a<alpha.length;index_a++) {
+								
+								topk_alg = new TopKAlgorithm(dbConn, taggers, network[index_n], met[index_mt], score, alpha[index_a], func[index_f], optpath, 1);
+								
 								// loop on SEEKERS
 								for(int index_s=0; index_s<seekers[index_n].length;index_s++) {
-
-									// loop on ALPHA VALUES
-									for(int index_a=0; index_a<alpha.length;index_a++)
-									{
+									
+									// loop on QUERIES
+									for(int index_q=0; index_q<query1.length;index_q++) { 
+										HashSet<String> query = new HashSet<String>();
+										query.add(query1[index_q]);
 										n += 1;
 										xmlFile = new FileWriter(String.format("tests_%s_%s_%s"+n+".xml", metname[index_mt], network[index_n], func[index_f].toString()));
 										xmlFile.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
 										xmlFile.write("<tests>");
-										topk_alg = new TopKAlgorithm(dbConn, taggers, network[index_n], met[index_mt], score, alpha[index_a], func[index_f], optpath, 1);
+										
 										long timeBefore = System.currentTimeMillis();
 										topk_alg.executeQuery(String.valueOf(seekers[index_n][index_s]), query, k); // TOPKS IS RUN HERE
 										long timeAfter = System.currentTimeMillis();
@@ -116,11 +117,6 @@ public class Test{
 										results.setResults(res);
 										xmlFile.write("</tests>");							
 										xmlFile.close();
-
-										// concatenate to current topk TODO
-										// manyTopks.add(topk_alg.getResultsList());
-										// commenter on 8/9/14
-										// complexTopkList.addToResults(new Seeker(seekers[index_n][index_s]), topk_alg.getResultsList());
 									}
 								}
 							}

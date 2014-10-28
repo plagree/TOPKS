@@ -222,9 +222,13 @@ public class TopKAlgorithm{
 	private HashSet<String> guaranteed;
 	private HashSet<String> possible;
 
+	// NEW
+	private HashMap<String, ResultSet> docs2;
+	private HashMap<String, String> next_docs2;
+
 	private int numloops=0; //amine
 
-	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error){
+	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error) throws SQLException{
 		//super(distFunc, dbConnection, networkTable, tagTable);
 		this.distFunc = distFunc;
 		this.dbConnection = dbConnection;
@@ -239,6 +243,61 @@ public class TopKAlgorithm{
 		this.score = itemScore;
 		this.number_documents = 1570866;//595811;
 		this.number_users = 570347;//80000;
+
+		this.connection = dbConnection.DBConnect();
+		PreparedStatement ps;
+		ResultSet result;
+		float userWeight = 1.0f;
+		high_docs = new HashMap<String,Integer>();
+		positions = new HashMap<String,Float>();
+		userWeights = new HashMap<String,Float>();
+		//ArrayList<Double> proximities = new ArrayList<Double>();
+		tagFreqs = new HashMap<String,Integer>();
+		//HashMap<String,Integer> lastpos = new HashMap<String,Integer>();
+		//HashMap<String,Float> lastval = new HashMap<String,Float>();
+		tag_idf = new HashMap<String,Float>();
+		next_docs2 = new HashMap<String, String>();
+		// USEFUL ??? int [] pos = new int[N];
+		docs2 = new HashMap<String, ResultSet>();
+		//int index = 0;
+		String[] dictionary = {
+				//"car", //testindb
+				"Obama", //twitter dump
+				"TFBJP",
+				"Cancer",
+				"Syria",
+				"SOUGOFOLLOW",
+				"Apple",
+		};
+
+		for(String tag:dictionary){
+			/*
+			 * INVERTED LISTS ARE HERE
+			 */
+			ps = this.connection.prepareStatement(sqlGetDocsListByTag);
+			ps.setString(1, tag);
+			docs2.put(tag, ps.executeQuery()); // INVERTED LIIIIIIIST
+			if(docs2.get(tag).next()){
+				int getInt2 = docs2.get(tag).getInt(2);
+				String getString1 = docs2.get(tag).getString(1);
+				high_docs.put(tag, getInt2);
+				next_docs2.put(tag, getString1);
+			}
+			else{
+				high_docs.put(tag, 0);
+				next_docs2.put(tag, "");
+			}
+			positions.put(tag, 0f);
+			userWeights.put(tag, userWeight);
+			ps = connection.prepareStatement(sqlGetTagFrequency);
+			ps.setString(1, tag);
+			result = ps.executeQuery();
+			int tagfreq = 0;
+			if(result.next()) tagfreq = result.getInt(1);
+			tagFreqs.put(tag, high_docs.get(tag));
+			float tagidf = (float) Math.log(((float)number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
+			tag_idf.put(tag, new Float(tagidf));
+		}
 	}
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error, int number_documents, int number_users){
@@ -782,7 +841,7 @@ public class TopKAlgorithm{
 	 * l 783- 1035
 	 */
 	public int executeQuery(String seeker, HashSet<String> query, int k) throws SQLException{
-		
+
 		this.time_dji = 0;
 		this.time_term = 0;
 		this.time_clist = 0;
@@ -804,7 +863,7 @@ public class TopKAlgorithm{
 		// userviews = new HashMap<String,ArrayList<UserView>>();
 		for(String tag:query)
 			unknown_tf.put(tag, new HashSet<String>());    	
-		connection = dbConnection.DBConnect();
+		//connection = dbConnection.DBConnect();
 		connection.setAutoCommit(false);
 		this.optpath.setValues(values);
 		this.optpath.setDistFunc(distFunc);
@@ -813,14 +872,46 @@ public class TopKAlgorithm{
 			landmark.setPathFunction(this.distFunc);
 			currentUser = new UserEntry<Float>(this.seeker,1.0f);
 		}
-		 else{
+		else{
 			currentUser = optpath.initiateHeapCalculation(this.seeker, query);
 		}
-		userWeight = 1.0f;
 
+		userWeight = 1.0f;
 		terminationCondition = false;
 		PreparedStatement ps;
-		ResultSet result;                
+		ResultSet result;
+		proximities = new ArrayList<Double>();
+		lastpos = new HashMap<String,Integer>();
+		lastval = new HashMap<String,Float>();
+		next_docs = new String[query.size()];
+		pos = new int[query.size()];
+		docs = new ResultSet[query.size()];
+		int index = 0;
+		for(String tag:query){
+			docs[index] = docs2.get(tag);
+			pos[index]=0;
+			next_docs[index] = next_docs2.get(tag);
+			index++;
+		}
+		proximities = new ArrayList<Double>();
+		proximities.add((double)userWeight);
+
+		int index2 = 0;
+		for(String tag:query){
+			if(docs[index2].next()){
+				System.out.println("getInt2: "+docs[index2].getInt(2)+", getString1: "+docs[index2].getString(1));
+				System.out.println("high-docs: "+high_docs.get(tag)+", next-docs: "+next_docs[index2]);
+			}
+			/*else{
+				high_docs.put(tag, 0);
+				next_docs[index] = "";
+			}*/
+			System.out.println("positions: "+positions.get(tag)+", userWeights: "+userWeights.get(tag)+", pos[index]: "+pos[index2]);
+			index++;
+			System.out.println("tagFreqs: "+tagFreqs.get(tag)+", tagidf: "+tag_idf.get(tag));
+		}
+		System.out.println(proximities.toString());
+		System.exit(0);
 
 		//        String sqlGetNumberDocuments = String.format(sqlGetNumberDocumentsTemplate, this.tagTable);
 		//        String sqlGetNumberUsers = String.format(sqlGetNumberUsersTemplate, this.tagTable);
@@ -839,7 +930,7 @@ public class TopKAlgorithm{
 		//    	}
 
 		//Preparing the docs list
-		high_docs = new HashMap<String,Integer>();
+		/*high_docs = new HashMap<String,Integer>();
 		positions = new HashMap<String,Float>();
 		userWeights = new HashMap<String,Float>();
 		proximities = new ArrayList<Double>();
@@ -851,11 +942,7 @@ public class TopKAlgorithm{
 		pos = new int[query.size()];
 		docs = new ResultSet[query.size()];
 		int index = 0;
-		long time00 = System.currentTimeMillis();
 		for(String tag:query){
-			/*
-			 * INVERTED LISTS ARE HERE
-			 */
 			ps = connection.prepareStatement(sqlGetDocsListByTag);
 			ps.setString(1, tag);
 			docs[index] = ps.executeQuery();
@@ -881,10 +968,8 @@ public class TopKAlgorithm{
 			tagFreqs.put(tag, high_docs.get(tag));
 			float tagidf = (float) Math.log(((float)this.number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
 			this.tag_idf.put(tag, new Float(tagidf));
-		}
-		proximities.add((double)userWeight);
-		long time10 = System.currentTimeMillis();
-		//System.out.println("Before mainLoop xx: "+(time10-time00)/1000+"sec.");
+		}*/
+		
 
 		//getting the userviews
 		String sqlGetViews = sqlGetViewsTemplate;
@@ -899,6 +984,8 @@ public class TopKAlgorithm{
 			idx++;
 		}
 
+		/* NEW ALL IN MEM
+		 * 
 		ps = connection.prepareStatement(sqlGetViews);
 		ps.setString(1, distFunc.toString());
 		ps.setString(2, score.toString());
@@ -925,9 +1012,9 @@ public class TopKAlgorithm{
 		}
 
 		this.viewTransformer = new ViewTransformer(k,query,alpha,distFunc,score.toString(),tagTable,tagFreqs,tag_idf, networkTable,score, connection);
-
+		 NEW ALL IN MEM*/
 		//getting the approximate statistics
-		
+
 		if((this.approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
 			String sqlGetDistribution = String.format(sqlGetDistributionTemplate, this.networkTable);
 			ps = connection.prepareStatement(sqlGetDistribution);
@@ -957,7 +1044,7 @@ public class TopKAlgorithm{
 				d_hist.setVals(tag, 0, 1.0f);
 			}
 		}
-    	//this.d_distr = new DataDistribution(1.0f, 0.0f, this.number_users, query);
+		//this.d_distr = new DataDistribution(1.0f, 0.0f, this.number_users, query);
 
 		Comparator comparator = new MinScoreItemComparator();   
 		virtualItem = createNewCandidateItem("<rest_of_the_items>",query,virtualItem);
@@ -981,7 +1068,7 @@ public class TopKAlgorithm{
 			}
 			idx++;
 		}
-		
+
 		total_users = 0;        
 		total_lists_social = 0;
 		total_documents_social = 0;
@@ -1011,7 +1098,7 @@ public class TopKAlgorithm{
 			}
 			this.docs_users.get(d_usr).get(d_tag).add(d_itm);
 		}
-		
+
 		long time1 = System.currentTimeMillis();
 		//System.out.println("Before mainLoop 1: "+(time1-time0)/1000+"sec.");
 
@@ -1022,7 +1109,7 @@ public class TopKAlgorithm{
 		//    		this.taggers.add(result.getString(1));
 		//    	result.close();
 		//    	ps.close();
-		
+
 		time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query); /* MAIN ALGORITHM */
 		time1 = System.currentTimeMillis();
@@ -1564,7 +1651,7 @@ public class TopKAlgorithm{
 
 		}
 		this.newXMLResults+="</TopkResults>\n";
-		
+
 		/* DUNNO WHAT IT DOES
 		//amine add bucket component
 		this.newBucketResults+="<BucketResults>\n";
@@ -1585,7 +1672,7 @@ public class TopKAlgorithm{
 				this.newBucketResults+="\n";
 			}
 		}*/
-		
+
 		/* DUNNO WHAT IT DOES
 		this.newBucketResults+="</BucketResults>\n";
 		//        	System.out.println(candidates.getMax_from_rest());
@@ -1624,7 +1711,7 @@ public class TopKAlgorithm{
 		//			ex.printStackTrace();
 		//		}
 	}
-	
+
 	public void setLandmarkPaths(LandmarkPathsComputing landmark){
 		this.landmark = landmark;
 	}
