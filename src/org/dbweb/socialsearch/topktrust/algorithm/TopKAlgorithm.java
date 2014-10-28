@@ -911,6 +911,13 @@ public class TopKAlgorithm{
 			System.out.println("tagFreqs: "+tagFreqs.get(tag)+", tagidf: "+tag_idf.get(tag));
 		}
 		System.out.println(proximities.toString());
+		
+		if(docs[0].next()){
+			int getInt2 = docs[0].getInt(2);
+			String getString1 = docs[0].getString(1);
+			System.out.println("HEY: "+getInt2+" "+getString1);
+		}
+		
 		System.exit(0);
 
 		//        String sqlGetNumberDocuments = String.format(sqlGetNumberDocumentsTemplate, this.tagTable);
