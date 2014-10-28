@@ -884,7 +884,7 @@ public class TopKAlgorithm{
 		}
 		proximities.add((double)userWeight);
 		long time10 = System.currentTimeMillis();
-		System.out.println("Before mainLoop xx: "+(time10-time00)/1000+"sec.");
+		//System.out.println("Before mainLoop xx: "+(time10-time00)/1000+"sec.");
 
 		//getting the userviews
 		String sqlGetViews = sqlGetViewsTemplate;
@@ -1013,7 +1013,7 @@ public class TopKAlgorithm{
 		}
 		
 		long time1 = System.currentTimeMillis();
-		System.out.println("Before mainLoop 1: "+(time1-time0)/1000+"sec.");
+		//System.out.println("Before mainLoop 1: "+(time1-time0)/1000+"sec.");
 
 		//    	ps = connection.prepareStatement(sqlGetTaggers);
 		//    	ps.setFetchSize(1000);
