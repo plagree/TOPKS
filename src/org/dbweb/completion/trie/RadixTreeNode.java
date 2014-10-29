@@ -17,18 +17,28 @@ public class RadixTreeNode implements Comparable {
 	private boolean real;
 	private float value;
 	private RadixTreeNode bestDescendant;
+	private String word;
 
 	/**
 	 * initialize the fields with default values to avoid null reference checks
 	 * all over the places
 	 */
-	public RadixTreeNode() {
+	public RadixTreeNode(String name) {
 		key = "";
 		children = new SortedArrayList<RadixTreeNode>();
 		real = false;
 		parent = null;
 		value = 0;
 		bestDescendant = this;
+		word = name;
+	}
+	
+	public String getWord() {
+		return word;
+	}
+	
+	public void setWord(String newWord) {
+		this.word = newWord;
 	}
 
 	public float getValue() {

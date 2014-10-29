@@ -29,6 +29,7 @@ import org.dbweb.socialsearch.topktrust.datastructure.comparators.MinScoreItemCo
 import org.dbweb.socialsearch.topktrust.datastructure.general.SortedQueue;
 import org.dbweb.socialsearch.topktrust.datastructure.views.UserView;
 import org.dbweb.socialsearch.topktrust.datastructure.views.ViewScore;
+import org.dbweb.completion.trie.RadixTreeImpl;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -103,10 +104,8 @@ public class TopKAlgorithm{
 
 	protected ItemList candidates;
 
-
 	public ItemList getPubCandids() {
 		return this.candidates;
-
 	}
 
 	protected HashMap<Integer,HashMap<String,HashSet<String>>> docs_users;
@@ -132,6 +131,7 @@ public class TopKAlgorithm{
 	protected String[] next_docs;
 	protected ResultSet[] docs;
 	protected ArrayList<String> dictionary;
+	protected RadixTreeImpl completion_trie; // Completion trie
 
 	protected int[] pos;
 	protected int seeker;
@@ -259,11 +259,12 @@ public class TopKAlgorithm{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println("Dictionary loaded, "+dictionary.size()+"tags...");
+		System.out.println("Dictionary loaded, "+dictionary.size()+"tags...");		
 
 		// INVERTED LISTS
 		ResultSet result;
 		userWeight = 1.0f;
+		completion_trie = new RadixTreeImpl();
 		high_docs = new HashMap<String,Integer>();
 		positions = new HashMap<String,Float>();
 		userWeights = new HashMap<String,Float>();
@@ -279,6 +280,7 @@ public class TopKAlgorithm{
 				"Syria",
 				"SOUGOFOLLOW",
 				"Apple",
+				"NoMatter"
 		};
 		for(String tag:dictionary2){
 			/*
@@ -292,6 +294,7 @@ public class TopKAlgorithm{
 				String getString1 = docs2.get(tag).getString(1);
 				high_docs.put(tag, getInt2);
 				next_docs2.put(tag, getString1);
+				completion_trie.insert(tag, getInt2);
 			}
 			else{
 				high_docs.put(tag, 0);
@@ -307,25 +310,21 @@ public class TopKAlgorithm{
 			tagFreqs.put(tag, high_docs.get(tag));
 			float tagidf = (float) Math.log(((float)number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
 			tag_idf.put(tag, new Float(tagidf));
+			
 		}
 		System.out.println("Inverted Lists loaded...");
+		completion_trie.display();
 
 		// USER SPACES
-		sqlGetDocuments = String.format(sqlGetDocumentsTemplate, this.tagTable);
 		sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate, this.tagTable);
-		sqlGetTaggers = String.format(sqlGetTaggersTemplate, this.tagTable);
 		int idx=0;
 
-		for(String tag:dictionary2){
+		for(String tag:dictionary2) {
 			if(idx<dictionary2.length-1){
-				sqlGetDocuments+=String.format(sqlAddQueryTerm+" or ",tag);
 				sqlGetAllDocuments+=String.format("\'%s\',", tag);
-				sqlGetTaggers+=String.format("\'%s\',", tag);
 			}
 			else{
-				sqlGetDocuments+=String.format(sqlAddQueryTerm+")",tag);
 				sqlGetAllDocuments+=String.format("\'%s\')", tag);
-				sqlGetTaggers+=String.format("\'%s\')", tag);
 			}
 			idx++;
 		}
@@ -341,10 +340,12 @@ public class TopKAlgorithm{
 			String d_tag = result.getString(3);
 			if(!this.docs_users.containsKey(d_usr)){
 				this.docs_users.put(d_usr, new HashMap<String,HashSet<String>>());
-				for(String tag:dictionary2)
-					this.docs_users.get(d_usr).put(tag, new HashSet<String>());
+				//for(String tag:dictionary2)
+				//	this.docs_users.get(d_usr).put(tag, new HashSet<String>());
 				//    				System.out.println("docs"+docs_users);//TODO
 			}
+			if(!this.docs_users.get(d_usr).containsKey(d_tag))
+				this.docs_users.get(d_usr).put(d_tag, new HashSet<String>());
 			this.docs_users.get(d_usr).get(d_tag).add(d_itm);
 		}
 		System.out.println("Users spaces loaded");
@@ -359,8 +360,6 @@ public class TopKAlgorithm{
 		this.tagTable = tagTable;
 		this.alpha = scoreAlpha;
 		this.approxMethod = method;
-		// HashMap<String,ArrayList<UserLink<String,Float>>> network
-		// this.network = network;
 		this.optpath = optPathClass;
 		this.error = error;
 		this.score = itemScore;
@@ -371,7 +370,7 @@ public class TopKAlgorithm{
 
 	/**
 	 * Main call from TopKAlgorithm class, call this after building a new object to run algorithm
-	 * l 783- 1035
+	 * l 372- 542
 	 */
 	public int executeQuery(String seeker, HashSet<String> query, int k) throws SQLException{
 

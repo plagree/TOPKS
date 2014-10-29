@@ -17,7 +17,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 	 * Create a Radix Tree with only the default node root.
 	 */
 	public RadixTreeImpl() {
-		root = new RadixTreeNode();
+		root = new RadixTreeNode("");
 		root.setKey("#");
 		size = 0;
 	}
@@ -111,7 +111,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 	 */
 	public void insert(String key, float value) throws DuplicateKeyException {
 		try {
-			insert(key, root, value);
+			insert(key, root, value, key);
 		} catch (DuplicateKeyException e) {
 			// re-throw the exception with 'key' in the message
 			throw new DuplicateKeyException("Duplicate key: '" + key + "'");
@@ -127,7 +127,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 	 * @param value The value associated with the key 
 	 * @throws DuplicateKeyException If the key already exists in the database.
 	 */
-	private void insert(String key, RadixTreeNode node, float value)
+	private void insert(String key, RadixTreeNode node, float value, String word)
 			throws DuplicateKeyException {
 
 		int numberOfMatchingCharacters = node.getNumberOfMatchingCharacters(key);
@@ -140,7 +140,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 			for (RadixTreeNode child : node.getChildren()) {
 				if (child.getKey().startsWith(newText.charAt(0) + "")) {
 					flag = true;
-					insert(newText, child, value);
+					insert(newText, child, value, word);
 					break;
 				}
 			}
@@ -149,14 +149,14 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 			if (flag == false) {
 				// the best match is a leaf => we create a leaf for this node
 				if (node.getChildren().isEmpty() && node.isReal()) {
-					RadixTreeNode n = new RadixTreeNode();
+					RadixTreeNode n = new RadixTreeNode(node.getWord());
 					n.setKey("");
 					n.setReal(true);
 					n.setValue(node.getValue());
 					node.setReal(false);
 					node.insertChildWithRespectToAncestors(n);
 				}
-				RadixTreeNode n = new RadixTreeNode();
+				RadixTreeNode n = new RadixTreeNode(word);
 				n.setKey(newText);
 				n.setReal(true);
 				n.setValue(value);
@@ -169,7 +169,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 			if (node.isReal() == true) {
 				throw new DuplicateKeyException("Duplicate key");
 			}
-			RadixTreeNode n = new RadixTreeNode();
+			RadixTreeNode n = new RadixTreeNode(word);
 			n.setKey("");
 			n.setReal(true);
 			n.setValue(value);
@@ -178,7 +178,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 		// This node needs to be split as the key to be inserted
 		// is a prefix of the current node key
 		else if (numberOfMatchingCharacters > 0 && numberOfMatchingCharacters < node.getKey().length()) {
-			RadixTreeNode n1 = new RadixTreeNode();
+			RadixTreeNode n1 = new RadixTreeNode(node.getKey());
 			String subs = node.getKey().substring(numberOfMatchingCharacters, node.getKey().length());
 
 			n1.setKey(node.getKey().substring(numberOfMatchingCharacters, node.getKey().length()));
@@ -190,9 +190,10 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 			node.setKey(key.substring(0, numberOfMatchingCharacters));
 			node.setReal(false);
 			node.setChildren(new SortedArrayList<RadixTreeNode>());
+			node.setWord(word);
 			node.insertChildWithRespectToAncestors(n1);
 
-			RadixTreeNode n2 = new RadixTreeNode();
+			RadixTreeNode n2 = new RadixTreeNode(word);
 			n2.setKey(key.substring(numberOfMatchingCharacters, key.length()));
 			n2.setReal(true);
 			n2.setValue(value);
@@ -201,7 +202,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 		// this key needs to be added as the child of the current node
 		else {
 			System.out.println("I DUNNO IF IT CAN BE USED");
-			RadixTreeNode n = new RadixTreeNode();
+			RadixTreeNode n = new RadixTreeNode("USED?");
 			n.setKey(node.getKey().substring(numberOfMatchingCharacters, node.getKey().length()));
 			n.setChildren(node.getChildren());
 			n.setReal(node.isReal());
@@ -374,9 +375,9 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 		}
 
 		if (node.isReal() == true)
-			f.format("%s[%s]*%n", node.getKey(),  node.getValue());
+			f.format("%s[%s]*%n", node.getKey()+"##"+node.getWord(),  node.getValue());
 		else
-			f.format("%s%n", node.getKey());
+			f.format("%s%n", node.getKey()+"##"+node.getWord());
 
 		for (RadixTreeNode child : node.getChildren()) {
 			formatNodeTo(f, level + 1, child);
