@@ -6,6 +6,7 @@
 package org.dbweb.socialsearch.topktrust.algorithm;
 
 
+import org.apache.commons.collections4.trie.PatriciaTrie;
 import org.apache.maven.artifact.repository.metadata.Metadata;
 import org.dbweb.Arcomem.datastructures.BasicSearchResult;
 import org.dbweb.Arcomem.datastructures.Interval;
@@ -108,7 +109,7 @@ public class TopKAlgorithm{
 		return this.candidates;
 	}
 
-	protected HashMap<Integer,HashMap<String,HashSet<String>>> docs_users;
+	protected HashMap<Integer, PatriciaTrie<HashSet<String>>> docs_users;
 
 	protected HashMap<String,Float> tag_idf;
 	protected HashMap<String, ListIterator<UserEntry<Float>>> friends_list;
@@ -329,7 +330,7 @@ public class TopKAlgorithm{
 			idx++;
 		}
 
-		this.docs_users = new HashMap<Integer,HashMap<String,HashSet<String>>>();
+		this.docs_users = new HashMap<Integer, PatriciaTrie<HashSet<String>>>();
 		connection.setAutoCommit(false);
 		Statement stmt = connection.createStatement();
 		stmt.setFetchSize(1000);
@@ -339,13 +340,13 @@ public class TopKAlgorithm{
 			String d_itm = result.getString(2);
 			String d_tag = result.getString(3);
 			if(!this.docs_users.containsKey(d_usr)){
-				this.docs_users.put(d_usr, new HashMap<String,HashSet<String>>());
+				this.docs_users.put(d_usr, new PatriciaTrie<HashSet<String>>());
 				//for(String tag:dictionary2)
 				//	this.docs_users.get(d_usr).put(tag, new HashSet<String>());
 				//    				System.out.println("docs"+docs_users);//TODO
 			}
-			if(!this.docs_users.get(d_usr).containsKey(d_tag))
-				this.docs_users.get(d_usr).put(d_tag, new HashSet<String>());
+			//if(!this.docs_users.get(d_usr).containsKey(d_tag))
+			this.docs_users.get(d_usr).put(d_tag, new HashSet<String>());
 			this.docs_users.get(d_usr).get(d_tag).add(d_itm);
 		}
 		System.out.println("Users spaces loaded");
