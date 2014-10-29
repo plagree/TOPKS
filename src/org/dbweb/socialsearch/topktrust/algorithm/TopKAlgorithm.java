@@ -510,7 +510,6 @@ public class TopKAlgorithm{
 		candidates = new ItemList(comparator, this.score, this.number_users, k, this.virtualItem, this.d_distr, this.d_hist, this.error);  
 		candidates.setContribs(high_docs);
 
-
 		total_users = 0;        
 		total_lists_social = 0;
 		total_documents_social = 0;
@@ -522,22 +521,11 @@ public class TopKAlgorithm{
 		total_heap_adds = 0;
 		total_heap_rebuilds = 0;
 
-		//    	ps = connection.prepareStatement(sqlGetTaggers);
-		//    	ps.setFetchSize(1000);
-		//    	result = ps.executeQuery();
-		//    	while(result.next())    		
-		//    		this.taggers.add(result.getString(1));
-		//    	result.close();
-		//    	ps.close();
-
 		long time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query); /* MAIN ALGORITHM */
 		long time1 = System.currentTimeMillis();
 		System.out.println("Only mainLoop : "+(time1-time0)/1000+"sec.");
 
-		//arcomem uncomment to have output in xml
-		//this.setQueryResultsXML(query, seeker, k, this.approxMethod, this.alpha);
-		//        log.info("time_preinit{}",time_preinit);
 		this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
 
 		return 0;
@@ -616,14 +604,10 @@ public class TopKAlgorithm{
 			else{
 				terminationCondition=false;
 			}
-			//long time_2 = System.currentTimeMillis();
-			//this.time_term+=(time_2 - time_1);
-
 			loops++;
 		}while(!terminationCondition&&!finished);
 		this.numloops=loops;
 		System.out.println("loops="+loops);
-		//time_loop = System.currentTimeMillis() - time;
 	}
 
 	protected boolean chooseBranch(HashSet<String> query){
@@ -723,10 +707,7 @@ public class TopKAlgorithm{
 							item.updateScore(tag, userW, pos[index], approxMethod);
 							// item.computeBestScore(high_docs, total_sum, userWeights, positions, approxMethod);
 							candidates.addItem(item);
-
-
-							//time_2 = System.currentTimeMillis();
-							//this.time_queries+=(time_2 - time_1);
+							
 							docs_inserted = true;
 							total_documents_social++;                            
 						}
@@ -753,7 +734,6 @@ public class TopKAlgorithm{
 			index++;
 		}/* END FOR ALL TAGS IN QUERY Q */
 
-		//time_1 = System.currentTimeMillis();
 		if((this.approxMethod&Methods.MET_APPR_LAND)==Methods.MET_APPR_LAND){
 			currentUser = landmark.getNextUser();
 		}
@@ -765,14 +745,11 @@ public class TopKAlgorithm{
 			if (tl>1)
 				System.out.println("Loading in : "+tl);
 		}
-		//time_2 = System.currentTimeMillis();
-		//this.time_heap+=(time_2 - time_1);
 		if(currentUser!=null)
 			userWeight = currentUser.getDist().floatValue();
 		else
 			userWeight = 0.0f;
 		proximities.add((double)userWeight);
-
 	}
 
 	private void lookIntoList(HashSet<String> query){
