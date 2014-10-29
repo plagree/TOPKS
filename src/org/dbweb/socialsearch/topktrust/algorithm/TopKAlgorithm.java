@@ -259,7 +259,6 @@ public class TopKAlgorithm{
 		next_docs2 = new HashMap<String, String>();
 		// USEFUL ??? int [] pos = new int[N];
 		docs2 = new HashMap<String, ResultSet>();
-		//int index = 0;
 		String[] dictionary = {
 				//"car", //testindb
 				"Obama", //twitter dump
@@ -298,6 +297,45 @@ public class TopKAlgorithm{
 			float tagidf = (float) Math.log(((float)number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
 			tag_idf.put(tag, new Float(tagidf));
 		}
+
+		sqlGetDocuments = String.format(sqlGetDocumentsTemplate, this.tagTable);
+		sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate, this.tagTable);
+		sqlGetTaggers = String.format(sqlGetTaggersTemplate, this.tagTable);
+		int idx=0;
+
+		for(String tag:dictionary){
+			if(idx<dictionary.length-1){
+				sqlGetDocuments+=String.format(sqlAddQueryTerm+" or ",tag);
+				sqlGetAllDocuments+=String.format("\'%s\',", tag);
+				sqlGetTaggers+=String.format("\'%s\',", tag);
+			}
+			else{
+				sqlGetDocuments+=String.format(sqlAddQueryTerm+")",tag);
+				sqlGetAllDocuments+=String.format("\'%s\')", tag);
+				sqlGetTaggers+=String.format("\'%s\')", tag);
+			}
+			idx++;
+		}
+
+		this.docs_users = new HashMap<Integer,HashMap<String,HashSet<String>>>();
+		connection.setAutoCommit(false);
+		Statement stmt = connection.createStatement();
+		stmt.setFetchSize(1000);
+		result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT
+		long time0 = System.currentTimeMillis();
+		while(result.next()){
+			int d_usr = result.getInt(1);
+			String d_itm = result.getString(2);
+			String d_tag = result.getString(3);
+			if(!this.docs_users.containsKey(d_usr)){
+				this.docs_users.put(d_usr, new HashMap<String,HashSet<String>>());
+				for(String tag:dictionary)
+					this.docs_users.get(d_usr).put(tag, new HashSet<String>());
+				//    				System.out.println("docs"+docs_users);//TODO
+			}
+			this.docs_users.get(d_usr).get(d_tag).add(d_itm);
+		}
+
 	}
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error, int number_documents, int number_users){
@@ -317,7 +355,7 @@ public class TopKAlgorithm{
 		this.number_documents = number_documents;
 		this.number_users = number_users;
 	}
-	
+
 
 	/**
 	 * Main call from TopKAlgorithm class, call this after building a new object to run algorithm
@@ -472,23 +510,6 @@ public class TopKAlgorithm{
 		candidates = new ItemList(comparator, this.score, this.number_users, k, this.virtualItem, this.d_distr, this.d_hist, this.error);  
 		candidates.setContribs(high_docs);
 
-		sqlGetDocuments = String.format(sqlGetDocumentsTemplate, this.tagTable);
-		sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate, this.tagTable);
-		sqlGetTaggers = String.format(sqlGetTaggersTemplate, this.tagTable);
-		idx=0;
-		for(String tag:query){
-			if(idx<query.size()-1){
-				sqlGetDocuments+=String.format(sqlAddQueryTerm+" or ",tag);
-				sqlGetAllDocuments+=String.format("\'%s\',", tag);
-				sqlGetTaggers+=String.format("\'%s\',", tag);
-			}
-			else{
-				sqlGetDocuments+=String.format(sqlAddQueryTerm+")",tag);
-				sqlGetAllDocuments+=String.format("\'%s\')", tag);
-				sqlGetTaggers+=String.format("\'%s\')", tag);
-			}
-			idx++;
-		}
 
 		total_users = 0;        
 		total_lists_social = 0;
@@ -501,25 +522,6 @@ public class TopKAlgorithm{
 		total_heap_adds = 0;
 		total_heap_rebuilds = 0;
 
-		this.docs_users = new HashMap<Integer,HashMap<String,HashSet<String>>>();
-		connection.setAutoCommit(false);
-		Statement stmt = connection.createStatement();
-		stmt.setFetchSize(1000);
-		result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT
-		long time0 = System.currentTimeMillis();
-		while(result.next()){
-			int d_usr = result.getInt(1);
-			String d_itm = result.getString(2);
-			String d_tag = result.getString(3);
-			if(!this.docs_users.containsKey(d_usr)){
-				this.docs_users.put(d_usr, new HashMap<String,HashSet<String>>());
-				for(String tag:query)
-					this.docs_users.get(d_usr).put(tag, new HashSet<String>());
-				//    				System.out.println("docs"+docs_users);//TODO
-			}
-			this.docs_users.get(d_usr).get(d_tag).add(d_itm);
-		}
-
 		//    	ps = connection.prepareStatement(sqlGetTaggers);
 		//    	ps.setFetchSize(1000);
 		//    	result = ps.executeQuery();
@@ -528,7 +530,7 @@ public class TopKAlgorithm{
 		//    	result.close();
 		//    	ps.close();
 
-		time0 = System.currentTimeMillis();
+		long time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query); /* MAIN ALGORITHM */
 		long time1 = System.currentTimeMillis();
 		System.out.println("Only mainLoop : "+(time1-time0)/1000+"sec.");
@@ -654,10 +656,7 @@ public class TopKAlgorithm{
 	protected void processSocial(HashSet<String> query) throws SQLException{
 		HashMap<String, HashSet<String>> soclist = new HashMap<String, HashSet<String>>();
 		PreparedStatement ps;
-		ResultSet result;
 		int currentUserId;
-		long time_1;
-		long time_2;
 		int index = 0;
 
 		if(currentUser!=null) vst.add(currentUser.getEntryId());
