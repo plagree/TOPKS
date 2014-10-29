@@ -85,6 +85,7 @@ public class TopKAlgorithm{
 	protected static String sqlAddQueryTerm = "tag=\'%s\'";
 	protected static String sqlGetViewQuery = "select tag from view_keywords where qid=? order by tag asc";
 	protected static String sqlGetViewsTemplate = "select distinct q.seeker, q.qid, q.alpha, q.coeff from view_queries q, view_keywords k where k.qid=q.qid and q.func=? and q.scfunc=? and q.network=?  and q.coeff=? and q.hidden=0 and k.tag in (";
+	protected static String sqlGetDifferentTags = "SELECT distinct tag FROM %s";
 
 	protected String sqlGetDocuments;
 	protected String sqlGetTaggers;
@@ -130,6 +131,7 @@ public class TopKAlgorithm{
 	protected HashSet<Integer> skr;
 	protected String[] next_docs;
 	protected ResultSet[] docs;
+	protected ArrayList<String> dictionary;
 
 	protected int[] pos;
 	protected int seeker;
@@ -194,8 +196,6 @@ public class TopKAlgorithm{
 		return resultList;
 	}
 
-
-
 	protected int approxMethod;
 	protected float max_pos_val;
 
@@ -236,8 +236,6 @@ public class TopKAlgorithm{
 		this.tagTable = tagTable;
 		this.alpha = scoreAlpha;
 		this.approxMethod = method;
-		// HashMap<String,ArrayList<UserLink<String,Float>>> network
-		// this.network = network;
 		this.optpath = optPathClass;
 		this.error = error;
 		this.score = itemScore;
@@ -246,20 +244,34 @@ public class TopKAlgorithm{
 
 		this.connection = dbConnection.DBConnect();
 		PreparedStatement ps;
+		ResultSet rs = null;
+		
+		// DICTIONARY
+		dictionary = new ArrayList<String>();
+		try {
+			String sqlRequest = String.format(sqlGetDifferentTags, Params.taggers);
+			ps = connection.prepareStatement(sqlRequest);
+			rs = ps.executeQuery();
+			while(rs.next()) {
+				dictionary.add(rs.getString(1));
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("Dictionary loaded, "+dictionary.size()+"tags...");
+
+		// INVERTED LISTS
 		ResultSet result;
-		float userWeight = 1.0f;
+		userWeight = 1.0f;
 		high_docs = new HashMap<String,Integer>();
 		positions = new HashMap<String,Float>();
 		userWeights = new HashMap<String,Float>();
-		//ArrayList<Double> proximities = new ArrayList<Double>();
 		tagFreqs = new HashMap<String,Integer>();
-		//HashMap<String,Integer> lastpos = new HashMap<String,Integer>();
-		//HashMap<String,Float> lastval = new HashMap<String,Float>();
 		tag_idf = new HashMap<String,Float>();
 		next_docs2 = new HashMap<String, String>();
-		// USEFUL ??? int [] pos = new int[N];
 		docs2 = new HashMap<String, ResultSet>();
-		String[] dictionary = {
+		String[] dictionary2 = {
 				//"car", //testindb
 				"Obama", //twitter dump
 				"TFBJP",
@@ -268,8 +280,7 @@ public class TopKAlgorithm{
 				"SOUGOFOLLOW",
 				"Apple",
 		};
-
-		for(String tag:dictionary){
+		for(String tag:dictionary2){
 			/*
 			 * INVERTED LISTS ARE HERE
 			 */
@@ -297,14 +308,16 @@ public class TopKAlgorithm{
 			float tagidf = (float) Math.log(((float)number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
 			tag_idf.put(tag, new Float(tagidf));
 		}
+		System.out.println("Inverted Lists loaded...");
 
+		// USER SPACES
 		sqlGetDocuments = String.format(sqlGetDocumentsTemplate, this.tagTable);
 		sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate, this.tagTable);
 		sqlGetTaggers = String.format(sqlGetTaggersTemplate, this.tagTable);
 		int idx=0;
 
-		for(String tag:dictionary){
-			if(idx<dictionary.length-1){
+		for(String tag:dictionary2){
+			if(idx<dictionary2.length-1){
 				sqlGetDocuments+=String.format(sqlAddQueryTerm+" or ",tag);
 				sqlGetAllDocuments+=String.format("\'%s\',", tag);
 				sqlGetTaggers+=String.format("\'%s\',", tag);
@@ -322,20 +335,19 @@ public class TopKAlgorithm{
 		Statement stmt = connection.createStatement();
 		stmt.setFetchSize(1000);
 		result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT
-		long time0 = System.currentTimeMillis();
 		while(result.next()){
 			int d_usr = result.getInt(1);
 			String d_itm = result.getString(2);
 			String d_tag = result.getString(3);
 			if(!this.docs_users.containsKey(d_usr)){
 				this.docs_users.put(d_usr, new HashMap<String,HashSet<String>>());
-				for(String tag:dictionary)
+				for(String tag:dictionary2)
 					this.docs_users.get(d_usr).put(tag, new HashSet<String>());
 				//    				System.out.println("docs"+docs_users);//TODO
 			}
 			this.docs_users.get(d_usr).get(d_tag).add(d_itm);
 		}
-
+		System.out.println("Users spaces loaded");
 	}
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error, int number_documents, int number_users){
@@ -707,7 +719,7 @@ public class TopKAlgorithm{
 							item.updateScore(tag, userW, pos[index], approxMethod);
 							// item.computeBestScore(high_docs, total_sum, userWeights, positions, approxMethod);
 							candidates.addItem(item);
-							
+
 							docs_inserted = true;
 							total_documents_social++;                            
 						}

@@ -4,3 +4,8 @@
 tmp/
 *.r
 *.xml
+.settings/
+tests/
+libs/
+zipped_code/
+*.csv
