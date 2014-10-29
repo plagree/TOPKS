@@ -41,6 +41,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,6 +50,7 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
+import java.util.SortedMap;
 import java.util.TreeSet;
 
 import org.slf4j.Logger;
@@ -246,7 +248,7 @@ public class TopKAlgorithm{
 		this.connection = dbConnection.DBConnect();
 		PreparedStatement ps;
 		ResultSet rs = null;
-		
+
 		// DICTIONARY
 		dictionary = new ArrayList<String>();
 		try {
@@ -311,7 +313,7 @@ public class TopKAlgorithm{
 			tagFreqs.put(tag, high_docs.get(tag));
 			float tagidf = (float) Math.log(((float)number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
 			tag_idf.put(tag, new Float(tagidf));
-			
+
 		}
 		System.out.println("Inverted Lists loaded...");
 		completion_trie.display();
@@ -698,30 +700,33 @@ public class TopKAlgorithm{
 				//    					}    				
 				//    				}
 				if(this.docs_users.containsKey(currentUserId) && !(currentUserId==seeker)){
-					if(docs_users.get(currentUserId).containsKey(tag)) {
-						for(String itemId:docs_users.get(currentUserId).get(tag)){
-							found_docs = true;
-							//time_1 = System.currentTimeMillis();
-							Item<String> item = candidates.findItem(itemId);
-							float userW = 0;
-							if(item==null){
-								item = createNewCandidateItem(itemId, query,item); 
-								item.setMaxScorefromviews(bestScoreEstim);
-								for(String tag1:query)
-									if(!item.tdf.containsKey(tag1)) {
-										unknown_tf.get(tag1).add(itemId);
-									}
-								// candidates.addItem(item);
-							}  
-							else
-								candidates.removeItem(item);
-							userW = userWeight;    					
-							item.updateScore(tag, userW, pos[index], approxMethod);
-							// item.computeBestScore(high_docs, total_sum, userWeights, positions, approxMethod);
-							candidates.addItem(item);
+					SortedMap<String, HashSet<String>> completions = docs_users.get(currentUserId).prefixMap(tag);
+					if (completions.size()>0) {
+						Collection<HashSet<String>> completions_collection = completions.values();
+						for (HashSet<String> documents: completions_collection) {
+							for(String itemId: documents){
+								found_docs = true;
+								Item<String> item = candidates.findItem(itemId);
+								float userW = 0;
+								if(item==null){
+									item = createNewCandidateItem(itemId, query,item); 
+									item.setMaxScorefromviews(bestScoreEstim);
+									for(String tag1:query)
+										if(!item.tdf.containsKey(tag1)) {
+											unknown_tf.get(tag1).add(itemId);
+										}
+									// candidates.addItem(item);
+								}  
+								else
+									candidates.removeItem(item);
+								userW = userWeight;    					
+								item.updateScore(tag, userW, pos[index], approxMethod);
+								// item.computeBestScore(high_docs, total_sum, userWeights, positions, approxMethod);
+								candidates.addItem(item);
 
-							docs_inserted = true;
-							total_documents_social++;                            
+								docs_inserted = true;
+								total_documents_social++;                            
+							}
 						}
 					}
 				}
