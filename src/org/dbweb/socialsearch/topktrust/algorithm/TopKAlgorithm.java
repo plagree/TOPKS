@@ -749,12 +749,12 @@ public class TopKAlgorithm{
 			currentUser = landmark.getNextUser();
 		}
 		else{
-			long time_loading_before = System.currentTimeMillis();
+			//long time_loading_before = System.currentTimeMillis();
 			currentUser = optpath.advanceFriendsList(currentUser, query);
-			long time_loading_after = System.currentTimeMillis();
-			long tl = (time_loading_after-time_loading_before)/1000;
-			if (tl>1)
-				System.out.println("Loading in : "+tl);
+			//long time_loading_after = System.currentTimeMillis();
+			//long tl = (time_loading_after-time_loading_before)/1000;
+			//if (tl>1)
+			//	System.out.println("Loading in : "+tl);
 		}
 		if(currentUser!=null)
 			userWeight = currentUser.getDist().floatValue();
