@@ -27,12 +27,12 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 
 			public void visit(String key, RadixTreeNode parent,
 					RadixTreeNode node) {
-				if (node.isReal()) 
+				//if (node.isReal()) 
 					result = node.getValue();
 			}
 		};
 
-		visit(key, visitor);
+		visit('#'+key, visitor);
 
 		return visitor.getResult();
 	}

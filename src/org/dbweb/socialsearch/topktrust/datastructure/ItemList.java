@@ -18,6 +18,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.Math;
 
+import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.socialsearch.shared.Methods;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 import org.dbweb.socialsearch.topktrust.datastructure.comparators.*;
@@ -166,10 +167,10 @@ public class ItemList implements Cloneable{
     	return contrib;
     }
     
-    public void setContribs(HashMap<String,Integer> high){
-    	for(String tag:high.keySet()){
-    		this.normcontrib.put(tag, (double)high.get(tag));
-    		this.soccontrib.put(tag, (double)high.get(tag));
+    public void setContribs(HashSet<String> query, RadixTreeImpl trie){
+    	for(String tag:query){
+    		this.normcontrib.put(tag, (double)trie.find(tag));
+    		this.soccontrib.put(tag, (double)trie.find(tag));
     	}
     }
     

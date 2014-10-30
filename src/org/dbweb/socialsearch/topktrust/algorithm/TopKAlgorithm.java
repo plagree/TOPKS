@@ -283,7 +283,9 @@ public class TopKAlgorithm{
 				"Syria",
 				"SOUGOFOLLOW",
 				"Apple",
-				"NoMatter"
+				"NoMatter",
+				"SOUGOF",
+				"SOUGOFOL"
 		};
 		for(String tag:dictionary2){
 			/*
@@ -522,7 +524,7 @@ public class TopKAlgorithm{
 		Comparator comparator = new MinScoreItemComparator();   
 		virtualItem = createNewCandidateItem("<rest_of_the_items>",query,virtualItem);
 		candidates = new ItemList(comparator, this.score, this.number_users, k, this.virtualItem, this.d_distr, this.d_hist, this.error);  
-		candidates.setContribs(high_docs);
+		candidates.setContribs(query, completion_trie);
 
 		total_users = 0;        
 		total_lists_social = 0;
