@@ -27,14 +27,14 @@ public class Test{
 
 	private static final String[] query1 = {
 		//"car", //testindb
-		//"Obama", //twitter dump
-		//"TFBJP",
-		//"Cancer",
-		//"Syria",
-		//"SOUGOFOLLOW",
-		//"Apple",
-		"SOUGOF",
-		"SOUGOFOL"
+		"Obama", //twitter dump
+		"TFBJP",
+		"Cancer",
+		"Syria",
+		"SOUGOFOLLOW",
+		"Apple",
+		//"SOUGOF",
+		//"SOUGOFOL"
 	};
 
 	private static final String[][] seekers={
@@ -47,12 +47,12 @@ public class Test{
 		}
 	};
 
-	private static final float[] alpha ={0.0f};
+	private static final float[] alpha ={0f};
 	private static final boolean[] heap = {true};
 	public static final String[] network = {"soc_snet_dt"};
 	public static final String taggers = "soc_tag_80";//"tagging";
 	private static final int k = 10;
-	private static final int[] met = {0};//,1,2,4};
+	private static final int[] met = {1};//,1,2,4};
 	private static final String[] metname = {"exact"};//,"met1","met2","met4"};
 	private static double coeff = 2.0f;
 
@@ -100,20 +100,20 @@ public class Test{
 										HashSet<String> query = new HashSet<String>();
 										query.add(query1[index_q]);
 										n += 1;
-										xmlFile = new FileWriter(String.format("tests_%s_%s_%s"+n+".xml", metname[index_mt], network[index_n], func[index_f].toString()));
-										xmlFile.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
-										xmlFile.write("<tests>");
+										//xmlFile = new FileWriter(String.format("tests_%s_%s_%s"+n+".xml", metname[index_mt], network[index_n], func[index_f].toString()));
+										//xmlFile.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
+										//xmlFile.write("<tests>");
 										
 										long timeBefore = System.currentTimeMillis();
 										topk_alg.executeQuery(String.valueOf(seekers[index_n][index_s]), query, k); // TOPKS IS RUN HERE
 										long timeAfter = System.currentTimeMillis();
 										System.out.println("The algorithm ran in "+(timeAfter-timeBefore)/1000+" seconds with seeker "+seekers[index_n][index_s]);
-										xmlFile.write(topk_alg.getResultsXML());
+										//xmlFile.write(topk_alg.getResultsXML());
 										test_num++;
 										res[0] = String.format("Currently at test number %d...",test_num);
 										results.setResults(res);
-										xmlFile.write("</tests>");							
-										xmlFile.close();
+										//xmlFile.write("</tests>");							
+										//xmlFile.close();
 									}
 								}
 							}
@@ -121,10 +121,10 @@ public class Test{
 					}
 				}
 			}
-		} catch (IOException e) {
+		} /*catch (IOException e) {
 			res[0]= e.getMessage();
 			results.setResults(res);
-		}
+		}*/
 		catch (SQLException ex) {
 			res[0]= ex.getMessage();
 			results.setResults(res);

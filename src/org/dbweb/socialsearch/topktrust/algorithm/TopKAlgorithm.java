@@ -99,7 +99,6 @@ public class TopKAlgorithm{
 
 	protected String sqlGetNeighbours;
 
-
 	protected String networkTable;
 	protected String tagTable;
 
@@ -275,7 +274,7 @@ public class TopKAlgorithm{
 		tag_idf = new HashMap<String,Float>();
 		next_docs2 = new HashMap<String, String>();
 		docs2 = new HashMap<String, ResultSet>();
-		String[] dictionary2 = {
+		/*String[] dictionary2 = {
 				//"car", //testindb
 				"Obama", //twitter dump
 				"TFBJP",
@@ -286,8 +285,8 @@ public class TopKAlgorithm{
 				"NoMatter",
 				"SOUGOF",
 				"SOUGOFOL"
-		};
-		for(String tag:dictionary2){
+		};*/
+		for(String tag:dictionary){
 			/*
 			 * INVERTED LISTS ARE HERE
 			 */
@@ -318,26 +317,30 @@ public class TopKAlgorithm{
 
 		}
 		System.out.println("Inverted Lists loaded...");
-		completion_trie.display();
+		//completion_trie.display();
 
 		// USER SPACES
-		sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate, this.tagTable);
+		/*sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate, this.tagTable);
 		int idx=0;
 
-		for(String tag:dictionary2) {
-			if(idx<dictionary2.length-1){
+		for(String tag:dictionary) {
+			if(idx<dictionary.size()-1){
 				sqlGetAllDocuments+=String.format("\'%s\',", tag);
 			}
 			else{
 				sqlGetAllDocuments+=String.format("\'%s\')", tag);
 			}
 			idx++;
-		}
+		}*/
 
 		this.docs_users = new HashMap<Integer, PatriciaTrie<HashSet<String>>>();
 		connection.setAutoCommit(false);
 		Statement stmt = connection.createStatement();
 		stmt.setFetchSize(1000);
+		//result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT
+		String sqlGetAllDocumentsTemplate2 = "select * from %s";
+		System.out.println(this.tagTable+", "+Params.taggers);
+		sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate2, this.tagTable);
 		result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT
 		while(result.next()){
 			int d_usr = result.getInt(1);
@@ -375,7 +378,12 @@ public class TopKAlgorithm{
 
 	/**
 	 * Main call from TopKAlgorithm class, call this after building a new object to run algorithm
-	 * l 372- 542
+	 * l 388-550
+	 * @param seeker
+	 * @param query
+	 * @param k
+	 * @return
+	 * @throws SQLException
 	 */
 	public int executeQuery(String seeker, HashSet<String> query, int k) throws SQLException{
 
@@ -536,11 +544,17 @@ public class TopKAlgorithm{
 		total_heap_interchanges = 0;
 		total_heap_adds = 0;
 		total_heap_rebuilds = 0;
-
+		
+		for (String t: query)
+			System.out.println(high_docs.get(t));
 		long time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query); /* MAIN ALGORITHM */
 		long time1 = System.currentTimeMillis();
+		for (String t: query)
+			System.out.println(high_docs.get(t));
 		System.out.println("Only mainLoop : "+(time1-time0)/1000+"sec.");
+		for (String tt: query)
+			System.out.println(pos[0]+", "+positions.get(tt));
 
 		this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
 
@@ -554,7 +568,6 @@ public class TopKAlgorithm{
 		int loops=0; //amine
 		int skipped_tests = 10000;
 		int steps = 1;
-		//long time = System.currentTimeMillis();
 		firstPossible = true;
 		needUnseen = true;
 		skipViews = false;
@@ -564,7 +577,7 @@ public class TopKAlgorithm{
 			docs_inserted = false;
 			boolean social = false;
 			finished = true;
-			boolean socialBranch = chooseBranch(query);      			
+			boolean socialBranch = chooseBranch(query);
 			if(socialBranch){
 				processSocial(query);
 				if(((this.approxMethod&Methods.MET_VIEW)==Methods.MET_VIEW)&&userviews.containsKey(currentUser.getEntryId())){
@@ -576,7 +589,7 @@ public class TopKAlgorithm{
 					//        					if(!view.containsKey(it)) view.put(it, view_bs.get(it));
 					////        				}
 					candidates.setViews(true);
-					if(exist){        					
+					if(exist){
 						processView(query);        				         				            			
 					}
 				}
@@ -587,7 +600,7 @@ public class TopKAlgorithm{
 			}
 			else {
 				processTextual(query);
-				log.info("textual branch");
+				//log.info("textual branch");
 			}
 			if(social) this.total_lists_social++;
 
@@ -650,7 +663,7 @@ public class TopKAlgorithm{
 
 	}
 
-	/*
+	/**
 	 * Social process of the TOPKS algorithm
 	 */
 	protected void processSocial(HashSet<String> query) throws SQLException{
@@ -771,6 +784,10 @@ public class TopKAlgorithm{
 		proximities.add((double)userWeight);
 	}
 
+	/**
+	 * We advance on Inverted Lists here
+	 * @param query
+	 */
 	private void lookIntoList(HashSet<String> query){
 		int index=0;
 		boolean found = true;
@@ -779,19 +796,16 @@ public class TopKAlgorithm{
 			tags[index] = tag;
 			index++;
 		}
-		System.out.println(next_docs[0]+"");//toString());
 		while(found){
 			for(String tag:query){
 				found = false; // ?????
 				for(index=0;index<query.size();index++) {
 					if(unknown_tf.get(tag).contains(next_docs[index])){
 						Item<String> item1 = candidates.findItem(next_docs[index]);
-						//log.info("\t item {} has been found in the list",item.getItemId());
 						candidates.removeItem(item1);
 						item1.updateScoreDocs(tags[index], high_docs.get(tags[index]),approxMethod);
 						unknown_tf.get(tags[index]).remove(next_docs[index]); 
 						advanceTextualList(tags[index],index);
-						//    					item1.computeBestScore(high_docs, total_sum, userWeights, positions, approxMethod);
 						candidates.addItem(item1);
 						found = true;
 					}
@@ -800,7 +814,13 @@ public class TopKAlgorithm{
 		}
 	}
 
+	/**
+	 * We chose the textual branch (alpha>0)
+	 * @param query
+	 * @throws SQLException
+	 */
 	protected void processTextual(HashSet<String> query) throws SQLException{
+		//System.out.println("processTextual");
 		int index = 0;
 		for(String tag:query){
 			if(next_docs[index]!=""){
@@ -822,8 +842,10 @@ public class TopKAlgorithm{
 		}
 	}
 
-	/*
+	/**
 	 * Process with views
+	 * @param query
+	 * @throws SQLException
 	 */
 	protected void processView(HashSet<String> query) throws SQLException{
 		HashMap<String,ViewScore> guar = viewTransformer.getGuaranteed();
@@ -866,6 +888,7 @@ public class TopKAlgorithm{
 	}
 
 	protected void advanceTextualList(String tag, int index){
+		//System.out.println("advanceTextualList");
 
 		try {
 			if(docs[index].next()){
