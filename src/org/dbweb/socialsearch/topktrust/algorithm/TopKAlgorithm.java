@@ -431,7 +431,9 @@ public class TopKAlgorithm{
 		for(String tag:query){
 			docs[index] = docs2.get(tag);
 			pos[index]=0;
-			next_docs[index] = next_docs2.get(tag);
+			//next_docs[index] = next_docs2.get(tag);
+			System.out.println("tag: "+tag+", trieWord: "+completion_trie.searchPrefix(tag).getBestDescendant().getWord()+", "+next_docs2.get(tag)+", "+next_docs2.get(completion_trie.searchPrefix(tag).getBestDescendant().getWord()));
+			next_docs[index] = next_docs2.get(completion_trie.searchPrefix(tag).getBestDescendant().getWord());
 			index++;
 		}
 		proximities = new ArrayList<Double>();

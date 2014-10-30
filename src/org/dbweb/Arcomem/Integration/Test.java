@@ -47,7 +47,7 @@ public class Test{
 		}
 	};
 
-	private static final float[] alpha ={0f};
+	private static final float[] alpha ={0.0f};
 	private static final boolean[] heap = {true};
 	public static final String[] network = {"soc_snet_dt"};
 	public static final String taggers = "soc_tag_80";//"tagging";

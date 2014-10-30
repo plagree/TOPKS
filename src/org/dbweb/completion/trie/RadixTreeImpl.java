@@ -178,7 +178,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 		// This node needs to be split as the key to be inserted
 		// is a prefix of the current node key
 		else if (numberOfMatchingCharacters > 0 && numberOfMatchingCharacters < node.getKey().length()) {
-			RadixTreeNode n1 = new RadixTreeNode(node.getKey());
+			RadixTreeNode n1 = new RadixTreeNode(node.getWord());
 			String subs = node.getKey().substring(numberOfMatchingCharacters, node.getKey().length());
 
 			n1.setKey(node.getKey().substring(numberOfMatchingCharacters, node.getKey().length()));
@@ -190,7 +190,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 			node.setKey(key.substring(0, numberOfMatchingCharacters));
 			node.setReal(false);
 			node.setChildren(new SortedArrayList<RadixTreeNode>());
-			node.setWord(word);
+			node.setWord(greatestCommonPrefix(node.getWord(), word));
 			node.insertChildWithRespectToAncestors(n1);
 
 			RadixTreeNode n2 = new RadixTreeNode(word);
@@ -435,5 +435,15 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 		}
 
 		return "";
+	}
+	
+	public String greatestCommonPrefix(String a, String b) {
+	    int minLength = Math.min(a.length(), b.length());
+	    for (int i = 0; i < minLength; i++) {
+	        if (a.charAt(i) != b.charAt(i)) {
+	            return a.substring(0, i);
+	        }
+	    }
+	    return a.substring(0, minLength);
 	}
 }
