@@ -799,12 +799,12 @@ public class TopKAlgorithm{
 			currentUser = landmark.getNextUser();
 		}
 		else{
-			//long time_loading_before = System.currentTimeMillis();
+			long time_loading_before = System.currentTimeMillis();
 			currentUser = optpath.advanceFriendsList(currentUser, query);
-			//long time_loading_after = System.currentTimeMillis();
-			//long tl = (time_loading_after-time_loading_before)/1000;
-			//if (tl>1)
-			//	System.out.println("Loading in : "+tl);
+			long time_loading_after = System.currentTimeMillis();
+			long tl = (time_loading_after-time_loading_before)/1000;
+			if (tl>1)
+				System.out.println("Loading in : "+tl);
 		}
 		if(currentUser!=null)
 			userWeight = currentUser.getDist().floatValue();
@@ -815,7 +815,7 @@ public class TopKAlgorithm{
 
 	/**
 	 * We advance on Inverted Lists here
-	 * @param query
+	 * @param query HashSet<String>
 	 */
 	private void lookIntoList(HashSet<String> query){
 		int index=0;
@@ -826,11 +826,12 @@ public class TopKAlgorithm{
 			index++;
 		}
 		while(found){
-			for(String tag:query){
-				found = false; // ?????
+			//for(String tag:query){
+			//	found = false; // ?????
 				for(index=0;index<query.size();index++) {
-					if(unknown_tf.get(tag).contains(next_docs[index])){
-						Item<String> item1 = candidates.findItem(next_docs[index]);
+					found = false;
+					if(unknown_tf.get(tags[index]).contains(next_docs[index]+"#"+tags[index])){
+						Item<String> item1 = candidates.findItem(next_docs[index]+"#"+tags[index]);
 						candidates.removeItem(item1);
 						item1.updateScoreDocs(tags[index], high_docs.get(tags[index]),approxMethod);
 						unknown_tf.get(tags[index]).remove(next_docs[index]); 
@@ -839,7 +840,7 @@ public class TopKAlgorithm{
 						found = true;
 					}
 				}
-			}
+			//}
 		}
 	}
 
