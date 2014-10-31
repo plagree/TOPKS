@@ -219,10 +219,10 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 		}
 	}
 
-	public ArrayList<Float> searchPrefixList(String key, int recordLimit) {
+	public ArrayList<Float> searchPrefixList(String key, int recordLimit, boolean exact) {
 		ArrayList<Float> keys = new ArrayList<Float>();
 
-		RadixTreeNode node = searchPrefix(key, root);
+		RadixTreeNode node = searchPrefix(key, root, exact);
 
 		if (node != null) {
 			if (node.isReal()) {
@@ -253,11 +253,11 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 		}
 	}
 
-	public RadixTreeNode searchPrefix(String key) {
-		return searchPrefix(this.root.getKey()+key, this.root);
+	public RadixTreeNode searchPrefix(String key, boolean exact) {
+		return searchPrefix(this.root.getKey()+key, this.root, exact);
 	}
 
-	private RadixTreeNode searchPrefix(String key, RadixTreeNode node) {
+	private RadixTreeNode searchPrefix(String key, RadixTreeNode node, boolean exact) {
 		RadixTreeNode result = null;
 
 		int numberOfMatchingCharacters = node.getNumberOfMatchingCharacters(key);
@@ -266,7 +266,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 			result = node;
 		} else if(numberOfMatchingCharacters == key.length() && numberOfMatchingCharacters == node.getKey().length()) {
 			for (RadixTreeNode child: node.getChildren()) {
-				if (child.getKey().equals("")) {
+				if (child.getKey().equals("") && exact) {
 					result = child;
 					break;
 				}
@@ -277,7 +277,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 			String newText = key.substring(numberOfMatchingCharacters, key.length());
 			for (RadixTreeNode child : node.getChildren()) {
 				if (child.getKey().startsWith(newText.charAt(0) + "")) {
-					result = searchPrefix(newText, child);
+					result = searchPrefix(newText, child, exact);
 					break;
 				}
 			}

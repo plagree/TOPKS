@@ -297,7 +297,9 @@ public class TopKAlgorithm{
 				"TFBFI", 
 				"TFBjp", 
 				"TFBJp", 
-				"TFBJP"
+				"TFBJP",
+				"openingact",
+				"openingceremony"
 		};
 		for(String tag:dictionary2){
 			/*
@@ -447,12 +449,13 @@ public class TopKAlgorithm{
 		pos = new int[query.size()];
 		docs = new ResultSet[query.size()];
 		int index = 0;
+		boolean exact = true;
 		for(String tag:query){
 			docs[index] = docs2.get(tag);
 			pos[index]=0;
 			//next_docs[index] = next_docs2.get(tag);
-			System.out.println("tag: "+tag+", trieWord: "+completion_trie.searchPrefix(tag).getBestDescendant().getWord()+", "+next_docs2.get(tag)+", "+next_docs2.get(completion_trie.searchPrefix(tag).getBestDescendant().getWord()));
-			next_docs[index] = next_docs2.get(completion_trie.searchPrefix(tag).getBestDescendant().getWord());
+			//System.out.println("tag: "+tag+", trieWord: "+completion_trie.searchPrefix(tag).getBestDescendant().getWord()+", "+next_docs2.get(tag)+", "+next_docs2.get(completion_trie.searchPrefix(tag).getBestDescendant().getWord()));
+			next_docs[index] = next_docs2.get(completion_trie.searchPrefix(tag, exact).getBestDescendant().getWord());
 			index++;
 		}
 		proximities = new ArrayList<Double>();
@@ -551,7 +554,7 @@ public class TopKAlgorithm{
 		//this.d_distr = new DataDistribution(1.0f, 0.0f, this.number_users, query);
 
 		Comparator comparator = new MinScoreItemComparator();   
-		virtualItem = createNewCandidateItem("<rest_of_the_items>",query,virtualItem);
+		virtualItem = createNewCandidateItem("<rest_of_the_items>",query,virtualItem,"");
 		candidates = new ItemList(comparator, this.score, this.number_users, k, this.virtualItem, this.d_distr, this.d_hist, this.error);  
 		candidates.setContribs(query, completion_trie);
 
@@ -667,7 +670,7 @@ public class TopKAlgorithm{
 		for(String tag:query){
 			if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS)
 				//    			upper_social_score = (1-alpha)*userWeights.get(tag)*high_docs.get(tag);
-				upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getSocialContrib(tag);
+				upper_social_score = (1-alpha)*userWeight/*s.get(tag)*/*candidates.getSocialContrib(tag);
 			else
 				//    			/*if((approxMethod&Methods.MET_EX_OPT)==Methods.MET_EX_OPT)
 				//    		upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getMaxContrib(tag, high_docs.get(tag));
@@ -738,18 +741,23 @@ public class TopKAlgorithm{
 				if(this.docs_users.containsKey(currentUserId) && !(currentUserId==seeker)){
 					SortedMap<String, HashSet<String>> completions = docs_users.get(currentUserId).prefixMap(tag);
 					if (completions.size()>0) {
-						Collection<HashSet<String>> completions_collection = completions.values();
-						for (HashSet<String> documents: completions_collection) {
-							for(String itemId: documents){
+						Iterator<Entry<String, HashSet<String>>> iterator = completions.entrySet().iterator();
+						//Collection<HashSet<String>> completions_collection = completions.values();
+						//for (HashSet<String> documents: completions_collection) {
+						//	for(String itemId: documents){
+						while(iterator.hasNext()){
+							Entry<String, HashSet<String>> currentEntry = iterator.next();
+							String completion = currentEntry.getKey();
+							for(String itemId: currentEntry.getValue()) {
 								found_docs = true;
-								Item<String> item = candidates.findItem(itemId);
+								Item<String> item = candidates.findItem(itemId+"#"+completion);
 								float userW = 0;
 								if(item==null){
-									item = createNewCandidateItem(itemId, query,item); 
+									item = createNewCandidateItem(itemId+"#"+completion, query,item, completion); 
 									item.setMaxScorefromviews(bestScoreEstim);
 									for(String tag1:query)
 										if(!item.tdf.containsKey(tag1)) {
-											unknown_tf.get(tag1).add(itemId);
+											unknown_tf.get(tag1).add(itemId+"#"+completion);
 										}
 									// candidates.addItem(item);
 								}  
@@ -847,7 +855,7 @@ public class TopKAlgorithm{
 			if(next_docs[index]!=""){
 				Item<String> item = candidates.findItem(next_docs[index]);
 				if(item==null)
-					item = createNewCandidateItem(next_docs[index], query, item);
+					item = createNewCandidateItem(next_docs[index], query, item,"");
 				//    			candidates.addItem(item);
 				//    		}
 				else
@@ -876,7 +884,7 @@ public class TopKAlgorithm{
 		for(String itm:guar.keySet()){
 			Item<String> itm_c = candidates.findItem(itm);
 			if(itm_c==null){
-				itm_c = createNewCandidateItem(itm, query, itm_c);
+				itm_c = createNewCandidateItem(itm, query, itm_c,"");
 			}
 			else
 				candidates.removeItem(itm_c);
@@ -890,7 +898,7 @@ public class TopKAlgorithm{
 			for(String itm:need.keySet()){
 				Item<String> itm_c = candidates.findItem(itm);
 				if(itm_c==null){
-					itm_c = createNewCandidateItem(itm, query, itm_c);
+					itm_c = createNewCandidateItem(itm, query, itm_c,"");
 				}
 				else
 					candidates.removeItem(itm_c);
@@ -909,13 +917,14 @@ public class TopKAlgorithm{
 	}
 
 	protected void advanceTextualList(String tag, int index){
-		//System.out.println("advanceTextualList");
 
 		try {
-			if(docs[index].next()){
+			String current_completion = completion_trie.searchPrefix(tag, true).getBestDescendant().getWord();
+			if(docs2.get(current_completion).next()){
 				total_documents_asocial++;
-				high_docs.put(tag, docs[index].getInt(2));
-				next_docs[index] = docs[index].getString(1);
+				ResultSet r = docs2.get(current_completion);
+				high_docs.put(tag, r.getInt(2));
+				next_docs[index] = r.getString(1);
 			}
 			else{
 				high_docs.put(tag, 0);
@@ -947,10 +956,21 @@ public class TopKAlgorithm{
 		candidates.addItem(itm);
 	}
 
-	protected Item<String> createNewCandidateItem(String itemId, HashSet<String> tagList, Item<String> item) throws SQLException{
-		item = new Item<String>(itemId, this.alpha, this.number_users, this.score,  this.d_distr, this.d_hist, this.error);        
+	protected Item<String> createNewCandidateItem(String itemId, HashSet<String> tagList, Item<String> item, String completion) throws SQLException{
+		item = new Item<String>(itemId, this.alpha, this.number_users, this.score,  this.d_distr, this.d_hist, this.error, completion);        
+		int sizeOfQuery = tagList.size();
+		int index = 0;
 		for(String tag:tagList){
-			item.addTag(tag, tag_idf.get(tag));        
+			index++;
+			if (index < sizeOfQuery) {
+				item.addTag(tag, tag_idf.get(tag));
+			}
+			else {
+				if (this.tag_idf.containsKey(completion))
+					item.addTag(tag, tag_idf.get(completion));
+				else
+					item.addTag(tag, 0);
+			}
 			unknown_tf.get(tag).add(itemId);			
 		}
 		return item;
@@ -990,71 +1010,6 @@ public class TopKAlgorithm{
 		//    			total_documents_asocial, total_topk_changes, 
 		//    			tkpos, tkval, idfs);
 	}
-
-	//8/9/14
-
-	//    protected void setQueryResultsXML(HashSet<String> query, String seeker, int k, int method, float alpha){
-	//    	String queryStr="";
-	//    	for(String tag:query) queryStr+=(tag+" ");
-	//    	int lastp = 0;
-	//    	int totp = 0;
-	//    	float lastv = 0;
-	//    	for(String tag:this.tag_idf.keySet()){
-	//    		if(lastpos.containsKey(tag)){
-	//    			totp+=lastpos.get(tag);
-	//    			if(lastp<lastpos.get(tag)){
-	//    				lastp=lastpos.get(tag);
-	//    				lastv=lastval.get(tag);
-	//    			}
-	//    		}
-	//    	}
-	//    	totp = totp/query.size();
-	////    	this.newXMLResults = String.format(Locale.US,"<query network=\"%s\" func=\"%s\" tags=\"%s\" seeker=\"%s\" k=\"%d\" method=\"%d\" alpha=\"%.2f\">", this.networkTable, this.distFunc.toString(), queryStr, seeker, k, method, alpha);
-	//    	
-	////    	this.newXMLResults = String.format(Locale.US, "<ResultSet seeker=>\"%s\"", seeker);
-	//    	
-	//    	int position=0;
-	//    	for(String itid:this.candidates.get_topk()){
-	//    		Item<String> item = candidates.findItem(itid);
-	//    		this.newXMLResults+=String.format(Locale.US,"<result score=\"%.5f\">%s</result>", item.getComputedScore(), protectSpecialCharacters(item.getItemId()));
-	//    		position++;
-	//    	}
-	//    	
-	//    	this.newXMLResults+="</ResultSet>\n";
-	//    	
-	//    	this.newXMLResults+="<stats>";
-	//    	this.newXMLResults+=String.format(Locale.US,"<time>%.3f</time>", (float)(time_loop)/(float)1000);
-	//    	this.newXMLResults+=String.format("<pos_last_topkchg>%d</pos_last_topkchg>", lastp);
-	//    	this.newXMLResults+=String.format(Locale.US,"<val_last_topkchg>%.5f</val_last_topkchg>", lastv);
-	//    	this.newXMLResults+=String.format("<pos_last>%d</pos_last>", total_lists_social);
-	//    	this.newXMLResults+=String.format(Locale.US,"<val_last>%.5f</val_last>", this.userWeight);
-	//    	//this.resultsXML+=String.format("<maxheap>%d</maxheap>", this.prioQueue.getMaxsize());
-	//    	this.newXMLResults+=String.format("<social_docs>%d</social_docs>", total_documents_social);
-	//    	this.newXMLResults+=String.format("<social_queries>%d</social_queries>", total_lists_social);
-	//    	this.newXMLResults+=String.format("<normal_docs>%d</normal_docs>", total_documents_asocial);
-	//    	this.newXMLResults+="</stats>\n";
-	//    	
-	////    	this.newXMLResults+="</query>";
-	//    		
-	//    	try {
-	//    		Calendar cal = Calendar.getInstance();
-	//    		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
-	//    		FileWriter fileXML = new FileWriter(pathToQueries+"query_"+sdf.format(cal.getTime())+".xml");
-	//    		fileXML.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
-	//    		fileXML.write(newXMLResults);
-	//    		fileXML.close();
-	//
-	//    		FileWriter fileCSV = new FileWriter(pathToDistributions+"dist_"+seeker+"_"+this.networkTable+"_"+this.distFunc.toString()+".csv");
-	//    		for(float val:values)
-	//    			fileCSV.write(String.format(Locale.US,"%.5f\t", val));
-	//    		fileCSV.close();
-	//		} catch (IOException e) {
-	//			e.printStackTrace();
-	//		} catch (Exception ex) {
-	//			ex.printStackTrace();
-	//		}
-	//    	
-	//    }
 
 	/**
 	 * TOO lONG

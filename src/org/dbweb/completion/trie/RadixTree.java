@@ -60,7 +60,7 @@ public interface RadixTree {
 	 * @param recordLimit The limit for the results
 	 * @return The list of values those key start with the given prefix
 	 */
-	public ArrayList<Float> searchPrefixList(String prefix, int recordLimit);
+	public ArrayList<Float> searchPrefixList(String prefix, int recordLimit, boolean exact);
 
 	/**
 	 * Search for the node that has the given prefix.

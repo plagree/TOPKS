@@ -38,6 +38,7 @@ public class Item<E> implements Comparable<Item<E>>{
     
     private HashMap<E,Integer> tags = new HashMap<E,Integer>();
     private HashMap<E,Float> idf = new HashMap<E,Float>();
+    private String completion;
     
     private HashMap<E,Float> uf = new HashMap<E,Float>();
     public HashMap<E,Integer> tdf = new HashMap<E,Integer>();
@@ -58,14 +59,12 @@ public class Item<E> implements Comparable<Item<E>>{
     
     private double error;
     
-    
     private int totalTags = 0;  
     private float alpha = 0;
     private int k1 = 2;
     
     private double worstscore = 0.0f;
     private double bestscore = Double.POSITIVE_INFINITY;
-    
     
     private int num_users = 0;
 
@@ -75,7 +74,7 @@ public class Item<E> implements Comparable<Item<E>>{
     private double minscorefromviews = 0;
 	private double maxscorefromviews = Double.POSITIVE_INFINITY;
     
-    public Item(String itemId, float alpha, int num_users, Score score, DataDistribution d_dist, DataHistogram d_hist, double error){
+    public Item(String itemId, float alpha, int num_users, Score score, DataDistribution d_dist, DataHistogram d_hist, double error, String completion){
         this.itemId = itemId;
         this.alpha = alpha;
         this.num_users = num_users;
@@ -83,6 +82,7 @@ public class Item<E> implements Comparable<Item<E>>{
         this.d_hist = d_hist;
         this.error = error;
         this.score = score;
+        this.completion = completion;
     }
     
     public Item(String itemId){
@@ -116,6 +116,10 @@ public class Item<E> implements Comparable<Item<E>>{
         this.tags.put(tag, 1);
         this.idf.put(tag, new Float(idf));
         //this.totalTags += number;
+    }
+    
+    public void updateIdf(E tag, float idf) {
+    	this.idf.put(tag, idf);
     }
 
     public int updateScore(E tag, float value, int pos, int approx){
