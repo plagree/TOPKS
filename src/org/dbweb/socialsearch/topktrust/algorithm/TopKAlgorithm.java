@@ -828,10 +828,12 @@ public class TopKAlgorithm{
 		while(found){
 			//for(String tag:query){
 			//	found = false; // ?????
+			String completion;
 				for(index=0;index<query.size();index++) {
 					found = false;
-					if(unknown_tf.get(tags[index]).contains(next_docs[index]+"#"+tags[index])){
-						Item<String> item1 = candidates.findItem(next_docs[index]+"#"+tags[index]);
+					completion = completion_trie.searchPrefix(tags[index], false).getBestDescendant().getWord();
+					if(unknown_tf.get(tags[index]).contains(next_docs[index]+"#"+completion)){
+						Item<String> item1 = candidates.findItem(next_docs[index]+"#"+completion);
 						candidates.removeItem(item1);
 						item1.updateScoreDocs(tags[index], high_docs.get(tags[index]),approxMethod);
 						unknown_tf.get(tags[index]).remove(next_docs[index]); 
@@ -920,12 +922,13 @@ public class TopKAlgorithm{
 	protected void advanceTextualList(String tag, int index){
 
 		try {
-			String current_completion = completion_trie.searchPrefix(tag, true).getBestDescendant().getWord();
-			if(docs2.get(current_completion).next()){
+			RadixTreeNode current_best_leaf = completion_trie.searchPrefix(tag, true).getBestDescendant();
+			if(docs2.get(current_best_leaf.getWord()).next()){
 				total_documents_asocial++;
-				ResultSet r = docs2.get(current_completion);
+				ResultSet r = docs2.get(current_best_leaf.getWord());
 				high_docs.put(tag, r.getInt(2));
 				next_docs[index] = r.getString(1);
+				current_best_leaf.updatePreviousBestValue(r.getInt(2));
 			}
 			else{
 				high_docs.put(tag, 0);

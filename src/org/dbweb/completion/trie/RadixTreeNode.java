@@ -137,6 +137,18 @@ public class RadixTreeNode implements Comparable {
 		}
 		return;
 	}
+	
+	/**
+	 * update the leaf corresponding to the best completion with next item
+	 * in the Inverted List.
+	 * @param new_value
+	 */
+	public void updatePreviousBestValue(float new_value) {
+		this.value = new_value;
+		if (this.parent == null)
+			return;
+		updatePreviousBestValue();
+	}
 
 	/**
 	 * Recursive update through all parents previous best descendant.
@@ -144,18 +156,15 @@ public class RadixTreeNode implements Comparable {
 	 * because it corresponds to the previous best one)
 	 */
 	public void updatePreviousBestValue() {
-		if (this.isReal())
-			this.parent.updatePreviousBestValue();
-		else {
-			this.setBestDescendant(this.getChildren().get(0).getBestDescendant());
-			float val = this.getChildren().get(0).getValue();
-			this.value = val;
-			if (this.parent == null)
-				return;
-			this.parent.getChildren().remove(this);
-			this.parent.getChildren().insertSorted(this);
-			this.parent.updatePreviousBestValue();
+		if (!this.isReal()) {
+			this.value = this.getChildren().get(0).getValue();
+			this.bestDescendant = this.getChildren().get(0).getBestDescendant();
 		}
+		if (this.parent == null)
+			return;
+		this.parent.getChildren().remove(this);
+		this.parent.getChildren().insertSorted(this);
+		this.parent.updatePreviousBestValue();
 		return;
 	}
 
