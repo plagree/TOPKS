@@ -31,6 +31,7 @@ import org.dbweb.socialsearch.topktrust.datastructure.general.SortedQueue;
 import org.dbweb.socialsearch.topktrust.datastructure.views.UserView;
 import org.dbweb.socialsearch.topktrust.datastructure.views.ViewScore;
 import org.dbweb.completion.trie.RadixTreeImpl;
+import org.dbweb.completion.trie.RadixTreeNode;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -132,7 +133,7 @@ public class TopKAlgorithm{
 	protected HashSet<Integer> skr;
 	protected String[] next_docs;
 	protected ResultSet[] docs;
-	protected ArrayList<String> dictionary;
+	//protected ArrayList<String> dictionary;
 	protected RadixTreeImpl completion_trie; // Completion trie
 
 	protected int[] pos;
@@ -249,7 +250,7 @@ public class TopKAlgorithm{
 		ResultSet rs = null;
 
 		// DICTIONARY
-		dictionary = new ArrayList<String>();
+		/*dictionary = new ArrayList<String>();
 		try {
 			String sqlRequest = String.format(sqlGetDifferentTags, Params.taggers);
 			ps = connection.prepareStatement(sqlRequest);
@@ -261,7 +262,7 @@ public class TopKAlgorithm{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println("Dictionary loaded, "+dictionary.size()+"tags...");		
+		System.out.println("Dictionary loaded, "+dictionary.size()+"tags...");*/		
 
 		// INVERTED LISTS
 		ResultSet result;
@@ -274,19 +275,31 @@ public class TopKAlgorithm{
 		tag_idf = new HashMap<String,Float>();
 		next_docs2 = new HashMap<String, String>();
 		docs2 = new HashMap<String, ResultSet>();
-		/*String[] dictionary2 = {
+		String[] dictionary2 = { // DEBUG PURPOSE
 				//"car", //testindb
 				"Obama", //twitter dump
-				"TFBJP",
+				//"TFBJP",
 				"Cancer",
 				"Syria",
 				"SOUGOFOLLOW",
 				"Apple",
 				"NoMatter",
 				"SOUGOF",
-				"SOUGOFOL"
-		};*/
-		for(String tag:dictionary){
+				"SOUGOFOL",
+				"TFBj",
+				"TFBJ", 
+				"TFBUSA",
+				"TFB",
+				"TFB_VIP",
+				"TFBPH",
+				"TFB_TeamFollow",
+				"TFBINA", 
+				"TFBFI", 
+				"TFBjp", 
+				"TFBJp", 
+				"TFBJP"
+		};
+		for(String tag:dictionary2){
 			/*
 			 * INVERTED LISTS ARE HERE
 			 */
@@ -317,31 +330,37 @@ public class TopKAlgorithm{
 
 		}
 		System.out.println("Inverted Lists loaded...");
-		//completion_trie.display();
+		//completion_trie.display(); DEBUG PURPOSE
+		/*for (String s: dictionary2){
+			RadixTreeNode pf = completion_trie.searchPrefix(s);
+			float ff = completion_trie.find(s);
+			System.out.println(ff+": find, "+pf.getKey()+" : key,\t"+pf.getValue()+" : value,\t"+pf.getChildren().size()+" : size,\t"+pf.getBestDescendant().getWord()+" : best descendant");
+		}*/
+		//System.exit(0);  DEBUG PURPOSE
 
 		// USER SPACES
-		/*sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate, this.tagTable);
+		sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate, this.tagTable);
 		int idx=0;
 
-		for(String tag:dictionary) {
-			if(idx<dictionary.size()-1){
+		for(String tag:dictionary2) {
+			if(idx<dictionary2.length-1){
 				sqlGetAllDocuments+=String.format("\'%s\',", tag);
 			}
 			else{
 				sqlGetAllDocuments+=String.format("\'%s\')", tag);
 			}
 			idx++;
-		}*/
+		}
 
 		this.docs_users = new HashMap<Integer, PatriciaTrie<HashSet<String>>>();
 		connection.setAutoCommit(false);
 		Statement stmt = connection.createStatement();
 		stmt.setFetchSize(1000);
-		//result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT
-		String sqlGetAllDocumentsTemplate2 = "select * from %s";
+		result = stmt.executeQuery(sqlGetAllDocuments); //DEBUG PURPOSE, SMALL DATA SET
+		/*String sqlGetAllDocumentsTemplate2 = "select * from %s";
 		System.out.println(this.tagTable+", "+Params.taggers);
 		sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate2, this.tagTable);
-		result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT
+		result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT*/
 		while(result.next()){
 			int d_usr = result.getInt(1);
 			String d_itm = result.getString(2);
@@ -546,7 +565,7 @@ public class TopKAlgorithm{
 		total_heap_interchanges = 0;
 		total_heap_adds = 0;
 		total_heap_rebuilds = 0;
-		
+
 		for (String t: query)
 			System.out.println(high_docs.get(t));
 		long time0 = System.currentTimeMillis();

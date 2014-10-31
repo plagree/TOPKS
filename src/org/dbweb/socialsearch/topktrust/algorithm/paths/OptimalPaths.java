@@ -59,12 +59,7 @@ public class OptimalPaths {
 		this.values = values;
 		this.heap = heap;
 		this.func[2]=new PathPow(coeff);
-		LoadIntoMemory.loadData(this.connection);
-//		if(heap) try {
-//			loadNetwork();
-//		} catch (SQLException e) {
-//			log.error(e.getMessage());
-//		}
+		LoadIntoMemory.loadData(this.connection); //DEBUG PURPOSE
 	}
 	
 	public void setValues(ArrayList<Float> values){

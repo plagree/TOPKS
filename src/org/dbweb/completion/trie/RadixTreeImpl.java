@@ -185,7 +185,10 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 			n1.setReal(node.isReal());
 			n1.setValue(node.getValue());
 			n1.setChildren(node.getChildren());
-			n1.setBestDescendant(node.getBestDescendant());
+			if (node.getBestDescendant()!=node)
+				n1.setBestDescendant(node.getBestDescendant());
+			else
+				n1.setBestDescendant(n1);
 
 			node.setKey(key.substring(0, numberOfMatchingCharacters));
 			node.setReal(false);
