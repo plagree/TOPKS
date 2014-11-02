@@ -35,8 +35,8 @@ public class Test{
 		//"Apple",
 		//"SOUGOF",
 		//"SOUGOFOL",
-		"openingact",
-		"openingceremony",
+		//"openingact",
+		//"openingceremony",
 		"opening"
 	};
 

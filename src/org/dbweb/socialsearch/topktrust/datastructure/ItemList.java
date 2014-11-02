@@ -245,7 +245,7 @@ public class ItemList implements Cloneable{
     	return confidence;
     }
 
-    public boolean terminationCondition(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, HashMap<String, Float> idf, HashMap<String,Integer> high, float total_sum, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
+    public boolean terminationCondition(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, float total_sum, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
         //if(sortNeeded) Collections.sort(items,comparator);
     	this.processBoundary(query, value,k, num_tags, alpha, num_users, idf, high, total_sum, user_weights, positions, approx, sortNeeded, needUnseen, guaranteed, possible);
         if((this.max_from_rest<=this.min_from_topk)&&(number_of_candidates>=k)){
@@ -270,7 +270,7 @@ public class ItemList implements Cloneable{
     	return this.topk_changed;
     }
 
-    private void processBoundary(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, HashMap<String, Float> idf, HashMap<String,Integer> high, float total_sum, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
+    private void processBoundary(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, float total_sum, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
         HashSet<String> newtopk = new HashSet<String>();
         int number = 0;
         int position = 0;
@@ -296,7 +296,7 @@ public class ItemList implements Cloneable{
         		double normalpart = alpha * high.get(tag);
         		double socialpart = (1 - alpha) * contribution;
         		double scorepart = normalpart + socialpart;
-        		scoremax += score.getScore(scorepart, idf.get(tag));
+        		scoremax += score.getScore(scorepart, idf.find(tag));
         		this.soccontrib.put(tag, (double)high.get(tag));
         		this.normcontrib.put(tag, (double)high.get(tag));
         	}

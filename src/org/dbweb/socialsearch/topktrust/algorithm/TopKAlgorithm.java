@@ -113,7 +113,7 @@ public class TopKAlgorithm{
 
 	protected HashMap<Integer, PatriciaTrie<HashSet<String>>> docs_users;
 
-	protected HashMap<String,Float> tag_idf;
+	protected RadixTreeImpl tag_idf;
 	protected HashMap<String, ListIterator<UserEntry<Float>>> friends_list;
 	protected ArrayList<UserEntry<Float>> friends;
 	protected ArrayList<Float> values;
@@ -272,7 +272,7 @@ public class TopKAlgorithm{
 		positions = new HashMap<String,Float>();
 		userWeights = new HashMap<String,Float>();
 		tagFreqs = new HashMap<String,Integer>();
-		tag_idf = new HashMap<String,Float>();
+		tag_idf = new RadixTreeImpl();
 		next_docs2 = new HashMap<String, String>();
 		docs2 = new HashMap<String, ResultSet>();
 		String[] dictionary2 = { // DEBUG PURPOSE
@@ -328,7 +328,7 @@ public class TopKAlgorithm{
 			if(result.next()) tagfreq = result.getInt(1);
 			tagFreqs.put(tag, high_docs.get(tag));
 			float tagidf = (float) Math.log(((float)number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
-			tag_idf.put(tag, new Float(tagidf));
+			tag_idf.insert(tag, tagidf);
 
 		}
 		System.out.println("Inverted Lists loaded...");
@@ -829,19 +829,19 @@ public class TopKAlgorithm{
 			//for(String tag:query){
 			//	found = false; // ?????
 			String completion;
-				for(index=0;index<query.size();index++) {
-					found = false;
-					completion = completion_trie.searchPrefix(tags[index], false).getBestDescendant().getWord();
-					if(unknown_tf.get(tags[index]).contains(next_docs[index]+"#"+completion)){
-						Item<String> item1 = candidates.findItem(next_docs[index]+"#"+completion);
-						candidates.removeItem(item1);
-						item1.updateScoreDocs(tags[index], high_docs.get(tags[index]),approxMethod);
-						unknown_tf.get(tags[index]).remove(next_docs[index]); 
-						advanceTextualList(tags[index],index);
-						candidates.addItem(item1);
-						found = true;
-					}
+			for(index=0;index<query.size();index++) {
+				found = false;
+				completion = completion_trie.searchPrefix(tags[index], false).getBestDescendant().getWord();
+				if(unknown_tf.get(tags[index]).contains(next_docs[index]+"#"+completion)){
+					Item<String> item1 = candidates.findItem(next_docs[index]+"#"+completion);
+					candidates.removeItem(item1);
+					item1.updateScoreDocs(tags[index], high_docs.get(completion),approxMethod);
+					unknown_tf.get(tags[index]).remove(next_docs[index]); 
+					advanceTextualList(tags[index],index);
+					candidates.addItem(item1);
+					found = true;
 				}
+			}
 			//}
 		}
 	}
@@ -967,13 +967,10 @@ public class TopKAlgorithm{
 		for(String tag:tagList){
 			index++;
 			if (index < sizeOfQuery) {
-				item.addTag(tag, tag_idf.get(tag));
+				item.addTag(tag, tag_idf.find(tag));
 			}
 			else {
-				if (this.tag_idf.containsKey(completion))
-					item.addTag(tag, tag_idf.get(completion));
-				else
-					item.addTag(tag, 0);
+				item.addTag(tag, tag_idf.find(completion));
 			}
 			unknown_tf.get(tag).add(itemId);			
 		}
@@ -984,8 +981,8 @@ public class TopKAlgorithm{
 		String idfs="";
 		String tkpos="";
 		String tkval="";
-		for(String tag:this.tag_idf.keySet()){
-			idfs = String.format(Locale.US,"%.3f", tag_idf.get(tag));
+		for(String tag:this.docs2.keySet()){
+			idfs = String.format(Locale.US,"%.3f", tag_idf.find(tag));
 			tkpos = String.format(Locale.US,"%d", lastpos.get(tag));
 			tkval = String.format(Locale.US,"%.3f", lastval.get(tag));
 		}
@@ -1027,7 +1024,7 @@ public class TopKAlgorithm{
 		int lastp = 0;
 		int totp = 0;
 		float lastv = 0;
-		for(String tag:this.tag_idf.keySet()){
+		for(String tag:this.docs2.keySet()){
 			if(lastpos.containsKey(tag)){
 				totp+=lastpos.get(tag);
 				if(lastp<lastpos.get(tag)){
@@ -1223,7 +1220,7 @@ public class TopKAlgorithm{
 	}
 
 	public char[] getResultsForR() {
-		char[] chaine=null;		
+		char[] chaine=null;
 		//get results
 		BasicSearchResult sr=new BasicSearchResult();
 		sr.getResult();
