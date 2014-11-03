@@ -125,6 +125,21 @@ public class Item<E> implements Comparable<Item<E>>{
     public void updateIdf(E tag, float idf) {
     	this.idf.put(tag, idf);
     }
+    
+    public void updatePrefix(E oldPrefix, E newPrefix) {
+    	this.soccontrib.put(newPrefix, this.soccontrib.get(oldPrefix));
+    	this.soccontrib.remove(oldPrefix);
+    	this.tags.put(newPrefix, this.tags.get(oldPrefix));
+    	this.tags.remove(oldPrefix);
+        this.idf.put(newPrefix, this.idf.get(oldPrefix));
+        this.idf.remove(oldPrefix);
+        if (this.tdf.containsKey(oldPrefix)) {
+        	this.tdf.put(newPrefix, this.tdf.get(oldPrefix));
+        	this.tdf.remove(oldPrefix);
+        }
+        this.uf.put(newPrefix, this.uf.get(oldPrefix));
+        this.uf.remove(oldPrefix);
+    }
 
     public int updateScore(E tag, float value, int pos, int approx){
     	float prevUFVal = 0;    	

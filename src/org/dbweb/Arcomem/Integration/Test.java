@@ -29,15 +29,15 @@ public class Test{
 		//"car", //testindb
 		//"Obama", //twitter dump
 		//"TFBJP",
-		//"Cancer",
+		//"Ca",
 		//"Syria",
 		//"SOUGOFOLLOW",
 		//"Apple",
-		"SOUGOF",
-		"SOUGOFOL",
+		//"SOUGOF",
+		//"SOUGOFOL",
 		//"openingact",
 		//"openingceremony",
-		//"opening"
+		"opening"
 	};
 
 	private static final String[][] seekers={
@@ -110,6 +110,22 @@ public class Test{
 										long timeBefore = System.currentTimeMillis();
 										topk_alg.executeQuery(String.valueOf(seekers[index_n][index_s]), query, k); // TOPKS IS RUN HERE
 										long timeAfter = System.currentTimeMillis();
+										System.out.println("The algorithm ran in "+(timeAfter-timeBefore)/1000+" seconds with seeker "+seekers[index_n][index_s]);
+										xmlFile.write(topk_alg.getResultsXML());
+										test_num++;
+										res[0] = String.format("Currently at test number %d...",test_num);
+										results.setResults(res);
+										xmlFile.write("</tests>");							
+										xmlFile.close();
+										
+										xmlFile = new FileWriter(String.format("tests_%s_%s_%s"+n+".xml", metname[index_mt], network[index_n], func[index_f].toString()));
+										xmlFile.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
+										xmlFile.write("<tests>");
+										query.remove(query1[index_q]);
+										query.add(query1[index_q]+"a");
+										timeBefore = System.currentTimeMillis();
+										topk_alg.executeQueryPlusLetter(String.valueOf(seekers[index_n][index_s]), query, k); // TOPKS IS RUN HERE
+										timeAfter = System.currentTimeMillis();
 										System.out.println("The algorithm ran in "+(timeAfter-timeBefore)/1000+" seconds with seeker "+seekers[index_n][index_s]);
 										xmlFile.write(topk_alg.getResultsXML());
 										test_num++;

@@ -262,7 +262,7 @@ public class TopKAlgorithm{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println("Dictionary loaded, "+dictionary.size()+"tags...");*/		
+		System.out.println("Dictionary loaded, "+dictionary.size()+"tags...");*/
 
 		// INVERTED LISTS
 		ResultSet result;
@@ -359,10 +359,9 @@ public class TopKAlgorithm{
 		Statement stmt = connection.createStatement();
 		stmt.setFetchSize(1000);
 		result = stmt.executeQuery(sqlGetAllDocuments); //DEBUG PURPOSE, SMALL DATA SET
-		/*String sqlGetAllDocumentsTemplate2 = "select * from %s";
-		System.out.println(this.tagTable+", "+Params.taggers);
-		sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate2, this.tagTable);
-		result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT*/
+		//String sqlGetAllDocumentsTemplate2 = "select * from %s";
+		//sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate2, this.tagTable);
+		//result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT*/
 		while(result.next()){
 			int d_usr = result.getInt(1);
 			String d_itm = result.getString(2);
@@ -584,8 +583,39 @@ public class TopKAlgorithm{
 
 		return 0;
 	}
+	
+	private void updateKeys(String previousPrefix, String newPrefix) {
+		if (unknown_tf.containsKey(previousPrefix)) {
+			HashSet<String> old_unknown_tf = unknown_tf.get(previousPrefix);
+			HashSet<String> new_unknown_tf = new HashSet<String>();
+			for (String unknownDoc: old_unknown_tf) {
+				if (unknownDoc.startsWith(newPrefix))
+					new_unknown_tf.add(unknownDoc);
+			}
+			unknown_tf.put(newPrefix, new_unknown_tf);
+		}
+	}
+	
+	public int executeQueryPlusLetter(String seeker, HashSet<String> query, int k) throws SQLException{
+		String newPrefix = "";
+    	for (String tag: query) {
+    		newPrefix = tag;
+    	}
+    	String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
+		this.updateKeys(previousPrefix, newPrefix);
+		RadixTreeNode radixTreeNode = completion_trie.searchPrefix(newPrefix, false);
+		ResultSet r = docs2.get(radixTreeNode.getBestDescendant().getWord());
+		high_docs.put(newPrefix, r.getInt(2));
+		next_docs[next_docs.length-1] = r.getString(1);
+		candidates.filterTopk(query);
+		//for (Item<String> item: candidates.) 
+			
+		mainLoop(k, seeker, query);
+		this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
+		return 0;
+	}
 
-	/*
+	/**
 	 * MAIN LOOP
 	 */
 	protected void mainLoop(int k, String seeker, HashSet<String> query) throws SQLException{
@@ -631,6 +661,7 @@ public class TopKAlgorithm{
 			//long time_1 = System.currentTimeMillis();
 			steps = (steps+1)%skipped_tests;
 			if((steps==0)||(!needUnseen&&((approxMethod&Methods.MET_ET)==Methods.MET_ET))){
+				System.out.println("ici");
 				try {
 					/*
 					 * During the terminationCondition method, look up at top_items of different ILs, we add
@@ -933,7 +964,6 @@ public class TopKAlgorithm{
 			else{
 				high_docs.put(tag, 0);
 				next_docs[index] = "";
-				//opportunity-=alpha;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -1024,7 +1054,7 @@ public class TopKAlgorithm{
 		int lastp = 0;
 		int totp = 0;
 		float lastv = 0;
-		for(String tag:this.docs2.keySet()){
+		/*for(String tag:this.docs2.keySet()){
 			if(lastpos.containsKey(tag)){
 				totp+=lastpos.get(tag);
 				if(lastp<lastpos.get(tag)){
@@ -1033,7 +1063,7 @@ public class TopKAlgorithm{
 				}
 			}
 		}
-		totp = totp/query.size();
+		totp = totp/query.size();*/
 
 		//    	this.newXMLResults = String.format(Locale.US,"<query network=\"%s\" func=\"%s\" tags=\"%s\" seeker=\"%s\" k=\"%d\" method=\"%d\" alpha=\"%.2f\">", this.networkTable, this.distFunc.toString(), queryStr, seeker, k, method, alpha);
 		//    	this.newXMLResults = String.format(Locale.US, "<ResultSet seeker=\"%s\">", seeker);
@@ -1044,20 +1074,14 @@ public class TopKAlgorithm{
 		int position=0;
 
 		for(String itid:this.candidates.get_topk()){
-			String[] split = itid.split("#"); // TO BE CHANGED
+			String[] split = itid.split("#");
 			Item<String> item = candidates.findItem(split[0], split[1]);
 			str=protectSpecialCharacters(item.getItemId());
-			//    		log.info("{}",protectSpecialCharacters(item.getItemId()));
 			this.resultList.addResult(str, item.getComputedScore(), item.getBestscore());
-			//    		System.out.println(item.getComputedScore()+"|"+item.getBestscore());
-			resultList.setNbLoops(this.numloops);//amine populate resultList object
+			resultList.setNbLoops(this.numloops); //amine populate resultList object
 
-			//    		int n=this.resultList.getResult().size();
-			//    		log.info("{}",this.resultList.getResult().get(n-1));
-
-			//    		this.resultsXML+=String.format(Locale.US,"<result score=\"%.5f\">%s</result>", item.getComputedScore(), protectSpecialCharacters(item.getItemId()));
 			this.newXMLResults+=String.format(Locale.US,"<result  minscore=\"%.5f\" maxscore=\"%.5f\">%s</result>",
-					item.getComputedScore(), item.getBestscore(), protectSpecialCharacters(item.getItemId()));
+					item.getComputedScore(), item.getBestscore(), protectSpecialCharacters(item.getItemId()+"#"+item.getCompletion()));
 
 			this.newXMLResults+="\n";
 			position++;
