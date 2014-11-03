@@ -129,6 +129,8 @@ public class Item<E> implements Comparable<Item<E>>{
     public void updatePrefix(E oldPrefix, E newPrefix) {
     	this.soccontrib.put(newPrefix, this.soccontrib.get(oldPrefix));
     	this.soccontrib.remove(oldPrefix);
+    	this.normcontrib.put(newPrefix, this.normcontrib.get(oldPrefix));
+    	this.normcontrib.remove(oldPrefix);
     	this.tags.put(newPrefix, this.tags.get(oldPrefix));
     	this.tags.remove(oldPrefix);
         this.idf.put(newPrefix, this.idf.get(oldPrefix));
@@ -139,6 +141,10 @@ public class Item<E> implements Comparable<Item<E>>{
         }
         this.uf.put(newPrefix, this.uf.get(oldPrefix));
         this.uf.remove(oldPrefix);
+        if (r.containsKey(oldPrefix)) {
+        	r.put(newPrefix, r.get(oldPrefix));
+        	r.remove(oldPrefix);
+        }
     }
 
     public int updateScore(E tag, float value, int pos, int approx){
