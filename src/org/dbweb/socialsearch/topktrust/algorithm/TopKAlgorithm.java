@@ -583,25 +583,21 @@ public class TopKAlgorithm{
 
 		return 0;
 	}
-	
-	private void updateKeys(String previousPrefix, String newPrefix) {
-		if (unknown_tf.containsKey(previousPrefix)) {
-			HashSet<String> old_unknown_tf = unknown_tf.get(previousPrefix);
-			HashSet<String> new_unknown_tf = new HashSet<String>();
-			for (String unknownDoc: old_unknown_tf) {
-				if (unknownDoc.startsWith(newPrefix))
-					new_unknown_tf.add(unknownDoc);
-			}
-			unknown_tf.put(newPrefix, new_unknown_tf);
-		}
-	}
-	
+
+	/**
+	 * When a query with prefix was already answered, this method use previous work and answer prefix+l
+	 * @param seeker
+	 * @param query
+	 * @param k
+	 * @return
+	 * @throws SQLException
+	 */
 	public int executeQueryPlusLetter(String seeker, HashSet<String> query, int k) throws SQLException{
 		String newPrefix = "";
-    	for (String tag: query) {
-    		newPrefix = tag;
-    	}
-    	String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
+		for (String tag: query) {
+			newPrefix = tag;
+		}
+		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
 		RadixTreeNode radixTreeNode = completion_trie.searchPrefix(newPrefix, false);
 		ResultSet r = docs2.get(radixTreeNode.getBestDescendant().getWord());
@@ -609,7 +605,7 @@ public class TopKAlgorithm{
 		next_docs[next_docs.length-1] = r.getString(1);
 		candidates.filterTopk(query);
 		//for (Item<String> item: candidates.) 
-			
+
 		mainLoop(k, seeker, query);
 		this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
 		return 0;
@@ -661,7 +657,6 @@ public class TopKAlgorithm{
 			//long time_1 = System.currentTimeMillis();
 			steps = (steps+1)%skipped_tests;
 			if((steps==0)||(!needUnseen&&((approxMethod&Methods.MET_ET)==Methods.MET_ET))){
-				System.out.println("ici");
 				try {
 					/*
 					 * During the terminationCondition method, look up at top_items of different ILs, we add
@@ -715,7 +710,6 @@ public class TopKAlgorithm{
 			if((upper_social_score!=0)||(upper_docs_score!=0)) textual = textual || (upper_social_score<=upper_docs_score);
 		}
 		return !textual;
-
 	}
 
 	/**
@@ -1148,6 +1142,18 @@ public class TopKAlgorithm{
 		//		} catch (Exception ex) {
 		//			ex.printStackTrace();
 		//		}
+	}
+	
+	private void updateKeys(String previousPrefix, String newPrefix) {
+		if (unknown_tf.containsKey(previousPrefix)) {
+			HashSet<String> old_unknown_tf = unknown_tf.get(previousPrefix);
+			HashSet<String> new_unknown_tf = new HashSet<String>();
+			for (String unknownDoc: old_unknown_tf) {
+				if (unknownDoc.startsWith(newPrefix))
+					new_unknown_tf.add(unknownDoc);
+			}
+			unknown_tf.put(newPrefix, new_unknown_tf);
+		}
 	}
 
 	public void setLandmarkPaths(LandmarkPathsComputing landmark){

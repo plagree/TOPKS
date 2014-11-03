@@ -214,6 +214,26 @@ public class ItemList implements Cloneable{
 		sorted_items = filtered_items;
 
 	}
+	
+	public void extractProbableTopK(int k, HashSet<String> guaranteed, HashSet<String> possible) {
+		int counter = 0;
+		double wsc_t = 0;
+		for (Item<String> item2: sorted_items) {
+			if (counter == k)
+				wsc_t = item2.getComputedScore();
+		}
+		
+		for (Item<String> item: sorted_items) {
+			counter = 0;
+			for (Item<String> item2: sorted_items) {
+				if (item == item2)
+					continue;
+				if (item2.getBestscore() > item.getComputedScore())
+					counter += 1;
+				if (counter >= k)
+			}
+		}
+	}
 
 	public double sample(int k, HashSet<String> possible, HashSet<String> newtopk, int samples, int position){
 		//needs a MUCH better optimization
@@ -273,6 +293,7 @@ public class ItemList implements Cloneable{
 		//    	log.info(String.format("maximal confidence %.5f - position %d",confidence,position));
 		return confidence;
 	}
+	
 
 	public boolean terminationCondition(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
 		//if(sortNeeded) Collections.sort(items,comparator);
@@ -291,6 +312,7 @@ public class ItemList implements Cloneable{
 		else        	        
 			return false;        
 	}
+	
 	public void resetChange(){
 		topk_changed = false;
 	}
