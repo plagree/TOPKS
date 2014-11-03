@@ -449,7 +449,7 @@ public class TopKAlgorithm{
 		pos = new int[query.size()];
 		docs = new ResultSet[query.size()];
 		int index = 0;
-		boolean exact = true;
+		boolean exact = false;
 		for(String tag:query){
 			docs[index] = docs2.get(tag);
 			pos[index]=0;
@@ -636,7 +636,7 @@ public class TopKAlgorithm{
 					 * During the terminationCondition method, look up at top_items of different ILs, we add
 					 * them if necessary to the top-k answer of the algorithm.
 					 */
-					terminationCondition = candidates.terminationCondition(query, userWeight, k, query.size(), alpha, this.number_users, tag_idf, high_docs, total_sum, userWeights, positions, approxMethod, docs_inserted, needUnseen, guaranteed, possible);
+					terminationCondition = candidates.terminationCondition(query, userWeight, k, query.size(), alpha, this.number_users, tag_idf, high_docs, userWeights, positions, approxMethod, docs_inserted, needUnseen, guaranteed, possible);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -750,10 +750,10 @@ public class TopKAlgorithm{
 							String completion = currentEntry.getKey();
 							for(String itemId: currentEntry.getValue()) {
 								found_docs = true;
-								Item<String> item = candidates.findItem(itemId+"#"+completion);
+								Item<String> item = candidates.findItem(itemId, completion);
 								float userW = 0;
 								if(item==null){
-									item = createNewCandidateItem(itemId+"#"+completion, query,item, completion); 
+									item = createNewCandidateItem(itemId, query,item, completion); 
 									item.setMaxScorefromviews(bestScoreEstim);
 									for(String tag1:query)
 										if(!item.tdf.containsKey(tag1)) {
@@ -833,7 +833,7 @@ public class TopKAlgorithm{
 				found = false;
 				completion = completion_trie.searchPrefix(tags[index], false).getBestDescendant().getWord();
 				if(unknown_tf.get(tags[index]).contains(next_docs[index]+"#"+completion)){
-					Item<String> item1 = candidates.findItem(next_docs[index]+"#"+completion);
+					Item<String> item1 = candidates.findItem(next_docs[index], completion);
 					candidates.removeItem(item1);
 					item1.updateScoreDocs(tags[index], high_docs.get(completion),approxMethod);
 					unknown_tf.get(tags[index]).remove(next_docs[index]); 
@@ -856,7 +856,7 @@ public class TopKAlgorithm{
 		int index = 0;
 		for(String tag:query){
 			if(next_docs[index]!=""){
-				Item<String> item = candidates.findItem(next_docs[index]);
+				Item<String> item = candidates.findItem(next_docs[index], "");
 				if(item==null)
 					item = createNewCandidateItem(next_docs[index], query, item,"");
 				//    			candidates.addItem(item);
@@ -885,7 +885,7 @@ public class TopKAlgorithm{
 		boolean early = viewTransformer.isEarly();
 		needUnseen = needUnseen && !early;
 		for(String itm:guar.keySet()){
-			Item<String> itm_c = candidates.findItem(itm);
+			Item<String> itm_c = candidates.findItem(itm, "");
 			if(itm_c==null){
 				itm_c = createNewCandidateItem(itm, query, itm_c,"");
 			}
@@ -899,7 +899,7 @@ public class TopKAlgorithm{
 		if(early){
 			HashSet<String> new_need = new HashSet<String>();
 			for(String itm:need.keySet()){
-				Item<String> itm_c = candidates.findItem(itm);
+				Item<String> itm_c = candidates.findItem(itm, "");
 				if(itm_c==null){
 					itm_c = createNewCandidateItem(itm, query, itm_c,"");
 				}
@@ -922,7 +922,7 @@ public class TopKAlgorithm{
 	protected void advanceTextualList(String tag, int index){
 
 		try {
-			RadixTreeNode current_best_leaf = completion_trie.searchPrefix(tag, true).getBestDescendant();
+			RadixTreeNode current_best_leaf = completion_trie.searchPrefix(tag, false).getBestDescendant();
 			if(docs2.get(current_best_leaf.getWord()).next()){
 				total_documents_asocial++;
 				ResultSet r = docs2.get(current_best_leaf.getWord());
@@ -940,8 +940,8 @@ public class TopKAlgorithm{
 		}
 	}
 
-	protected void getAllItemScores(String item, HashSet<String> query) throws SQLException{
-		Item<String> itm = candidates.findItem(item);
+	protected void getAllItemScores(String item, HashSet<String> query, String completion) throws SQLException{
+		Item<String> itm = candidates.findItem(item, completion);
 		for(String tag:query)
 			if(!itm.tdf.containsKey(tag)){
 				PreparedStatement stmt = connection.prepareStatement(sqlGetDocumentTf);
@@ -972,7 +972,7 @@ public class TopKAlgorithm{
 			else {
 				item.addTag(tag, tag_idf.find(completion));
 			}
-			unknown_tf.get(tag).add(itemId);			
+			unknown_tf.get(tag).add(itemId+"#"+completion);			
 		}
 		return item;
 	}
@@ -1044,7 +1044,8 @@ public class TopKAlgorithm{
 		int position=0;
 
 		for(String itid:this.candidates.get_topk()){
-			Item<String> item = candidates.findItem(itid);
+			String[] split = itid.split("#"); // TO BE CHANGED
+			Item<String> item = candidates.findItem(split[0], split[1]);
 			str=protectSpecialCharacters(item.getItemId());
 			//    		log.info("{}",protectSpecialCharacters(item.getItemId()));
 			this.resultList.addResult(str, item.getComputedScore(), item.getBestscore());
@@ -1158,9 +1159,10 @@ public class TopKAlgorithm{
 	}
 
 	public TreeSet<Item<String>> getResults(){
+		System.out.println("AQUI");
 		TreeSet<Item<String>> results = new TreeSet<Item<String>>();
 		for(String itid:candidates.get_topk())
-			results.add(candidates.findItem(itid));
+			results.add(candidates.findItem(itid, ""));
 		return results;
 	}
 

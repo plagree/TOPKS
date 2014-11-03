@@ -33,11 +33,11 @@ public class Test{
 		//"Syria",
 		//"SOUGOFOLLOW",
 		//"Apple",
-		//"SOUGOF",
-		//"SOUGOFOL",
+		"SOUGOF",
+		"SOUGOFOL",
 		//"openingact",
 		//"openingceremony",
-		"opening"
+		//"opening"
 	};
 
 	private static final String[][] seekers={

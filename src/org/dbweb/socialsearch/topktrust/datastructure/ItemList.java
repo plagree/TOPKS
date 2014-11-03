@@ -109,7 +109,7 @@ public class ItemList implements Cloneable{
     }
     
     public void addItem(Item<String> item){
-    	this.items.put(item.getItemId(), item);
+    	this.items.put(item.getItemId()+"#"+item.getCompletion(), item);
     	if(!item.isPruned()) this.sorted_items.add(item);
     	/*
     	if(topk.size()<k){
@@ -148,9 +148,9 @@ public class ItemList implements Cloneable{
 //        return this.sorted_items;
 //    }
 
-    public Item<String> findItem(String itemId){
-    	if(items.containsKey(itemId))
-    		return items.get(itemId);
+    public Item<String> findItem(String itemId, String completion){
+    	if(items.containsKey(itemId+"#"+completion))
+    		return items.get(itemId+"#"+completion);
     	else
     		return null;    	
     }
@@ -245,9 +245,9 @@ public class ItemList implements Cloneable{
     	return confidence;
     }
 
-    public boolean terminationCondition(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, float total_sum, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
+    public boolean terminationCondition(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
         //if(sortNeeded) Collections.sort(items,comparator);
-    	this.processBoundary(query, value,k, num_tags, alpha, num_users, idf, high, total_sum, user_weights, positions, approx, sortNeeded, needUnseen, guaranteed, possible);
+    	this.processBoundary(query, value,k, num_tags, alpha, num_users, idf, high, user_weights, positions, approx, sortNeeded, needUnseen, guaranteed, possible);
         if((this.max_from_rest<=this.min_from_topk)&&(number_of_candidates>=k)){
         	if(fil!=null){
         		try {
@@ -270,8 +270,8 @@ public class ItemList implements Cloneable{
     	return this.topk_changed;
     }
 
-    private void processBoundary(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, float total_sum, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
-        HashSet<String> newtopk = new HashSet<String>();
+    private void processBoundary(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
+        HashMap<String, String> newtopk = new HashMap<String, String>();
         int number = 0;
         int position = 0;
         double scoremin = 0.0f;
@@ -309,24 +309,25 @@ public class ItemList implements Cloneable{
         Item<String> curr_item=prioCopy.poll();
         int k1 = k - guaranteed.size(); //guaranteed.size()==0 if we do not use views
         sumconf = guaranteed.size();
-        for(String itm:guaranteed) newtopk.add(itm);
+        for(String itm:guaranteed) newtopk.put(itm, ""); // NOT WORKING
         while(curr_item!=null){       
             if(number<k1){
             	if((needUnseen||possible.contains(curr_item.getItemId()))&&(!guaranteed.contains(curr_item.getItemId()))){
             		if(!current_topk.contains(curr_item.getItemId())){
             			topk_changed = true;
             		}
-            		curr_item.computeBestScore(high, total_sum, user_weights, positions, approx);
-            		newtopk.add(curr_item.getItemId());
-            		scoremin = curr_item.getComputedScore();  
-            		number++;
+            		curr_item.computeBestScore(high, user_weights, positions, approx);
+            		String docId = curr_item.getItemId();
+            		if (!newtopk.containsKey(docId)) {
+            			newtopk.put(docId, curr_item.getCompletion()); // newtopk String to obj <docId, completion>
+            			scoremin = curr_item.getComputedScore();  
+            			number++;
+            		}
             	}
             }
             else{
-//            	if(scoremax>scoremin)
-//            		break;//amine
             	if((needUnseen||possible.contains(curr_item.getItemId()))&&(!guaranteed.contains(curr_item.getItemId()))){
-            		curr_item.computeBestScore(high, total_sum, user_weights, positions, approx);
+            		curr_item.computeBestScore(high, user_weights, positions, approx);
             		double curr_candidate = curr_item.getBestscore();
             		if(curr_candidate<=scoremin) curr_item.setPruned(true);
             		if(scoremax<curr_candidate){ 
@@ -341,14 +342,14 @@ public class ItemList implements Cloneable{
         }
         
         if(views&&((approx&Methods.MET_ET)==Methods.MET_ET)){ //Using precomputed results -- calculating and estimation of the top-k
-        	newtopk = new HashSet<String>();
+        	newtopk = new HashMap<String, String>();
         	//FileWriter filpos = new FileWriter(String.format("met%d_%s_%.2f_pos_%d.csv", approx, score.toString(), alpha, position));
         	HashSet<String> possible_s = new HashSet<String>();
         	if(possible.size()>0){
         		for(String itm:possible){
         			curr_item = items.get(itm);
-        			curr_item.computeBestScore(high, total_sum, user_weights, positions, approx);
-        			if((curr_item.getBestscore()>scoremin)||(newtopk.contains(itm))){
+        			curr_item.computeBestScore(high, user_weights, positions, approx);
+        			if((curr_item.getBestscore()>scoremin)||(newtopk.containsKey(itm))){
         				//filpos.write(String.format("%s\t%.5f\t%.5f\n",itm,curr_item.getComputedScore(),curr_item.getBestscore()));        			
         				possible_s.add(itm);
         			}
@@ -357,15 +358,15 @@ public class ItemList implements Cloneable{
         	else{
         		for(String itm:items.keySet()){
         			curr_item = items.get(itm);
-        			curr_item.computeBestScore(high, total_sum, user_weights, positions, approx);        			
-        			if((curr_item.getBestscore()>scoremin)||(newtopk.contains(itm))){
+        			curr_item.computeBestScore(high, user_weights, positions, approx);        			
+        			if((curr_item.getBestscore()>scoremin)||(newtopk.containsKey(itm))){
         				//filpos.write(String.format("%s\t%.5f\t%.5f\n",itm,curr_item.getComputedScore(),curr_item.getBestscore()));        			
         				possible_s.add(itm);
         			}
         		}
         	}
-        	sample(k1,possible_s,newtopk,100,position);
-        	for(String itm:guaranteed) newtopk.add(itm);
+        	//sample(k1,possible_s,newtopk,100,position); NOT WORKING WITH HASHMAP
+        	//for(String itm:guaranteed) newtopk.add(itm); NOT WORKING WITH HASHMAP
         	number = k1;
         	scoremin = Double.POSITIVE_INFINITY;
         	scoremax = 0;
@@ -374,7 +375,9 @@ public class ItemList implements Cloneable{
         this.number_of_candidates=number + guaranteed.size();
         this.min_from_topk=scoremin;
         this.max_from_rest=scoremax;
-        this.current_topk = new HashSet<String>(newtopk);
+        this.current_topk = new HashSet<String>();
+        for (String key: newtopk.keySet())
+        	this.current_topk.add(key+"#"+newtopk.get(key));
     }
 
     @Override

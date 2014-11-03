@@ -88,6 +88,10 @@ public class Item<E> implements Comparable<Item<E>>{
     public Item(String itemId){
     	this.itemId = itemId;
     }
+    
+    public String getCompletion() {
+    	return this.completion;
+    }
 
 //    public Item(String itemId, HashMap<E,Integer> tags, float alpha, int num_users, int k1){
 //        this.itemId = itemId;
@@ -177,12 +181,12 @@ public class Item<E> implements Comparable<Item<E>>{
     	return this.soccontrib;
     }
 
-    public double computeBestScore(HashMap<String, Integer> high, float total_sum, HashMap<String, Float> user_weights, HashMap<String, Float> positions, int approx){
+    public double computeBestScore(HashMap<String, Integer> high, HashMap<String, Float> user_weights, HashMap<String, Float> positions, int approx){
     	bestscore = 0;
     	for(E tag : this.tags.keySet()){
         	double uw = user_weights.get(tag);
-    		double bsocial = 0;
-    		double bnormal = 0;
+    		double bsocial = 0; // social part of score (1-alpha)
+    		double bnormal = 0; // normal part (alpha)
     		double bpartial = 0;
     		double stf = 0;
     		this.normcontrib.put(tag, 0.0);
@@ -238,7 +242,7 @@ public class Item<E> implements Comparable<Item<E>>{
     		}
     		bpartial = alpha*bnormal + (1-alpha)*bsocial;
     		//bestscore+=idf.get(tag)*bpartial;
-    		bestscore+= score.getScore(bpartial, idf.get(tag));
+    		bestscore += score.getScore(bpartial, idf.get(tag));
     	}    	
         return this.bestscore;
     }
