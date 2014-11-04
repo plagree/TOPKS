@@ -60,6 +60,7 @@ public class ItemList implements Cloneable{
 
 	private HashMap<String,Double> normcontrib = new HashMap<String,Double>();
 	private HashMap<String,Double> soccontrib = new HashMap<String,Double>();
+	private double score_unseen;
 	private String thritem;
 	private PriorityQueue<Item<String>> sorted_items; 
 	private boolean topk_changed = false;
@@ -215,24 +216,50 @@ public class ItemList implements Cloneable{
 
 	}
 	
+	/**
+	 * If time limit has been passed, we try to extract the best from what we found so far.
+	 * @param k
+	 * @param guaranteed
+	 * @param possible
+	 */
 	public void extractProbableTopK(int k, HashSet<String> guaranteed, HashSet<String> possible) {
 		int counter = 0;
 		double wsc_t = 0;
-		for (Item<String> item2: sorted_items) {
-			if (counter == k)
-				wsc_t = item2.getComputedScore();
+		ArrayList<Item<String>> sorted_ws = new ArrayList<Item<String>>(sorted_items);
+		Collections.sort(sorted_ws);
+		ArrayList<Item<String>> sorted_bs = new ArrayList<Item<String>>(sorted_items);
+		Collections.sort(sorted_bs, new ItemBestScoreComparator());
+		ArrayList<Item<String>> possibleItems = new ArrayList<Item<String>>();
+		
+		if(sorted_ws.size() >= k)
+			wsc_t = sorted_ws.get(k-1).getComputedScore();
+		else {
+			for (Item<String> item: sorted_ws)
+				guaranteed.add(item.getItemId()+"#"+item.getCompletion());
+			return;
+		}
+		for (Item<String> item: sorted_ws) {
+			counter = 0;
+			for (Item<String> item2: sorted_bs) {
+				if (item.getComputedScore() < item2.getBestscore())
+					counter += 1;
+				else
+					break;
+			}
+			if ((counter<=k) && (this.score_unseen<=item.getComputedScore()))
+				guaranteed.add(item.getItemId()+"#"+item.getCompletion());
+			else if(item.getBestscore() > wsc_t)
+				possibleItems.add(item);
 		}
 		
-		for (Item<String> item: sorted_items) {
-			counter = 0;
-			for (Item<String> item2: sorted_items) {
-				if (item == item2)
-					continue;
-				if (item2.getBestscore() > item.getComputedScore())
-					counter += 1;
-				if (counter >= k)
-			}
+		Collections.sort(possibleItems, new ItemAverageScoreComparator());
+		int k_possible = k - guaranteed.size();
+		Item<String> current_item;
+		for (int i=0; i<k_possible; i++) {
+			current_item = possibleItems.get(i);
+			possible.add(current_item.getItemId()+"#"+current_item.getCompletion());
 		}
+		return;
 	}
 
 	public double sample(int k, HashSet<String> possible, HashSet<String> newtopk, int samples, int position){
@@ -352,7 +379,7 @@ public class ItemList implements Cloneable{
 				this.normcontrib.put(tag, (double)high.get(tag));
 			}
 		}
-		double score_unseen = scoremax;
+		score_unseen = scoremax;
 
 		scoremin = Double.POSITIVE_INFINITY;
 

@@ -44,7 +44,6 @@ public class Item<E> implements Comparable<Item<E>>{
     public HashMap<E,Integer> tdf = new HashMap<E,Integer>();
     
     private HashMap<E,Integer> r = new HashMap<E,Integer>();
-    
    
     private HashMap<E,Float> lastval = new HashMap<E,Float>();
     private HashMap<E,Float> firstval = new HashMap<E,Float>();

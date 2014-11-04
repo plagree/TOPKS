@@ -604,7 +604,6 @@ public class TopKAlgorithm{
 		high_docs.put(newPrefix, r.getInt(2));
 		next_docs[next_docs.length-1] = r.getString(1);
 		candidates.filterTopk(query);
-		//for (Item<String> item: candidates.) 
 
 		mainLoop(k, seeker, query);
 		this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
@@ -618,11 +617,13 @@ public class TopKAlgorithm{
 		int loops=0; //amine
 		int skipped_tests = 10000;
 		int steps = 1;
+		boolean underTimeLimit = true;
 		firstPossible = true;
 		needUnseen = true;
 		skipViews = false;
 		guaranteed = new HashSet<String>();
 		possible = new HashSet<String>();
+		long before_main_loop = System.currentTimeMillis();
 		do{
 			docs_inserted = false;
 			boolean social = false;
@@ -654,7 +655,6 @@ public class TopKAlgorithm{
 			}
 			if(social) this.total_lists_social++;
 
-			//long time_1 = System.currentTimeMillis();
 			steps = (steps+1)%skipped_tests;
 			if((steps==0)||(!needUnseen&&((approxMethod&Methods.MET_ET)==Methods.MET_ET))){
 				try {
@@ -679,15 +679,22 @@ public class TopKAlgorithm{
 					}
 				}
 				candidates.resetChange();
+				long time_1 = System.currentTimeMillis();
+				if ((time_1-before_main_loop)>100) {
+					this.candidates.extractProbableTopK(k, guaranteed, possible);
+					underTimeLimit = false;
+				}
+
 			}
 			else{
 				terminationCondition=false;
 			}
 			loops++;
-		}while(!terminationCondition&&!finished);
+		}while(!terminationCondition&&!finished&&underTimeLimit);
 		this.numloops=loops;
 		System.out.println("loops="+loops);
 	}
+	
 
 	protected boolean chooseBranch(HashSet<String> query){
 		double upper_social_score;
@@ -1067,20 +1074,49 @@ public class TopKAlgorithm{
 
 		int position=0;
 
-		for(String itid:this.candidates.get_topk()){
-			String[] split = itid.split("#");
-			Item<String> item = candidates.findItem(split[0], split[1]);
-			str=protectSpecialCharacters(item.getItemId());
-			this.resultList.addResult(str, item.getComputedScore(), item.getBestscore());
-			resultList.setNbLoops(this.numloops); //amine populate resultList object
+		if ((guaranteed.size()+possible.size())==0) {
+			for(String itid:this.candidates.get_topk()){
+				String[] split = itid.split("#");
+				Item<String> item = candidates.findItem(split[0], split[1]);
+				str=protectSpecialCharacters(item.getItemId());
+				this.resultList.addResult(str, item.getComputedScore(), item.getBestscore());
+				resultList.setNbLoops(this.numloops); //amine populate resultList object
 
-			this.newXMLResults+=String.format(Locale.US,"<result  minscore=\"%.5f\" maxscore=\"%.5f\">%s</result>",
-					item.getComputedScore(), item.getBestscore(), protectSpecialCharacters(item.getItemId()+"#"+item.getCompletion()));
+				this.newXMLResults+=String.format(Locale.US,"<result  minscore=\"%.5f\" maxscore=\"%.5f\">%s</result>",
+						item.getComputedScore(), item.getBestscore(), protectSpecialCharacters(item.getItemId()+"#"+item.getCompletion()));
 
-			this.newXMLResults+="\n";
-			position++;
+				this.newXMLResults+="\n";
+				position++;
+			}
+		}
+		else { // WE STOPPED BEFORE THE END OF THE ALGORITHM
+			for(String itid: guaranteed){
+				String[] split = itid.split("#");
+				Item<String> item = candidates.findItem(split[0], split[1]);
+				
+				str=protectSpecialCharacters(item.getItemId());
+				this.resultList.addResult(str, item.getComputedScore(), item.getBestscore());
+				resultList.setNbLoops(this.numloops); //amine populate resultList object
 
+				this.newXMLResults+=String.format(Locale.US,"<result  minscore=\"%.5f\" maxscore=\"%.5f\">%s</result>",
+						item.getComputedScore(), item.getBestscore(), protectSpecialCharacters(item.getItemId()+"#"+item.getCompletion()));
 
+				this.newXMLResults+="\n";
+				position++;
+			}
+			for(String itid: possible){
+				String[] split = itid.split("#");
+				Item<String> item = candidates.findItem(split[0], split[1]);
+				str=protectSpecialCharacters(item.getItemId());
+				this.resultList.addResult(str, item.getComputedScore(), item.getBestscore());
+				resultList.setNbLoops(this.numloops); //amine populate resultList object
+
+				this.newXMLResults+=String.format(Locale.US,"<result  minscore=\"%.5f\" maxscore=\"%.5f\">%s</result>",
+						item.getComputedScore(), item.getBestscore(), protectSpecialCharacters(item.getItemId()+"#"+item.getCompletion()));
+
+				this.newXMLResults+="\n";
+				position++;
+			}
 		}
 		this.newXMLResults+="</TopkResults>\n";
 
@@ -1143,7 +1179,7 @@ public class TopKAlgorithm{
 		//			ex.printStackTrace();
 		//		}
 	}
-	
+
 	private void updateKeys(String previousPrefix, String newPrefix) {
 		if (unknown_tf.containsKey(previousPrefix)) {
 			HashSet<String> old_unknown_tf = unknown_tf.get(previousPrefix);
