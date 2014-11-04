@@ -231,6 +231,10 @@ public class ItemList implements Cloneable{
 		Collections.sort(sorted_bs, new ItemBestScoreComparator());
 		ArrayList<Item<String>> possibleItems = new ArrayList<Item<String>>();
 		
+		for (int i=0; i<3; i++) {
+			System.out.println("sorted_ws: "+sorted_ws.get(i).getComputedScore()+", sorted_bs: "+sorted_bs.get(i).getBestscore());
+		}
+		
 		if(sorted_ws.size() >= k)
 			wsc_t = sorted_ws.get(k-1).getComputedScore();
 		else {
@@ -253,6 +257,9 @@ public class ItemList implements Cloneable{
 		}
 		
 		Collections.sort(possibleItems, new ItemAverageScoreComparator());
+		for (int i=0; i<3; i++) {
+			System.out.println("possibleItems: "+(possibleItems.get(i).getComputedScore()+possibleItems.get(i).getBestscore()));
+		}
 		int k_possible = k - guaranteed.size();
 		Item<String> current_item;
 		for (int i=0; i<k_possible; i++) {
