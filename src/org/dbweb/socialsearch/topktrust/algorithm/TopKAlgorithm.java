@@ -136,7 +136,7 @@ public class TopKAlgorithm{
 	protected ArrayList<Integer> vst;
 	protected HashSet<Integer> skr;
 	protected String[] next_docs;
-	protected ResultSet[] docs;
+	protected ArrayList<DocumentNumTag>[] docs;
 	protected ArrayList<String> dictionary;
 	protected PatriciaTrie<String> dictionaryTrie;
 	protected RadixTreeImpl completion_trie; // Completion trie
@@ -175,8 +175,8 @@ public class TopKAlgorithm{
 	protected int total_heap_rebuilds;
 	protected int total_heap_interchanges;
 
-	//protected int number_documents;
-	//protected int number_users;
+	protected int number_documents;
+	protected int number_users;
 
 	protected float partial_sum = 0;
 	protected float total_sum = 0;
@@ -231,7 +231,7 @@ public class TopKAlgorithm{
 	private HashSet<String> possible;
 
 	// NEW
-	private HashMap<String, ResultSet> docs2;
+	private HashMap<String, ArrayList<DocumentNumTag>> docs2;
 	private HashMap<String, String> next_docs2;
 
 	private int numloops=0; //amine
@@ -262,7 +262,6 @@ public class TopKAlgorithm{
 		}
 	}
 
-	/*
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error, int number_documents, int number_users){
 		//super(distFunc, dbConnection, networkTable, tagTable);
 		log.info("dbconn{}", dbConnection);
@@ -275,10 +274,9 @@ public class TopKAlgorithm{
 		this.optpath = optPathClass;
 		this.error = error;
 		this.score = itemScore;
-		this.number_documents = number_documents;
-		this.number_users = number_users;
+		this.number_documents = Params.number_documents;
+		this.number_users = Params.number_users;
 	}
-	*/
 
 
 	/**
@@ -331,7 +329,7 @@ public class TopKAlgorithm{
 		lastval = new HashMap<String,Float>();
 		next_docs = new String[query.size()];
 		pos = new int[query.size()];
-		docs = new ResultSet[query.size()];
+		docs = new ArrayList[query.size()];
 		int index = 0;
 		boolean exact = false;
 		for(String tag:query){
@@ -463,7 +461,15 @@ public class TopKAlgorithm{
 		while(iterator.hasNext()){
 			currentEntry = iterator.next();
 			String completion = currentEntry.getKey();
-			// high_docs.put(completion, ); UPDATE EVERYTHING HERE
+			if (positions.get(completion) == 0) {
+				continue;
+			}
+			positions.put(completion, 0f); // high_docs.put(completion, ); UPDATE EVERYTHING HERE
+			DocumentNumTag firstDoc = docs2.get(completion).get(0);
+			high_docs.put(completion, firstDoc.getNum());
+			next_docs2.put(completion, firstDoc.getDocId());
+			RadixTreeNode current_best_leaf = completion_trie.searchPrefix(completion, false).getBestDescendant();
+			current_best_leaf.updatePreviousBestValue(firstDoc.getNum());
 		}
 	}
 
@@ -483,9 +489,9 @@ public class TopKAlgorithm{
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
 		RadixTreeNode radixTreeNode = completion_trie.searchPrefix(newPrefix, false);
-		ResultSet r = docs2.get(radixTreeNode.getBestDescendant().getWord());
-		high_docs.put(newPrefix, r.getInt(2));
-		next_docs[next_docs.length-1] = r.getString(1);
+		ArrayList<DocumentNumTag> r = docs2.get(radixTreeNode.getBestDescendant().getWord());
+		high_docs.put(newPrefix, r.get(0).getNum());
+		next_docs[next_docs.length-1] = r.get(0).getDocId();
 		candidates.filterTopk(query);
 
 		mainLoop(k, seeker, query);
@@ -814,24 +820,25 @@ public class TopKAlgorithm{
 			firstPossible = false;
 	}
 
-	protected void advanceTextualList(String tag, int index){
+	protected void advanceTextualList(String tag, int index) {
 
-		try {
-			RadixTreeNode current_best_leaf = completion_trie.searchPrefix(tag, false).getBestDescendant();
-			if(docs2.get(current_best_leaf.getWord()).next()){
-				total_documents_asocial++;
-				ResultSet r = docs2.get(current_best_leaf.getWord());
-				high_docs.put(tag, r.getInt(2));
-				next_docs[index] = r.getString(1);
-				current_best_leaf.updatePreviousBestValue(r.getInt(2));
-			}
-			else{
-				high_docs.put(tag, 0);
-				next_docs[index] = "";
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
+		RadixTreeNode current_best_leaf = completion_trie.searchPrefix(tag, false).getBestDescendant();
+		String word = current_best_leaf.getWord();
+		ArrayList<DocumentNumTag> invertedList = docs2.get(word);
+		positions.put(word, positions.get(word)+1);
+		int position = positions.get(word).intValue();
+
+		if(position < invertedList.size()){
+			total_documents_asocial++;
+			high_docs.put(tag, invertedList.get(position).getNum());
+			next_docs[index] = invertedList.get(position).getDocId();
+			current_best_leaf.updatePreviousBestValue(invertedList.get(position).getNum());
 		}
+		else{
+			high_docs.put(tag, 0);
+			next_docs[index] = "";
+		}
+
 	}
 
 	protected void getAllItemScores(String item, HashSet<String> query, String completion) throws SQLException{
@@ -1167,8 +1174,7 @@ public class TopKAlgorithm{
 		this.tagFreqs = new HashMap<String,Integer>(); //DONE BUT NOT USED
 		this.tag_idf = new RadixTreeImpl(); //DONE
 		this.next_docs2 = new HashMap<String, String>(); //DONE
-		this.docs2 = new HashMap<String, ResultSet>(); //TO BE CHANGED
-		HashMap<String, ArrayList<DocumentNumTag>> docs3 = new HashMap<String, ArrayList<DocumentNumTag>>(); //DONE
+		this.docs2 = new HashMap<String, ArrayList<DocumentNumTag>>(); //DONE
 		this.docs_users = new HashMap<Integer, PatriciaTrie<HashSet<String>>>();
 		userWeight = 1.0f;
 
@@ -1184,9 +1190,9 @@ public class TopKAlgorithm{
 			if (data.length < 2)
 				continue;
 			String tag = data[0];
-			if (!docs3.containsKey(data[0]))
-				docs3.put(tag, new ArrayList<DocumentNumTag>());
-			currIL = docs3.get(data[0]);
+			if (!docs2.containsKey(data[0]))
+				docs2.put(tag, new ArrayList<DocumentNumTag>());
+			currIL = docs2.get(data[0]);
 			for (int i=1; i<data.length; i++) {
 				String[] tuple = data[i].split(":");
 				if (tuple.length != 2)
@@ -1276,7 +1282,7 @@ public class TopKAlgorithm{
 		tagFreqs = new HashMap<String,Integer>();
 		tag_idf = new RadixTreeImpl();
 		next_docs2 = new HashMap<String, String>();
-		docs2 = new HashMap<String, ResultSet>();
+		HashMap<String, ResultSet> docs3 = new HashMap<String, ResultSet>();
 		String[] dictionary2 = { // DEBUG PURPOSE
 				//"car", //testindb
 				"Obama", //twitter dump
@@ -1309,10 +1315,10 @@ public class TopKAlgorithm{
 			 */
 			ps = this.connection.prepareStatement(sqlGetDocsListByTag);
 			ps.setString(1, tag);
-			docs2.put(tag, ps.executeQuery()); // INVERTED LIIIIIIIST
-			if(docs2.get(tag).next()){
-				int getInt2 = docs2.get(tag).getInt(2);
-				String getString1 = docs2.get(tag).getString(1);
+			docs3.put(tag, ps.executeQuery()); // INVERTED LIIIIIIIST
+			if(docs3.get(tag).next()){
+				int getInt2 = docs3.get(tag).getInt(2);
+				String getString1 = docs3.get(tag).getString(1);
 				high_docs.put(tag, getInt2);
 				next_docs2.put(tag, getString1);
 				completion_trie.insert(tag, getInt2);
