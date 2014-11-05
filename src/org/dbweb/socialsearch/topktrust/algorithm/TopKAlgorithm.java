@@ -33,6 +33,9 @@ import org.dbweb.socialsearch.topktrust.datastructure.views.ViewScore;
 import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.completion.trie.RadixTreeNode;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
@@ -43,6 +46,7 @@ import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -133,7 +137,8 @@ public class TopKAlgorithm{
 	protected HashSet<Integer> skr;
 	protected String[] next_docs;
 	protected ResultSet[] docs;
-	//protected ArrayList<String> dictionary;
+	protected ArrayList<String> dictionary;
+	protected PatriciaTrie<String> dictionaryTrie;
 	protected RadixTreeImpl completion_trie; // Completion trie
 
 	protected int[] pos;
@@ -170,8 +175,8 @@ public class TopKAlgorithm{
 	protected int total_heap_rebuilds;
 	protected int total_heap_interchanges;
 
-	protected int number_documents;
-	protected int number_users;
+	//protected int number_documents;
+	//protected int number_users;
 
 	protected float partial_sum = 0;
 	protected float total_sum = 0;
@@ -242,143 +247,22 @@ public class TopKAlgorithm{
 		this.optpath = optPathClass;
 		this.error = error;
 		this.score = itemScore;
-		this.number_documents = 1570866;//595811;
-		this.number_users = 570347;//80000;
+		//this.number_documents = 1570866;//595811;
+		//this.number_users = 570347;//80000;
 
-		this.connection = dbConnection.DBConnect();
-		PreparedStatement ps;
-		ResultSet rs = null;
-
-		// DICTIONARY
-		/*dictionary = new ArrayList<String>();
-		try {
-			String sqlRequest = String.format(sqlGetDifferentTags, Params.taggers);
-			ps = connection.prepareStatement(sqlRequest);
-			rs = ps.executeQuery();
-			while(rs.next()) {
-				dictionary.add(rs.getString(1));
+		if (dbConnection == null)
+			this.dbLoadingInMemory();
+		else {
+			try {
+				this.fileLoadingInMemory();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
-		System.out.println("Dictionary loaded, "+dictionary.size()+"tags...");*/
-
-		// INVERTED LISTS
-		ResultSet result;
-		userWeight = 1.0f;
-		completion_trie = new RadixTreeImpl();
-		high_docs = new HashMap<String,Integer>();
-		positions = new HashMap<String,Float>();
-		userWeights = new HashMap<String,Float>();
-		tagFreqs = new HashMap<String,Integer>();
-		tag_idf = new RadixTreeImpl();
-		next_docs2 = new HashMap<String, String>();
-		docs2 = new HashMap<String, ResultSet>();
-		String[] dictionary2 = { // DEBUG PURPOSE
-				//"car", //testindb
-				"Obama", //twitter dump
-				//"TFBJP",
-				"Cancer",
-				"Syria",
-				"SOUGOFOLLOW",
-				"Apple",
-				"NoMatter",
-				"SOUGOF",
-				"SOUGOFOL",
-				"TFBj",
-				"TFBJ", 
-				"TFBUSA",
-				"TFB",
-				"TFB_VIP",
-				"TFBPH",
-				"TFB_TeamFollow",
-				"TFBINA", 
-				"TFBFI", 
-				"TFBjp", 
-				"TFBJp", 
-				"TFBJP",
-				"openingact",
-				"openingceremony"
-		};
-		for(String tag:dictionary2){
-			/*
-			 * INVERTED LISTS ARE HERE
-			 */
-			ps = this.connection.prepareStatement(sqlGetDocsListByTag);
-			ps.setString(1, tag);
-			docs2.put(tag, ps.executeQuery()); // INVERTED LIIIIIIIST
-			if(docs2.get(tag).next()){
-				int getInt2 = docs2.get(tag).getInt(2);
-				String getString1 = docs2.get(tag).getString(1);
-				high_docs.put(tag, getInt2);
-				next_docs2.put(tag, getString1);
-				completion_trie.insert(tag, getInt2);
-			}
-			else{
-				high_docs.put(tag, 0);
-				next_docs2.put(tag, "");
-			}
-			positions.put(tag, 0f);
-			userWeights.put(tag, userWeight);
-			ps = connection.prepareStatement(sqlGetTagFrequency);
-			ps.setString(1, tag);
-			result = ps.executeQuery();
-			int tagfreq = 0;
-			if(result.next()) tagfreq = result.getInt(1);
-			tagFreqs.put(tag, high_docs.get(tag));
-			float tagidf = (float) Math.log(((float)number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
-			tag_idf.insert(tag, tagidf);
-
-		}
-		System.out.println("Inverted Lists loaded...");
-		//completion_trie.display(); DEBUG PURPOSE
-		/*for (String s: dictionary2){
-			RadixTreeNode pf = completion_trie.searchPrefix(s);
-			float ff = completion_trie.find(s);
-			System.out.println(ff+": find, "+pf.getKey()+" : key,\t"+pf.getValue()+" : value,\t"+pf.getChildren().size()+" : size,\t"+pf.getBestDescendant().getWord()+" : best descendant");
-		}*/
-		//System.exit(0);  DEBUG PURPOSE
-
-		// USER SPACES
-		sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate, this.tagTable);
-		int idx=0;
-
-		for(String tag:dictionary2) {
-			if(idx<dictionary2.length-1){
-				sqlGetAllDocuments+=String.format("\'%s\',", tag);
-			}
-			else{
-				sqlGetAllDocuments+=String.format("\'%s\')", tag);
-			}
-			idx++;
-		}
-
-		this.docs_users = new HashMap<Integer, PatriciaTrie<HashSet<String>>>();
-		connection.setAutoCommit(false);
-		Statement stmt = connection.createStatement();
-		stmt.setFetchSize(1000);
-		result = stmt.executeQuery(sqlGetAllDocuments); //DEBUG PURPOSE, SMALL DATA SET
-		//String sqlGetAllDocumentsTemplate2 = "select * from %s";
-		//sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate2, this.tagTable);
-		//result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT*/
-		while(result.next()){
-			int d_usr = result.getInt(1);
-			String d_itm = result.getString(2);
-			String d_tag = result.getString(3);
-			if(!this.docs_users.containsKey(d_usr)){
-				this.docs_users.put(d_usr, new PatriciaTrie<HashSet<String>>());
-				//for(String tag:dictionary2)
-				//	this.docs_users.get(d_usr).put(tag, new HashSet<String>());
-				//    				System.out.println("docs"+docs_users);//TODO
-			}
-			//if(!this.docs_users.get(d_usr).containsKey(d_tag))
-			this.docs_users.get(d_usr).put(d_tag, new HashSet<String>());
-			this.docs_users.get(d_usr).get(d_tag).add(d_itm);
-		}
-		System.out.println("Users spaces loaded");
 	}
 
+	/*
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error, int number_documents, int number_users){
 		//super(distFunc, dbConnection, networkTable, tagTable);
 		log.info("dbconn{}", dbConnection);
@@ -394,6 +278,7 @@ public class TopKAlgorithm{
 		this.number_documents = number_documents;
 		this.number_users = number_users;
 	}
+	*/
 
 
 	/**
@@ -452,30 +337,12 @@ public class TopKAlgorithm{
 		for(String tag:query){
 			docs[index] = docs2.get(tag);
 			pos[index]=0;
-			//next_docs[index] = next_docs2.get(tag);
 			//System.out.println("tag: "+tag+", trieWord: "+completion_trie.searchPrefix(tag).getBestDescendant().getWord()+", "+next_docs2.get(tag)+", "+next_docs2.get(completion_trie.searchPrefix(tag).getBestDescendant().getWord()));
 			next_docs[index] = next_docs2.get(completion_trie.searchPrefix(tag, exact).getBestDescendant().getWord());
 			index++;
 		}
 		proximities = new ArrayList<Double>();
 		proximities.add((double)userWeight);
-
-		//        String sqlGetNumberDocuments = String.format(sqlGetNumberDocumentsTemplate, this.tagTable);
-		//        String sqlGetNumberUsers = String.format(sqlGetNumberUsersTemplate, this.tagTable);
-
-		//Establishing the global properties
-
-		//        ps = connection.prepareStatement(sqlGetNumberDocuments);
-		//    	result = ps.executeQuery();
-		//    	while(result.next()){
-		//    		this.number_documents = result.getInt(1);
-		//    	}
-		//    	ps = connection.prepareStatement(sqlGetNumberUsers);
-		//    	result = ps.executeQuery();
-		//    	while(result.next()){
-		//    		this.number_users = result.getInt(1);
-		//    	}
-
 
 		//getting the userviews
 		String sqlGetViews = sqlGetViewsTemplate;
@@ -530,7 +397,7 @@ public class TopKAlgorithm{
 			if(result.next()){
 				double mean = result.getDouble(1);
 				double variance = result.getDouble(2);
-				this.d_distr = new DataDistribution(mean, variance, this.number_users, query);
+				this.d_distr = new DataDistribution(mean, variance, Params.number_users, query);
 			}
 		}
 		if((this.approxMethod&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST){
@@ -544,7 +411,7 @@ public class TopKAlgorithm{
 				int num = result.getInt(2);
 				hist.add(num);
 			}
-			this.d_hist = new DataHistogram(this.number_users, hist);
+			this.d_hist = new DataHistogram(Params.number_users, hist);
 			for(String tag:query)
 			{
 				d_hist.setVals(tag, 0, 1.0f);
@@ -554,7 +421,7 @@ public class TopKAlgorithm{
 
 		Comparator comparator = new MinScoreItemComparator();   
 		virtualItem = createNewCandidateItem("<rest_of_the_items>",query,virtualItem,"");
-		candidates = new ItemList(comparator, this.score, this.number_users, k, this.virtualItem, this.d_distr, this.d_hist, this.error);  
+		candidates = new ItemList(comparator, this.score, Params.number_users, k, this.virtualItem, this.d_distr, this.d_hist, this.error);  
 		candidates.setContribs(query, completion_trie);
 
 		total_users = 0;        
@@ -582,6 +449,22 @@ public class TopKAlgorithm{
 		this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
 
 		return 0;
+	}
+
+	/**
+	 * After answering a query session (initial prefix and possible completions), we need to
+	 * reinitialize the trie and go back to the initial position of the tries.
+	 * @param prefix
+	 */
+	private void reinitialize(String prefix) {
+		SortedMap<String, String> completions = this.dictionaryTrie.prefixMap(prefix);
+		Iterator<Entry<String, String>> iterator = completions.entrySet().iterator();
+		Entry<String, String> currentEntry = null;
+		while(iterator.hasNext()){
+			currentEntry = iterator.next();
+			String completion = currentEntry.getKey();
+			// high_docs.put(completion, ); UPDATE EVERYTHING HERE
+		}
 	}
 
 	/**
@@ -662,7 +545,7 @@ public class TopKAlgorithm{
 					 * During the terminationCondition method, look up at top_items of different ILs, we add
 					 * them if necessary to the top-k answer of the algorithm.
 					 */
-					terminationCondition = candidates.terminationCondition(query, userWeight, k, query.size(), alpha, this.number_users, tag_idf, high_docs, userWeights, positions, approxMethod, docs_inserted, needUnseen, guaranteed, possible);
+					terminationCondition = candidates.terminationCondition(query, userWeight, k, query.size(), alpha, Params.number_users, tag_idf, high_docs, userWeights, positions, approxMethod, docs_inserted, needUnseen, guaranteed, possible);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -694,7 +577,7 @@ public class TopKAlgorithm{
 		this.numloops=loops;
 		System.out.println("loops="+loops);
 	}
-	
+
 
 	protected boolean chooseBranch(HashSet<String> query){
 		double upper_social_score;
@@ -718,6 +601,7 @@ public class TopKAlgorithm{
 		}
 		return !textual;
 	}
+
 
 	/**
 	 * Social process of the TOPKS algorithm
@@ -750,33 +634,12 @@ public class TopKAlgorithm{
 					userWeights.put(tag, userWeight);
 				}
 				currentUserId = currentUser.getEntryId();
-				//    			if(taggers.contains(currentUserId)){
-				//    				if(soclist.size()==0){    					
-				//    					for(String t1:query)
-				//    						soclist.put(t1, new HashSet<String>());
-				//    					if(this.taggers.contains(currentUserId)){
-				//    						time_1 = System.currentTimeMillis();
-				//    						ps = connection.prepareStatement(sqlGetDocuments);
-				//    						ps.setInt(1, Integer.parseInt(currentUserId));
-				//    						//ps.setString(2, tag);
-				//    						ps.setFetchSize(1000);
-				//    						result = ps.executeQuery();
-				//    						time_2 = System.currentTimeMillis();
-				//    						this.time_queries+=(time_2 - time_1);    				
-				//    						while(result.next()){
-				//    							String tag_id = result.getString(1);
-				//    							String item_id = result.getString(2);
-				//    							soclist.get(tag_id).add(item_id);
-				//    						}    				
-				//    					}    				
-				//    				}
+
 				if(this.docs_users.containsKey(currentUserId) && !(currentUserId==seeker)){
 					SortedMap<String, HashSet<String>> completions = docs_users.get(currentUserId).prefixMap(tag);
 					if (completions.size()>0) {
 						Iterator<Entry<String, HashSet<String>>> iterator = completions.entrySet().iterator();
-						//Collection<HashSet<String>> completions_collection = completions.values();
-						//for (HashSet<String> documents: completions_collection) {
-						//	for(String itemId: documents){
+
 						while(iterator.hasNext()){
 							Entry<String, HashSet<String>> currentEntry = iterator.next();
 							String completion = currentEntry.getKey();
@@ -992,7 +855,7 @@ public class TopKAlgorithm{
 	}
 
 	protected Item<String> createNewCandidateItem(String itemId, HashSet<String> tagList, Item<String> item, String completion) throws SQLException{
-		item = new Item<String>(itemId, this.alpha, this.number_users, this.score,  this.d_distr, this.d_hist, this.error, completion);        
+		item = new Item<String>(itemId, this.alpha, Params.number_users, this.score,  this.d_distr, this.d_hist, this.error, completion);        
 		int sizeOfQuery = tagList.size();
 		int index = 0;
 		for(String tag:tagList){
@@ -1093,7 +956,7 @@ public class TopKAlgorithm{
 			for(String itid: guaranteed){
 				String[] split = itid.split("#");
 				Item<String> item = candidates.findItem(split[0], split[1]);
-				
+
 				str=protectSpecialCharacters(item.getItemId());
 				this.resultList.addResult(str, item.getComputedScore(), item.getBestscore());
 				resultList.setNbLoops(this.numloops); //amine populate resultList object
@@ -1294,6 +1157,228 @@ public class TopKAlgorithm{
 		sr.getResult();
 
 		return chaine;
+	}
+
+	private void fileLoadingInMemory() throws IOException {
+		this.completion_trie = new RadixTreeImpl(); //DONE
+		this.high_docs = new HashMap<String,Integer>(); //DONE
+		this.positions = new HashMap<String,Float>(); //DONE
+		this.userWeights = new HashMap<String,Float>(); //DONE
+		this.tagFreqs = new HashMap<String,Integer>(); //DONE BUT NOT USED
+		this.tag_idf = new RadixTreeImpl(); //DONE
+		this.next_docs2 = new HashMap<String, String>(); //DONE
+		this.docs2 = new HashMap<String, ResultSet>(); //TO BE CHANGED
+		HashMap<String, ArrayList<DocumentNumTag>> docs3 = new HashMap<String, ArrayList<DocumentNumTag>>(); //DONE
+		this.docs_users = new HashMap<Integer, PatriciaTrie<HashSet<String>>>();
+		userWeight = 1.0f;
+
+		BufferedReader br;
+		String line;
+		String[] data;
+
+		// Tag Inverted lists processing
+		br = new BufferedReader(new FileReader(Params.ILFile));
+		ArrayList<DocumentNumTag> currIL;
+		while ((line = br.readLine()) != null) {
+			data = line.split("\t");
+			if (data.length < 2)
+				continue;
+			String tag = data[0];
+			if (!docs3.containsKey(data[0]))
+				docs3.put(tag, new ArrayList<DocumentNumTag>());
+			currIL = docs3.get(data[0]);
+			for (int i=1; i<data.length; i++) {
+				String[] tuple = data[i].split(":");
+				if (tuple.length != 2)
+					continue;
+				currIL.add(new DocumentNumTag(tuple[0], Integer.parseInt(tuple[1])));
+			}
+			Collections.sort(currIL, Collections.reverseOrder());
+			DocumentNumTag firstDoc = currIL.get(0);
+			high_docs.put(tag, firstDoc.getNum());
+			next_docs2.put(tag, firstDoc.getDocId());
+			completion_trie.insert(tag, firstDoc.getNum());
+			positions.put(tag, 0f);
+			userWeights.put(tag, userWeight);
+			tagFreqs.put(tag, firstDoc.getNum());
+		}
+		br.close();
+
+		// Triples processing
+		int userId;
+		String itemId;
+		String tag;
+		br = new BufferedReader(new FileReader(Params.triplesFiles));
+		while ((line = br.readLine()) != null) {
+			// process the line.
+			data = line.split("\t");
+
+			if (data.length != 3)
+				continue;
+			userId = Integer.parseInt(data[0]);
+			itemId = data[1];
+			tag = data[2];
+			if (!dictionaryTrie.containsKey(tag))
+				dictionaryTrie.put(tag, "");
+			if(!this.docs_users.containsKey(userId)){
+				this.docs_users.put(userId, new PatriciaTrie<HashSet<String>>());
+			}
+			if(!this.docs_users.get(userId).containsKey(tag))
+				this.docs_users.get(userId).put(tag, new HashSet<String>());
+			this.docs_users.get(userId).get(tag).add(itemId);
+		}
+		br.close();
+		Params.number_users = this.docs_users.size();
+
+		// Tag Freq processing
+		br = new BufferedReader(new FileReader(Params.tagFreqFile));
+		int tagfreq;
+		while ((line = br.readLine()) != null) {
+			data = line.split("\t");
+			if (data.length != 2)
+				continue;
+			tag = data[0];
+			tagfreq = Integer.parseInt(data[1]);
+			float tagidf = (float) Math.log(((float)Params.number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
+			tag_idf.insert(tag, tagidf);
+		}
+		br.close();
+	}
+
+	private void dbLoadingInMemory() throws SQLException{
+		this.connection = dbConnection.DBConnect();
+		PreparedStatement ps;
+		ResultSet rs = null;
+
+		// DICTIONARY
+		dictionary = new ArrayList<String>();
+		try {
+			String sqlRequest = String.format(sqlGetDifferentTags, Params.taggers);
+			ps = connection.prepareStatement(sqlRequest);
+			rs = ps.executeQuery();
+			while(rs.next()) {
+				dictionary.add(rs.getString(1));
+				dictionaryTrie.put(rs.getString(1), "");
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("Dictionary loaded, "+dictionary.size()+"tags...");
+
+		// INVERTED LISTS
+		ResultSet result;
+		userWeight = 1.0f;
+		completion_trie = new RadixTreeImpl();
+		high_docs = new HashMap<String,Integer>();
+		positions = new HashMap<String,Float>();
+		userWeights = new HashMap<String,Float>();
+		tagFreqs = new HashMap<String,Integer>();
+		tag_idf = new RadixTreeImpl();
+		next_docs2 = new HashMap<String, String>();
+		docs2 = new HashMap<String, ResultSet>();
+		String[] dictionary2 = { // DEBUG PURPOSE
+				//"car", //testindb
+				"Obama", //twitter dump
+				//"TFBJP",
+				"Cancer",
+				"Syria",
+				"SOUGOFOLLOW",
+				"Apple",
+				"NoMatter",
+				"SOUGOF",
+				"SOUGOFOL",
+				"TFBj",
+				"TFBJ", 
+				"TFBUSA",
+				"TFB",
+				"TFB_VIP",
+				"TFBPH",
+				"TFB_TeamFollow",
+				"TFBINA", 
+				"TFBFI", 
+				"TFBjp", 
+				"TFBJp", 
+				"TFBJP",
+				"openingact",
+				"openingceremony"
+		};
+		for(String tag:dictionary2){
+			/*
+			 * INVERTED LISTS ARE HERE
+			 */
+			ps = this.connection.prepareStatement(sqlGetDocsListByTag);
+			ps.setString(1, tag);
+			docs2.put(tag, ps.executeQuery()); // INVERTED LIIIIIIIST
+			if(docs2.get(tag).next()){
+				int getInt2 = docs2.get(tag).getInt(2);
+				String getString1 = docs2.get(tag).getString(1);
+				high_docs.put(tag, getInt2);
+				next_docs2.put(tag, getString1);
+				completion_trie.insert(tag, getInt2);
+			}
+			else{
+				high_docs.put(tag, 0);
+				next_docs2.put(tag, "");
+			}
+			positions.put(tag, 0f);
+			userWeights.put(tag, userWeight);
+			ps = connection.prepareStatement(sqlGetTagFrequency);
+			ps.setString(1, tag);
+			result = ps.executeQuery();
+			int tagfreq = 0;
+			if(result.next()) tagfreq = result.getInt(1);
+			tagFreqs.put(tag, high_docs.get(tag));
+			float tagidf = (float) Math.log(((float)Params.number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
+			tag_idf.insert(tag, tagidf);
+
+		}
+		System.out.println("Inverted Lists loaded...");
+		//completion_trie.display(); DEBUG PURPOSE
+		/*for (String s: dictionary2){
+			RadixTreeNode pf = completion_trie.searchPrefix(s);
+			float ff = completion_trie.find(s);
+			System.out.println(ff+": find, "+pf.getKey()+" : key,\t"+pf.getValue()+" : value,\t"+pf.getChildren().size()+" : size,\t"+pf.getBestDescendant().getWord()+" : best descendant");
+		}*/
+		//System.exit(0);  DEBUG PURPOSE
+
+		// USER SPACES
+		sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate, this.tagTable);
+		int idx=0;
+
+		for(String tag:dictionary2) {
+			if(idx<dictionary2.length-1){
+				sqlGetAllDocuments+=String.format("\'%s\',", tag);
+			}
+			else{
+				sqlGetAllDocuments+=String.format("\'%s\')", tag);
+			}
+			idx++;
+		}
+
+		this.docs_users = new HashMap<Integer, PatriciaTrie<HashSet<String>>>();
+		connection.setAutoCommit(false);
+		Statement stmt = connection.createStatement();
+		stmt.setFetchSize(1000);
+		result = stmt.executeQuery(sqlGetAllDocuments); //DEBUG PURPOSE, SMALL DATA SET
+		//String sqlGetAllDocumentsTemplate2 = "select * from %s";
+		//sqlGetAllDocuments = String.format(sqlGetAllDocumentsTemplate2, this.tagTable);
+		//result = stmt.executeQuery(sqlGetAllDocuments); //IMPORTANT*/
+		while(result.next()){
+			int d_usr = result.getInt(1);
+			String d_itm = result.getString(2);
+			String d_tag = result.getString(3);
+			if(!this.docs_users.containsKey(d_usr)){
+				this.docs_users.put(d_usr, new PatriciaTrie<HashSet<String>>());
+				//for(String tag:dictionary2)
+				//	this.docs_users.get(d_usr).put(tag, new HashSet<String>());
+				//    				System.out.println("docs"+docs_users);//TODO
+			}
+			//if(!this.docs_users.get(d_usr).containsKey(d_tag))
+			this.docs_users.get(d_usr).put(d_tag, new HashSet<String>());
+			this.docs_users.get(d_usr).get(d_tag).add(d_itm);
+		}
+		System.out.println("Users spaces loaded");
 	}
 
 }
