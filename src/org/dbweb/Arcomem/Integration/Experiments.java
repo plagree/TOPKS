@@ -24,12 +24,13 @@ public class Experiments {
 		//"Obama",
 		//"Syria"
 		"SOUGOFOLLOW",
-		/*"Apple",
+		"Apple",
 		"NoMatter",
-		"SOUGOF",
+		/*"SOUGOF",
 		"SOUGOFOL",
 		"TFB",
 		"TFB_TeamFollow",*/
+		"TFB"
 	};
 
 	private static final String[][] seekers={
@@ -46,7 +47,7 @@ public class Experiments {
 	private static final float alpha = 0.0f;
 	private static final boolean heap = true;
 	private static final PathCompositionFunction pathFunction = new PathMultiplication();
-	public static final String[] network = {"soc_snet_tt"};
+	public static final String[] network = {"soc_snet_dt"};
 	public static final String taggers = "soc_tag_80";//"tagging";
 	private static final int k = 4;
 	private static final int method = 1;

@@ -123,7 +123,7 @@ public class TopKAlgorithm{
 	protected ArrayList<Float> values;
 	protected PriorityQueue<UserEntry<Float>> prioQueue;
 	protected HashMap<String,Integer> high_docs;
-	protected HashMap<String,Float> positions;
+	protected HashMap<String, Integer> positions;
 	protected HashMap<String,Float> userWeights;
 	protected ArrayList<Double> proximities;
 	protected HashMap<String,Integer> tagFreqs;
@@ -461,7 +461,7 @@ public class TopKAlgorithm{
 			if (positions.get(completion) == 0) {
 				continue;
 			}
-			positions.put(completion, 0f); // high_docs.put(completion, ); UPDATE EVERYTHING HERE
+			positions.put(completion, 0); // high_docs.put(completion, ); UPDATE EVERYTHING HERE
 			DocumentNumTag firstDoc = docs2.get(completion).get(0);
 			high_docs.put(completion, firstDoc.getNum());
 			next_docs2.put(completion, firstDoc.getDocId());
@@ -560,10 +560,6 @@ public class TopKAlgorithm{
 				//For statistics only
 				if(candidates.topkChange()){
 					this.total_topk_changes++;
-					/*for(String tag:query){
-						this.lastpos.put(tag, positions.get(tag).intValue());
-						this.lastval.put(tag, userWeights.get(tag));
-					}*/
 				}
 				candidates.resetChange();
 				long time_1 = System.currentTimeMillis();
@@ -623,8 +619,8 @@ public class TopKAlgorithm{
 		for(String tag:query){  		    		
 			if(currentUser!=null){
 				boolean found_docs = false;
-				pos[index]++;   			
-				float prev_part_sum = pos[index];
+				//pos[index]++;   			
+				//float prev_part_sum = pos[index];
 				//positions.put(tag, prev_part_sum);
 				if((approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR)
 					d_distr.setPos(tag, userWeight, pos[index]+1);
@@ -818,7 +814,7 @@ public class TopKAlgorithm{
 		String word = current_best_leaf.getWord();
 		ArrayList<DocumentNumTag> invertedList = docs2.get(word);
 		positions.put(word, positions.get(word)+1);
-		int position = positions.get(word).intValue();
+		int position = positions.get(word);
 
 		if(position < invertedList.size()){
 			total_documents_asocial++;
@@ -1087,7 +1083,7 @@ public class TopKAlgorithm{
 	private void fileLoadingInMemory() throws IOException {
 		this.completion_trie = new RadixTreeImpl(); //DONE
 		this.high_docs = new HashMap<String,Integer>(); //DONE
-		this.positions = new HashMap<String,Float>(); //DONE
+		this.positions = new HashMap<String, Integer>(); //DONE
 		this.userWeights = new HashMap<String,Float>(); //DONE
 		this.tagFreqs = new HashMap<String,Integer>(); //DONE BUT NOT USED
 		this.tag_idf = new RadixTreeImpl(); //DONE
@@ -1123,7 +1119,7 @@ public class TopKAlgorithm{
 			high_docs.put(tag, firstDoc.getNum());
 			next_docs2.put(tag, firstDoc.getDocId());
 			completion_trie.insert(tag, firstDoc.getNum());
-			positions.put(tag, 0f);
+			positions.put(tag, 0);
 			userWeights.put(tag, userWeight);
 			tagFreqs.put(tag, firstDoc.getNum());
 		}
@@ -1196,7 +1192,7 @@ public class TopKAlgorithm{
 		userWeight = 1.0f;
 		completion_trie = new RadixTreeImpl();
 		high_docs = new HashMap<String,Integer>();
-		positions = new HashMap<String,Float>();
+		positions = new HashMap<String, Integer>();
 		userWeights = new HashMap<String,Float>();
 		tagFreqs = new HashMap<String,Integer>();
 		tag_idf = new RadixTreeImpl();
@@ -1246,7 +1242,7 @@ public class TopKAlgorithm{
 				high_docs.put(tag, 0);
 				next_docs2.put(tag, "");
 			}
-			positions.put(tag, 0f);
+			positions.put(tag, 0);
 			userWeights.put(tag, userWeight);
 			ps = connection.prepareStatement(sqlGetTagFrequency);
 			ps.setString(1, tag);
@@ -1295,11 +1291,7 @@ public class TopKAlgorithm{
 			String d_tag = result.getString(3);
 			if(!this.docs_users.containsKey(d_usr)){
 				this.docs_users.put(d_usr, new PatriciaTrie<HashSet<String>>());
-				//for(String tag:dictionary2)
-				//	this.docs_users.get(d_usr).put(tag, new HashSet<String>());
-				//    				System.out.println("docs"+docs_users);//TODO
 			}
-			//if(!this.docs_users.get(d_usr).containsKey(d_tag))
 			this.docs_users.get(d_usr).put(d_tag, new HashSet<String>());
 			this.docs_users.get(d_usr).get(d_tag).add(d_itm);
 		}

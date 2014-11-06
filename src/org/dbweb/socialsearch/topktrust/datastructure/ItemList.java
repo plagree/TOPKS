@@ -325,7 +325,7 @@ public class ItemList implements Cloneable{
 	}
 	
 
-	public boolean terminationCondition(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
+	public boolean terminationCondition(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, HashMap<String,Float> user_weights, HashMap<String,Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
 		//if(sortNeeded) Collections.sort(items,comparator);
 		this.processBoundary(query, value,k, num_tags, alpha, num_users, idf, high, user_weights, positions, approx, sortNeeded, needUnseen, guaranteed, possible);
 		if((this.max_from_rest<=this.min_from_topk)&&(number_of_candidates>=k)){
@@ -351,7 +351,7 @@ public class ItemList implements Cloneable{
 		return this.topk_changed;
 	}
 
-	private void processBoundary(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
+	private void processBoundary(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, HashMap<String,Float> user_weights, HashMap<String, Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
 		HashMap<String, String> newtopk = new HashMap<String, String>();
 		int number = 0;
 		//int position = 0;

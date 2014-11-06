@@ -201,7 +201,7 @@ public class Item<E> implements Comparable<Item<E>>{
     	return this.soccontrib;
     }
 
-    public double computeBestScore(HashMap<String, Integer> high, HashMap<String, Float> user_weights, HashMap<String, Float> positions, int approx){
+    public double computeBestScore(HashMap<String, Integer> high, HashMap<String, Float> user_weights, HashMap<String, Integer> positions, int approx){
     	bestscore = 0;
     	for(E tag : this.tags.keySet()){
         	double uw = user_weights.get(tag);
@@ -223,7 +223,6 @@ public class Item<E> implements Comparable<Item<E>>{
     		if(uf.containsKey(tag)) bsocial=uf.get(tag);
     		float stf_known = 0;
     		if(r.containsKey(tag)) stf_known = r.get(tag);
-//    		if(stdf<r_ul) stdf = r_ul; //temporary fix
     		this.soccontrib.put(tag, stf - stf_known);
     		if((approx&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
     			if(tdf.containsKey(tag)){
@@ -240,11 +239,6 @@ public class Item<E> implements Comparable<Item<E>>{
 //    				double euw = d_distr.getMean((String)tag)+Math.sqrt(d_distr.getVar((String)tag)/this.error);
             		uw = (uw>euw)?euw:uw;
     			}
-//    			double mea = d_distr.getMean((String)tag);
-//    			double exp = (stdf - r_ul) * mea;
-//    			double eps = Math.sqrt((-3*Math.log(this.error))/exp);
-//    			double euw = ((1.0f+eps)*exp)/(stdf-r_ul);
-//    			uw = (uw>euw)?euw:uw;
        			bsocial += (double)(stf - stf_known) * uw;   
     		}
     		else if((approx&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST){
