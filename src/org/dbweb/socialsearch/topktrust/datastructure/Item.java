@@ -92,16 +92,6 @@ public class Item<E> implements Comparable<Item<E>>{
     	return this.completion;
     }
 
-//    public Item(String itemId, HashMap<E,Integer> tags, float alpha, int num_users, int k1){
-//        this.itemId = itemId;
-//        this.tags = tags;
-//        this.totalTags = tags.size(); //the number of tags -- need the number times
-//        this.alpha = alpha;
-//        this.num_users = num_users;
-//        this.k1 = k1;
-//        estim = new LinearEstimation(num_users);
-//    }
-
     //Public functionality methods
     public boolean isCandidate(){
         return this.candidate;
@@ -211,18 +201,18 @@ public class Item<E> implements Comparable<Item<E>>{
     		double stf = 0;
     		this.normcontrib.put(tag, 0.0);
     		this.soccontrib.put(tag, 0.0);
-    		if(tdf.containsKey(tag)){ 
+    		if(tdf.containsKey(tag)){ // value in IL
     			bnormal=tdf.get(tag);
     			stf = tdf.get(tag);
     		}
-    		else if(high.containsKey(tag)){
+    		else if(high.containsKey(tag)){ // top value IL
     			bnormal=high.get(tag);
     			stf = high.get(tag);
     			this.normcontrib.put(tag, bnormal);
     		}
-    		if(uf.containsKey(tag)) bsocial=uf.get(tag);
+    		if(uf.containsKey(tag)) bsocial=uf.get(tag); // score so far
     		float stf_known = 0;
-    		if(r.containsKey(tag)) stf_known = r.get(tag);
+    		if(r.containsKey(tag)) stf_known = r.get(tag); // users found who tagged so far
     		this.soccontrib.put(tag, stf - stf_known);
     		if((approx&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
     			if(tdf.containsKey(tag)){

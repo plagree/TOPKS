@@ -23,14 +23,15 @@ public class Experiments {
 		//"opening",
 		//"Obama",
 		//"Syria"
-		"SOUGOFOLLOW",
-		"Apple",
-		"NoMatter",
+		//"SOUGOFOLLOW",
+		//"Apple",
+		//"NoMatter",
 		/*"SOUGOF",
 		"SOUGOFOL",
 		"TFB",
 		"TFB_TeamFollow",*/
 		"TFB"
+		//"TFBjp"
 	};
 
 	private static final String[][] seekers={
@@ -94,18 +95,18 @@ public class Experiments {
 						xmlFile.write("</tests>");							
 						xmlFile.close();
 
-						/*xmlFile = new FileWriter(String.format("tests_%s_%s_%s"+n+".xml", q+"a", network[index_n], pathFunction.toString()));
+						xmlFile = new FileWriter(String.format("tests_%s_%s_%s"+n+".xml", q+"J", network[index_n], pathFunction.toString()));
 						xmlFile.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
 						xmlFile.write("<tests>");
 						query.remove(q);
-						query.add(q+"a");
+						query.add(q+"J");
 						timeBefore = System.currentTimeMillis();
 						topk_alg.executeQueryPlusLetter(String.valueOf(seekers[index_n][index_s]), query, k); // TOPKS IS RUN HERE
 						timeAfter = System.currentTimeMillis();
 						System.out.println("The algorithm ran in "+(timeAfter-timeBefore)/1000+" seconds with seeker "+seekers[index_n][index_s]);
 						xmlFile.write(topk_alg.getResultsXML());
 						xmlFile.write("</tests>");							
-						xmlFile.close();*/
+						xmlFile.close();
 					}
 				}
 			}

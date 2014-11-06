@@ -123,6 +123,7 @@ public class TopKAlgorithm{
 	protected ArrayList<Float> values;
 	protected PriorityQueue<UserEntry<Float>> prioQueue;
 	protected HashMap<String,Integer> high_docs;
+	protected HashMap<String,Integer> high_docs_query;
 	protected HashMap<String, Integer> positions;
 	protected HashMap<String,Float> userWeights;
 	protected ArrayList<Double> proximities;
@@ -329,6 +330,7 @@ public class TopKAlgorithm{
 		ResultSet result;
 		lastpos = new HashMap<String,Integer>();
 		lastval = new HashMap<String,Float>();
+		high_docs_query = new HashMap<String, Integer>();
 		next_docs = new String[query.size()];
 		pos = new int[query.size()];
 		docs = new ArrayList[query.size()];
@@ -339,6 +341,7 @@ public class TopKAlgorithm{
 			pos[index]=0;
 			//System.out.println("tag: "+tag+", trieWord: "+completion_trie.searchPrefix(tag).getBestDescendant().getWord()+", "+next_docs2.get(tag)+", "+next_docs2.get(completion_trie.searchPrefix(tag).getBestDescendant().getWord()));
 			next_docs[index] = next_docs2.get(completion_trie.searchPrefix(tag, exact).getBestDescendant().getWord());
+			high_docs_query.put(tag, (int)completion_trie.searchPrefix(tag, false).getValue());
 			index++;
 		}
 		proximities = new ArrayList<Double>();
@@ -488,9 +491,11 @@ public class TopKAlgorithm{
 		RadixTreeNode radixTreeNode = completion_trie.searchPrefix(newPrefix, false);
 		if (radixTreeNode == null)
 			return 0;
-		ArrayList<DocumentNumTag> r = docs2.get(radixTreeNode.getBestDescendant().getWord());
-		high_docs.put(newPrefix, r.get(0).getNum());
-		next_docs[next_docs.length-1] = r.get(0).getDocId();
+		String bestCompletion = radixTreeNode.getBestDescendant().getWord();
+		ArrayList<DocumentNumTag> arr = docs2.get(bestCompletion);
+		high_docs_query.put(newPrefix, arr.get(positions.get(bestCompletion)).getNum());
+		high_docs_query.remove(previousPrefix);
+		next_docs[next_docs.length-1] = arr.get(positions.get(bestCompletion)).getDocId();
 		candidates.filterTopk(query);
 
 		mainLoop(k, seeker, query);
@@ -549,7 +554,7 @@ public class TopKAlgorithm{
 					 * During the terminationCondition method, look up at top_items of different ILs, we add
 					 * them if necessary to the top-k answer of the algorithm.
 					 */
-					terminationCondition = candidates.terminationCondition(query, userWeight, k, query.size(), alpha, Params.number_users, tag_idf, high_docs, userWeights, positions, approxMethod, docs_inserted, needUnseen, guaranteed, possible);
+					terminationCondition = candidates.terminationCondition(query, userWeight, k, query.size(), alpha, Params.number_users, tag_idf, high_docs_query, userWeights, positions, approxMethod, docs_inserted, needUnseen, guaranteed, possible);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -726,7 +731,7 @@ public class TopKAlgorithm{
 				if(unknown_tf.get(tags[index]).contains(next_docs[index]+"#"+completion)){
 					Item<String> item1 = candidates.findItem(next_docs[index], completion);
 					candidates.removeItem(item1);
-					item1.updateScoreDocs(tags[index], high_docs.get(completion),approxMethod);
+					item1.updateScoreDocs(tags[index], high_docs_query.get(tags[index]), approxMethod);
 					unknown_tf.get(tags[index]).remove(next_docs[index]+"#"+completion); 
 					advanceTextualList(tags[index],index);
 					candidates.addItem(item1);
@@ -818,12 +823,12 @@ public class TopKAlgorithm{
 
 		if(position < invertedList.size()){
 			total_documents_asocial++;
-			high_docs.put(tag, invertedList.get(position).getNum());
+			high_docs_query.put(tag, invertedList.get(position).getNum());
 			next_docs[index] = invertedList.get(position).getDocId();
 			current_best_leaf.updatePreviousBestValue(invertedList.get(position).getNum());
 		}
 		else{
-			high_docs.put(tag, 0);
+			high_docs_query.put(tag, 0);
 			next_docs[index] = "";
 		}
 	}
@@ -904,6 +909,7 @@ public class TopKAlgorithm{
 	 * TOO lONG
 	 */
 	protected void setQueryResultsArrayList(HashSet<String> query, String seeker, int k, int method, float alpha){
+		System.out.println(this.candidates.getNumberOfSortedItems());
 		System.out.println("this.candidates.get_topk().size()="+this.candidates.get_topk().size());
 		String queryStr="";
 		//item 

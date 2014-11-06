@@ -109,6 +109,10 @@ public class ItemList implements Cloneable{
 		this.items = itemList;
 	}
 
+	public int getNumberOfSortedItems() {
+		return this.sorted_items.size();
+	}
+	
 	public void addItem(Item<String> item){
 		this.items.put(item.getItemId()+"#"+item.getCompletion(), item);
 		if(!item.isPruned()) this.sorted_items.add(item);
@@ -358,11 +362,9 @@ public class ItemList implements Cloneable{
 		double scoremin = 0.0f;
 		double scoremax = 0.0f;
 		thritem = null;
-		//for(String tag:positions.keySet()) position = positions.get(tag).intValue();
 		topk_changed = false;
 		if(needUnseen){ //Upper bound on unseen items
-			for(String tag : query){
-				//position = positions.get(tag).intValue();
+			for(String tag : query) {
 				double contribution = 0;
 				double uw = user_weights.get(tag);
 				if((approx&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
