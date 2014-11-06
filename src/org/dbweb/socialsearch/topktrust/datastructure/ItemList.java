@@ -231,10 +231,6 @@ public class ItemList implements Cloneable{
 		Collections.sort(sorted_bs, new ItemBestScoreComparator());
 		ArrayList<Item<String>> possibleItems = new ArrayList<Item<String>>();
 		
-		for (int i=0; i<3; i++) {
-			System.out.println("sorted_ws: "+sorted_ws.get(i).getComputedScore()+", sorted_bs: "+sorted_bs.get(i).getBestscore());
-		}
-		
 		if(sorted_ws.size() >= k)
 			wsc_t = sorted_ws.get(k-1).getComputedScore();
 		else {
@@ -358,15 +354,15 @@ public class ItemList implements Cloneable{
 	private void processBoundary(HashSet<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, HashMap<String,Float> user_weights, HashMap<String,Float> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
 		HashMap<String, String> newtopk = new HashMap<String, String>();
 		int number = 0;
-		int position = 0;
+		//int position = 0;
 		double scoremin = 0.0f;
 		double scoremax = 0.0f;
 		thritem = null;
-		for(String tag:positions.keySet()) position = positions.get(tag).intValue();
+		//for(String tag:positions.keySet()) position = positions.get(tag).intValue();
 		topk_changed = false;
 		if(needUnseen){ //Upper bound on unseen items
 			for(String tag : query){
-				position = positions.get(tag).intValue();
+				//position = positions.get(tag).intValue();
 				double contribution = 0;
 				double uw = user_weights.get(tag);
 				if((approx&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){

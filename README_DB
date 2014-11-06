@@ -1,35 +1,33 @@
-1.a) tagging relation:  tagging(user:int, item:text, tag:text)  -- 3
- indexes: user, item, tag
-      user lists are obtained using: SELECT item, tag FROM tagging
- WHERE user=<input_user>; (UserItems in the poster)
- 1.b) network (same schema for all types of networks):
- network(user1:int, user2:int, weight:numeric) -- 1 index on user1
-      Actually, this is not a primary relations in our implementation,
- as the similarity networks are derived from the "tagging" relation.
- The model assumes it's a primary relation, though.
-      Neighbor lists are obtained using: SELECT user2, weight FROM
- network where user=<input_user>   ORDER BY weight DESC;
+1.a) tagging relation: tagging(user:int, item:text, tag:text) -- 3
+indexes: user, item, tag
+user lists are obtained using: SELECT item, tag FROM tagging
+WHERE user=<input_user>; (UserItems in the poster)
+1.b) network (same schema for all types of networks):
+network(user1:int, user2:int, weight:numeric) -- 1 index on user1
+Actually, this is not a primary relations in our implementation,
+as the similarity networks are derived from the "tagging" relation.
+The model assumes it's a primary relation, though.
+Neighbor lists are obtained using: SELECT user2, weight FROM
+network where user=<input_user> ORDER BY weight DESC;
 
 Derived relations:
 2.a) the inverted indexes: docs(item:text, tag:text, num:int) -- 1
- index on tag
-     obtained from tagging using: SELECT item, tag, count(*) as num
- FROM tagging GROUP BY item,tag;
-     a per-tag inverted list is obtained as: SELECT item, num FROM docs
- WHERE tag=<input_tag>   ORDER BY num DESC; (ItemList in poster)
-
- 2.b) the tag frequency: tagfreq(tag:text, num:int) -- 1 index on tag
- (TagFreq in poster)
-     obtained from tagging using: SELECT tag, count(*) as num FROM
- tagging GROUP BY tag;
+index on tag
+obtained from tagging using: SELECT item, tag, count(*) as num
+FROM tagging GROUP BY item,tag;
+a per-tag inverted list is obtained as: SELECT item, num FROM docs
+WHERE tag=<input_tag> ORDER BY num DESC; (ItemList in poster)
+2.b) the tag frequency: tagfreq(tag:text, num:int) -- 1 index on tag
+(TagFreq in poster)
+obtained from tagging using: SELECT tag, count(*) as num FROM
+tagging GROUP BY tag;
 
 Relations for the approximations (computed outside SQL):
 3.a) mean variance: stat_mvar(user:int, func:text, mean:numeric,
- variance: numeric) -- 1 index on (user, func)
- 3.b) histogram: stat_hist(user:int, func:text, bucket_id:int,
- num:int) -- 1 index on (user,func)
-       bucket_id is the id of the bucket in the histogram, and num
- indicates how many values in the proximity vector are in that bucket.
-
- Types are in PostgreSQL notation: "text" is any string, "numeric" are
- reals, "int" are integers.
+variance: numeric) -- 1 index on (user, func)
+3.b) histogram: stat_hist(user:int, func:text, bucket_id:int,
+num:int) -- 1 index on (user,func)
+bucket_id is the id of the bucket in the histogram, and num
+indicates how many values in the proximity vector are in that bucket.
+Types are in PostgreSQL notation: "text" is any string, "numeric" are
+reals, "int" are integers.

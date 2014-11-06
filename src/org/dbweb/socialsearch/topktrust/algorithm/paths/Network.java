@@ -74,7 +74,7 @@ public class Network {
 		float weight;
 		for(int i=0;i<Params.network.length;i++){
 			networks.put(Params.network[i], new HashMap<Integer,ArrayList<UserLink<Integer,Float>>>());
-			BufferedReader br = new BufferedReader(new FileReader(Params.networkFile));
+			BufferedReader br = new BufferedReader(new FileReader(Params.dir+Params.networkFile));
 			while ((line = br.readLine()) != null) {
 				data = line.split("\t");
 				if (data.length != 3)

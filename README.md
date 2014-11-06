@@ -24,3 +24,4 @@ tests_exact_soc_snet_tt_path_mult.xml.
 
 If the dataset is very small, change the skipped_tests variable in the TopKAlgorithm
 class (line 1068) to a small number, like 1.
+

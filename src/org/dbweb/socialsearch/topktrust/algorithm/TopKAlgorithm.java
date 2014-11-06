@@ -192,10 +192,9 @@ public class TopKAlgorithm{
 	protected boolean foundFirst;		
 	protected Iterator<UserLink<String,Float>> iter;
 
-	//	protected String resultsXML;
-
 	//amine
 	protected String newXMLResults="", newBucketResults="", newXMLStats="";
+
 	BasicSearchResult resultList=new BasicSearchResult();
 	double [] scoreInt = new double[2];
 
@@ -250,7 +249,8 @@ public class TopKAlgorithm{
 		//this.number_documents = 1570866;//595811;
 		//this.number_users = 570347;//80000;
 
-		if (dbConnection == null)
+		long time_before_loading = System.currentTimeMillis();
+		if (dbConnection != null)
 			this.dbLoadingInMemory();
 		else {
 			try {
@@ -260,6 +260,8 @@ public class TopKAlgorithm{
 				e.printStackTrace();
 			}
 		}
+		long time_after_loading = System.currentTimeMillis();
+		System.out.println("File loading in "+(time_after_loading-time_before_loading)+" sec...");
 	}
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error, int number_documents, int number_users){
@@ -309,7 +311,7 @@ public class TopKAlgorithm{
 		unknown_tf = new HashMap<String,HashSet<String>>();
 		for(String tag:query)
 			unknown_tf.put(tag, new HashSet<String>());
-		connection.setAutoCommit(false);
+		//connection.setAutoCommit(false);
 		this.optpath.setValues(values);
 		this.optpath.setDistFunc(distFunc);
 		if((this.approxMethod&Methods.MET_APPR_LAND)==Methods.MET_APPR_LAND){
@@ -433,16 +435,11 @@ public class TopKAlgorithm{
 		total_heap_adds = 0;
 		total_heap_rebuilds = 0;
 
-		for (String t: query)
-			System.out.println(high_docs.get(t));
 		long time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query); /* MAIN ALGORITHM */
 		long time1 = System.currentTimeMillis();
-		for (String t: query)
-			System.out.println(high_docs.get(t));
+		
 		System.out.println("Only mainLoop : "+(time1-time0)/1000+"sec.");
-		for (String tt: query)
-			System.out.println(pos[0]+", "+positions.get(tt));
 
 		this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
 
@@ -489,6 +486,8 @@ public class TopKAlgorithm{
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
 		RadixTreeNode radixTreeNode = completion_trie.searchPrefix(newPrefix, false);
+		if (radixTreeNode == null)
+			return 0;
 		ArrayList<DocumentNumTag> r = docs2.get(radixTreeNode.getBestDescendant().getWord());
 		high_docs.put(newPrefix, r.get(0).getNum());
 		next_docs[next_docs.length-1] = r.get(0).getDocId();
@@ -540,7 +539,6 @@ public class TopKAlgorithm{
 			}
 			else {
 				processTextual(query);
-				//log.info("textual branch");
 			}
 			if(social) this.total_lists_social++;
 
@@ -562,18 +560,17 @@ public class TopKAlgorithm{
 				//For statistics only
 				if(candidates.topkChange()){
 					this.total_topk_changes++;
-					for(String tag:query){
+					/*for(String tag:query){
 						this.lastpos.put(tag, positions.get(tag).intValue());
 						this.lastval.put(tag, userWeights.get(tag));
-					}
+					}*/
 				}
 				candidates.resetChange();
 				long time_1 = System.currentTimeMillis();
-				if ((time_1-before_main_loop)>100) {
+				if ((time_1-before_main_loop)>10000) {
 					this.candidates.extractProbableTopK(k, guaranteed, possible);
 					underTimeLimit = false;
 				}
-
 			}
 			else{
 				terminationCondition=false;
@@ -628,7 +625,7 @@ public class TopKAlgorithm{
 				boolean found_docs = false;
 				pos[index]++;   			
 				float prev_part_sum = pos[index];
-				positions.put(tag, prev_part_sum);
+				//positions.put(tag, prev_part_sum);
 				if((approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR)
 					d_distr.setPos(tag, userWeight, pos[index]+1);
 				else if((approxMethod&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST)
@@ -656,17 +653,16 @@ public class TopKAlgorithm{
 								if(item==null){
 									item = createNewCandidateItem(itemId, query,item, completion); 
 									item.setMaxScorefromviews(bestScoreEstim);
-									for(String tag1:query)
+									/*for(String tag1:query)
 										if(!item.tdf.containsKey(tag1)) {
 											unknown_tf.get(tag1).add(itemId+"#"+completion);
 										}
-									// candidates.addItem(item);
+									 */
 								}  
 								else
 									candidates.removeItem(item);
 								userW = userWeight;    					
 								item.updateScore(tag, userW, pos[index], approxMethod);
-								// item.computeBestScore(high_docs, total_sum, userWeights, positions, approxMethod);
 								candidates.addItem(item);
 
 								docs_inserted = true;
@@ -685,8 +681,8 @@ public class TopKAlgorithm{
 				pos[index]++;
 				userWeight = 0;
 				float prev_part_sum = pos[index];
-				positions.put(tag, prev_part_sum);
-				positions.put(tag, prev_part_sum);
+				//positions.put(tag, prev_part_sum);
+				//positions.put(tag, prev_part_sum);
 				if((approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR)
 					d_distr.setPos(tag, userWeight, pos[index]+1);
 				else if((approxMethod&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST)
@@ -726,9 +722,7 @@ public class TopKAlgorithm{
 			tags[index] = tag;
 			index++;
 		}
-		while(found){
-			//for(String tag:query){
-			//	found = false; // ?????
+		while (found) {
 			String completion;
 			for(index=0;index<query.size();index++) {
 				found = false;
@@ -737,13 +731,12 @@ public class TopKAlgorithm{
 					Item<String> item1 = candidates.findItem(next_docs[index], completion);
 					candidates.removeItem(item1);
 					item1.updateScoreDocs(tags[index], high_docs.get(completion),approxMethod);
-					unknown_tf.get(tags[index]).remove(next_docs[index]); 
+					unknown_tf.get(tags[index]).remove(next_docs[index]+"#"+completion); 
 					advanceTextualList(tags[index],index);
 					candidates.addItem(item1);
 					found = true;
 				}
 			}
-			//}
 		}
 	}
 
@@ -753,7 +746,6 @@ public class TopKAlgorithm{
 	 * @throws SQLException
 	 */
 	protected void processTextual(HashSet<String> query) throws SQLException{
-		//System.out.println("processTextual");
 		int index = 0;
 		for(String tag:query){
 			if(next_docs[index]!=""){
@@ -764,7 +756,7 @@ public class TopKAlgorithm{
 				//    		}
 				else
 					candidates.removeItem(item);
-				item.updateScoreDocs(tag, high_docs.get(tag),approxMethod);
+				item.updateScoreDocs(tag, high_docs.get(tag), approxMethod);
 				if(unknown_tf.get(tag).contains(item.getItemId())) unknown_tf.get(tag).remove(item.getItemId());
 				//    			item.computeBestScore(high_docs, total_sum, userWeights, positions, approxMethod);
 				candidates.addItem(item);
@@ -838,7 +830,6 @@ public class TopKAlgorithm{
 			high_docs.put(tag, 0);
 			next_docs[index] = "";
 		}
-
 	}
 
 	protected void getAllItemScores(String item, HashSet<String> query, String completion) throws SQLException{
@@ -873,7 +864,7 @@ public class TopKAlgorithm{
 			else {
 				item.addTag(tag, tag_idf.find(completion));
 			}
-			unknown_tf.get(tag).add(itemId+"#"+completion);			
+			unknown_tf.get(tag).add(itemId+"#"+completion);
 		}
 		return item;
 	}
@@ -925,22 +916,9 @@ public class TopKAlgorithm{
 		int lastp = 0;
 		int totp = 0;
 		float lastv = 0;
-		/*for(String tag:this.docs2.keySet()){
-			if(lastpos.containsKey(tag)){
-				totp+=lastpos.get(tag);
-				if(lastp<lastpos.get(tag)){
-					lastp=lastpos.get(tag);
-					lastv=lastval.get(tag);
-				}
-			}
-		}
-		totp = totp/query.size();*/
-
-		//    	this.newXMLResults = String.format(Locale.US,"<query network=\"%s\" func=\"%s\" tags=\"%s\" seeker=\"%s\" k=\"%d\" method=\"%d\" alpha=\"%.2f\">", this.networkTable, this.distFunc.toString(), queryStr, seeker, k, method, alpha);
-		//    	this.newXMLResults = String.format(Locale.US, "<ResultSet seeker=\"%s\">", seeker);
-
+		
 		String str="";
-		this.newXMLResults+= "\n<TopkResults>\n";
+		this.newXMLResults = "<TopkResults>\n";
 
 		int position=0;
 
@@ -990,64 +968,6 @@ public class TopKAlgorithm{
 		}
 		this.newXMLResults+="</TopkResults>\n";
 
-		/* DUNNO WHAT IT DOES
-		//amine add bucket component
-		this.newBucketResults+="<BucketResults>\n";
-
-		Iterator<Entry<String, Item<String>>> iter=  this.candidates.getItems().entrySet().iterator();
-		System.out.println("4");
-		while(iter.hasNext()){
-			String currItem=iter.next().getKey();
-			if(! this.candidates.get_topk().contains(currItem)){ //proceed with items not in the topks only
-				Item<String> item = candidates.findItem(currItem);
-				str=protectSpecialCharacters(item.getItemId());
-				this.resultList.addResult(str, item.getComputedScore(), item.getBestscore());
-				resultList.setNbLoops(this.numloops);
-				// curr_item.computeBestScore(high, total_sum, user_weights, positions, approx);
-
-				this.newBucketResults+=String.format(Locale.US,"<bucket  minscore=\"%.5f\" maxscore=\"%.5f\">%s</bucket>",
-													 item.getComputedScore(), item.getBestscore(), protectSpecialCharacters(item.getItemId()));
-				this.newBucketResults+="\n";
-			}
-		}*/
-
-		/* DUNNO WHAT IT DOES
-		this.newBucketResults+="</BucketResults>\n";
-		//        	System.out.println(candidates.getMax_from_rest());
-		this.newBucketResults+=String.format(Locale.US,"<Unseen  Max_from_rest=\"%.5f\"/>\n",
-				candidates.getMax_from_rest());
-
-		this.newXMLStats+="<stats>";
-		this.newXMLStats+=String.format(Locale.US,"<time>%.3f</time>", (float)(time_loop)/(float)1000);
-		this.newXMLStats+=String.format("<pos_last_topkchg>%d</pos_last_topkchg>", lastp);
-		this.newXMLStats+=String.format(Locale.US,"<val_last_topkchg>%.5f</val_last_topkchg>", lastv);
-		this.newXMLStats+=String.format("<pos_last>%d</pos_last>", total_lists_social);
-		this.newXMLStats+=String.format(Locale.US,"<val_last>%.5f</val_last>", this.userWeight);
-		//this.resultsXML+=String.format("<maxheap>%d</maxheap>", this.prioQueue.getMaxsize());
-		this.newXMLStats+=String.format("<social_docs>%d</social_docs>", total_documents_social);
-		this.newXMLStats+=String.format("<social_queries>%d</social_queries>", total_lists_social);
-		this.newXMLStats+=String.format("<normal_docs>%d</normal_docs>", total_documents_asocial);
-		this.newXMLStats+="</stats>";*/
-
-		//   	this.newXMLResults+="</ResultSet>";
-
-		//    	try {
-		//    		Calendar cal = Calendar.getInstance();
-		//    		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
-		//    		FileWriter fileXML = new FileWriter(pathToQueries+"query_"+sdf.format(cal.getTime())+".xml");
-		//    		fileXML.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
-		//    		fileXML.write(resultsXML);
-		//    		fileXML.close();
-		//
-		//    		FileWriter fileCSV = new FileWriter(pathToDistributions+"dist_"+seeker+"_"+this.networkTable+"_"+this.distFunc.toString()+".csv");
-		//    		for(float val:values)
-		//    			fileCSV.write(String.format(Locale.US,"%.5f\t", val));
-		//    		fileCSV.close();
-		//		} catch (IOException e) {
-		//			e.printStackTrace();
-		//		} catch (Exception ex) {
-		//			ex.printStackTrace();
-		//		}
 	}
 
 	private void updateKeys(String previousPrefix, String newPrefix) {
@@ -1095,7 +1015,6 @@ public class TopKAlgorithm{
 	}
 
 	public TreeSet<Item<String>> getResults(){
-		System.out.println("AQUI");
 		TreeSet<Item<String>> results = new TreeSet<Item<String>>();
 		for(String itid:candidates.get_topk())
 			results.add(candidates.findItem(itid, ""));
@@ -1120,7 +1039,6 @@ public class TopKAlgorithm{
 	}
 
 	public ArrayList<Integer> getVisited(){
-		System.out.println("ping");
 		skr = new HashSet<Integer>();
 		for(int i=0;i<Params.seeker.length;i++) skr.add(Params.seeker[i]);
 		ArrayList<Integer> vst_u = new ArrayList<Integer>();
@@ -1176,6 +1094,7 @@ public class TopKAlgorithm{
 		this.next_docs2 = new HashMap<String, String>(); //DONE
 		this.docs2 = new HashMap<String, ArrayList<DocumentNumTag>>(); //DONE
 		this.docs_users = new HashMap<Integer, PatriciaTrie<HashSet<String>>>();
+		this.dictionaryTrie = new PatriciaTrie<String>();
 		userWeight = 1.0f;
 
 		BufferedReader br;
@@ -1183,7 +1102,7 @@ public class TopKAlgorithm{
 		String[] data;
 
 		// Tag Inverted lists processing
-		br = new BufferedReader(new FileReader(Params.ILFile));
+		br = new BufferedReader(new FileReader(Params.dir+Params.ILFile));
 		ArrayList<DocumentNumTag> currIL;
 		while ((line = br.readLine()) != null) {
 			data = line.split("\t");
@@ -1214,9 +1133,8 @@ public class TopKAlgorithm{
 		int userId;
 		String itemId;
 		String tag;
-		br = new BufferedReader(new FileReader(Params.triplesFiles));
+		br = new BufferedReader(new FileReader(Params.dir+Params.triplesFiles));
 		while ((line = br.readLine()) != null) {
-			// process the line.
 			data = line.split("\t");
 
 			if (data.length != 3)
@@ -1237,7 +1155,7 @@ public class TopKAlgorithm{
 		Params.number_users = this.docs_users.size();
 
 		// Tag Freq processing
-		br = new BufferedReader(new FileReader(Params.tagFreqFile));
+		br = new BufferedReader(new FileReader(Params.dir+Params.tagFreqFile));
 		int tagfreq;
 		while ((line = br.readLine()) != null) {
 			data = line.split("\t");
@@ -1255,6 +1173,7 @@ public class TopKAlgorithm{
 		this.connection = dbConnection.DBConnect();
 		PreparedStatement ps;
 		ResultSet rs = null;
+		this.dictionaryTrie = new PatriciaTrie<String>();
 
 		// DICTIONARY
 		dictionary = new ArrayList<String>();

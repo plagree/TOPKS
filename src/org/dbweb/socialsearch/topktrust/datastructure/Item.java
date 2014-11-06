@@ -180,7 +180,7 @@ public class Item<E> implements Comparable<Item<E>>{
 //    	else if((approx&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST)
 //    		this.computeWorstScoreEstimate(approx);
 //    	else
-    		computeWorstScore(approx);;
+    		computeWorstScore(approx);
         return 0;
     }
   
@@ -313,6 +313,9 @@ public class Item<E> implements Comparable<Item<E>>{
     		}
     		if(uf.containsKey(tag)){
     			wsocial=uf.get(tag);
+    		}
+    		else {
+    			System.out.println(tag+", problem");
     		}
     		wpartial = alpha*wnormal + (1-alpha)*wsocial;
     		wscore+=score.getScore(wpartial, idf.get(tag));
