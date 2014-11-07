@@ -74,7 +74,6 @@ public class ItemList implements Cloneable{
 		this.min_from_topk = 0;
 		this.max_from_rest = 0;
 		this.number_of_candidates = 0;
-
 	}
 
 	public ItemList(Comparator comparator, Score score, int num_users, int k, Item<String> virtualItem, DataDistribution d_distr, DataHistogram d_hist, double error){
@@ -88,9 +87,6 @@ public class ItemList implements Cloneable{
 		this.max_from_rest = 0;
 		this.number_of_candidates = 0;
 		this.items = new HashMap<String,Item<String>>();
-		//        this.topk = new TreeSet<Item<String>>(new MinScoreItemComparator());
-		//        this.rest = new TreeSet<Item<String>>(new MaxScoreItemComparator());
-		//        rest.add(virtualItem);
 		this.sorted_items = new PriorityQueue<Item<String>>();
 		this.comparator = comparator;
 		this.k1 = k1;
@@ -100,6 +96,18 @@ public class ItemList implements Cloneable{
 		this.error = error;
 		this.score = score;
 		this.k = k;
+	}
+	
+	public int getRankingItem(String item, int k) {
+		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
+		int counter = 1;
+		Collections.sort(sorted_av, new ItemBestScoreComparator());
+		for (Item<String> currItem: sorted_av) {
+			if (item.equals(currItem.getItemId()))
+				return counter;
+			counter++;
+		}
+		return 0;
 	}
 
 	public ItemList(HashMap<String,Item<String>> itemList){
@@ -116,25 +124,6 @@ public class ItemList implements Cloneable{
 	public void addItem(Item<String> item){
 		this.items.put(item.getItemId()+"#"+item.getCompletion(), item);
 		if(!item.isPruned()) this.sorted_items.add(item);
-		/*
-    	if(topk.size()<k){
-    		item.enable();
-    		topk.add(item);
-    		topk_changed = true;
-    	}
-    	else{
-    		if(topk.first().compareTo(item)==1){
-    			Item<String> it_k = topk.pollFirst();
-    			it_k.disable();
-    			topk.add(item);
-    			rest.add(it_k);
-    			topk_changed = true;
-    		}
-    		else{
-    			item.disable();
-    			rest.add(item);
-    		}
-    	}*/
 	}
 
 	public void removeItem(Item<String> item){
@@ -148,10 +137,6 @@ public class ItemList implements Cloneable{
 		//    	this.rest.remove(virtualItem);
 		//    	this.rest.add(virtualItem);
 	}
-
-	//    public PriorityQueue<Item<String>> getCopyListOfItems(){
-	//        return this.sorted_items;
-	//    }
 
 	public Item<String> findItem(String itemId, String completion){
 		if(items.containsKey(itemId+"#"+completion))

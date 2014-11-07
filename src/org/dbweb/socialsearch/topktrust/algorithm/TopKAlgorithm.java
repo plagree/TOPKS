@@ -291,7 +291,7 @@ public class TopKAlgorithm{
 	 * @return
 	 * @throws SQLException
 	 */
-	public int executeQuery(String seeker, HashSet<String> query, int k) throws SQLException{
+	public int executeQuery(String seeker, HashSet<String> query, int k, int t) throws SQLException{
 
 		this.time_dji = 0;
 		this.time_term = 0;
@@ -360,37 +360,6 @@ public class TopKAlgorithm{
 			idx++;
 		}
 
-		/* NEW ALL IN MEM
-		 * 
-		ps = connection.prepareStatement(sqlGetViews);
-		ps.setString(1, distFunc.toString());
-		ps.setString(2, score.toString());
-		ps.setString(3, networkTable);
-		ps.setDouble(4, distFunc.getCoeff());
-		result = ps.executeQuery();
-		while(result.next()){
-			String seek = result.getString(1);
-			int qid = result.getInt(2);
-			double alph = result.getFloat(3);
-			if(!userviews.containsKey(seek))
-				userviews.put(seek, new ArrayList<UserView>());
-			UserView uview = new UserView();
-			HashSet<String> vqry = new HashSet<String>();
-			uview.setQid(qid);
-			uview.setAlpha(alph);
-			ps = connection.prepareStatement(sqlGetViewQuery);
-			ps.setInt(1, qid);
-			ResultSet result_view = ps.executeQuery();
-			while(result_view.next())
-				vqry.add(result_view.getString(1));			
-			uview.setQuery(vqry);
-			userviews.get(seek).add(uview);
-		}
-
-		this.viewTransformer = new ViewTransformer(k,query,alpha,distFunc,score.toString(),tagTable,tagFreqs,tag_idf, networkTable,score, connection);
-		 NEW ALL IN MEM*/
-		//getting the approximate statistics
-
 		if((this.approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
 			String sqlGetDistribution = String.format(sqlGetDistributionTemplate, this.networkTable);
 			ps = connection.prepareStatement(sqlGetDistribution);
@@ -438,13 +407,13 @@ public class TopKAlgorithm{
 		total_heap_adds = 0;
 		total_heap_rebuilds = 0;
 
-		long time0 = System.currentTimeMillis();
-		mainLoop(k, seeker, query); /* MAIN ALGORITHM */
-		long time1 = System.currentTimeMillis();
-		
-		System.out.println("Only mainLoop : "+(time1-time0)/1000+"sec.");
+		//long time0 = System.currentTimeMillis();
+		mainLoop(k, seeker, query, t); /* MAIN ALGORITHM */
+		//long time1 = System.currentTimeMillis();
 
-		this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
+		//System.out.println("Only mainLoop : "+(time1-time0)/1000+"sec.");
+
+		//this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
 
 		return 0;
 	}
@@ -454,7 +423,7 @@ public class TopKAlgorithm{
 	 * reinitialize the trie and go back to the initial position of the tries.
 	 * @param prefix
 	 */
-	private void reinitialize(String prefix) {
+	public void reinitialize(String prefix) {
 		SortedMap<String, String> completions = this.dictionaryTrie.prefixMap(prefix);
 		Iterator<Entry<String, String>> iterator = completions.entrySet().iterator();
 		Entry<String, String> currentEntry = null;
@@ -481,7 +450,7 @@ public class TopKAlgorithm{
 	 * @return
 	 * @throws SQLException
 	 */
-	public int executeQueryPlusLetter(String seeker, HashSet<String> query, int k) throws SQLException{
+	public int executeQueryPlusLetter(String seeker, HashSet<String> query, int k, int t) throws SQLException{
 		String newPrefix = "";
 		for (String tag: query) {
 			newPrefix = tag;
@@ -498,15 +467,15 @@ public class TopKAlgorithm{
 		next_docs[next_docs.length-1] = arr.get(positions.get(bestCompletion)).getDocId();
 		candidates.filterTopk(query);
 
-		mainLoop(k, seeker, query);
-		this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
+		mainLoop(k, seeker, query, t);
+		//this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
 		return 0;
 	}
 
 	/**
 	 * MAIN LOOP
 	 */
-	protected void mainLoop(int k, String seeker, HashSet<String> query) throws SQLException{
+	protected void mainLoop(int k, String seeker, HashSet<String> query, int t) throws SQLException{
 		int loops=0; //amine
 		int skipped_tests = 10000;
 		int steps = 1;
@@ -568,7 +537,7 @@ public class TopKAlgorithm{
 				}
 				candidates.resetChange();
 				long time_1 = System.currentTimeMillis();
-				if ((time_1-before_main_loop)>10000) {
+				if ((time_1-before_main_loop)>t) {
 					this.candidates.extractProbableTopK(k, guaranteed, possible);
 					underTimeLimit = false;
 				}
@@ -576,10 +545,10 @@ public class TopKAlgorithm{
 			else{
 				terminationCondition=false;
 			}
-			loops++;
+			//loops++;
 		}while(!terminationCondition&&!finished&&underTimeLimit);
 		this.numloops=loops;
-		System.out.println("loops="+loops);
+		//System.out.println("loops="+loops);
 	}
 
 
@@ -918,7 +887,7 @@ public class TopKAlgorithm{
 		int lastp = 0;
 		int totp = 0;
 		float lastv = 0;
-		
+
 		String str="";
 		this.newXMLResults = "<TopkResults>\n";
 
@@ -970,6 +939,10 @@ public class TopKAlgorithm{
 		}
 		this.newXMLResults+="</TopkResults>\n";
 
+	}
+
+	public int getRankingItem(String item, int k) {
+		return this.candidates.getRankingItem(item, k);
 	}
 
 	private void updateKeys(String previousPrefix, String newPrefix) {
@@ -1135,7 +1108,7 @@ public class TopKAlgorithm{
 				System.out.println("\t"+counter+" tag ILs loaded");
 		}
 		br.close();
-		
+
 		System.out.println("Inverted List file loaded...");
 
 		// Triples processing
