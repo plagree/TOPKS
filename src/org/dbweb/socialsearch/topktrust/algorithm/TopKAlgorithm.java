@@ -1102,10 +1102,12 @@ public class TopKAlgorithm{
 		BufferedReader br;
 		String line;
 		String[] data;
+		System.out.println("Beginning of file loading...");
 
 		// Tag Inverted lists processing
 		br = new BufferedReader(new FileReader(Params.dir+Params.ILFile));
 		ArrayList<DocumentNumTag> currIL;
+		int counter = 0;
 		while ((line = br.readLine()) != null) {
 			data = line.split("\t");
 			if (data.length < 2)
@@ -1128,14 +1130,21 @@ public class TopKAlgorithm{
 			positions.put(tag, 0);
 			userWeights.put(tag, userWeight);
 			tagFreqs.put(tag, firstDoc.getNum());
+			counter++;
+			if ((counter%50000)==0)
+				System.out.println("\t"+counter+" tag ILs loaded");
 		}
 		br.close();
+		
+		System.out.println("Inverted List file loaded...");
 
 		// Triples processing
 		int userId;
 		String itemId;
 		String tag;
 		br = new BufferedReader(new FileReader(Params.dir+Params.triplesFiles));
+		counter = 0;
+		System.out.println("Loading of triples");
 		while ((line = br.readLine()) != null) {
 			data = line.split("\t");
 
@@ -1152,6 +1161,9 @@ public class TopKAlgorithm{
 			if(!this.docs_users.get(userId).containsKey(tag))
 				this.docs_users.get(userId).put(tag, new HashSet<String>());
 			this.docs_users.get(userId).get(tag).add(itemId);
+			counter++;
+			if ((counter%1000000)==0)
+				System.out.println("\t"+counter+" triples loaded");
 		}
 		br.close();
 		Params.number_users = this.docs_users.size();
