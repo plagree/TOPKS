@@ -159,8 +159,8 @@ public class ItemList implements Cloneable{
 
 	public void setContribs(HashSet<String> query, RadixTreeImpl trie){
 		for(String tag:query){
-			this.normcontrib.put(tag, (double)trie.find(tag));
-			this.soccontrib.put(tag, (double)trie.find(tag));
+			this.normcontrib.put(tag, (double)trie.searchPrefix(tag, false).getValue());
+			this.soccontrib.put(tag, (double)trie.searchPrefix(tag, false).getValue());
 		}
 	}
 
@@ -185,14 +185,25 @@ public class ItemList implements Cloneable{
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		// UPDATE OF KEYS ON PREVIOUS PREFIX
 		if (this.soccontrib.containsKey(previousPrefix)) {
-			double value = this.soccontrib.get(previousPrefix);
+			if (this.soccontrib.get(previousPrefix) != null) {
+				double value = this.soccontrib.get(previousPrefix);
+				this.soccontrib.put(newPrefix, value);
+			}
+			else {
+				this.soccontrib.put(newPrefix, null);
+			}
 			this.soccontrib.remove(previousPrefix);
-			this.soccontrib.put(newPrefix, value);
 		}
 		if (this.normcontrib.containsKey(previousPrefix)) {
-			double value = this.normcontrib.get(previousPrefix);
+			if (this.normcontrib.get(previousPrefix) != null) {
+				double value = this.normcontrib.get(previousPrefix);
+				this.normcontrib.put(newPrefix, value);
+			}
+			else {
+				this.normcontrib.put(newPrefix, null);
+			}
 			this.normcontrib.remove(previousPrefix);
-			this.normcontrib.put(newPrefix, value);
+			
 		}
 		// END OF UPDATE
 		for (Item<String> item: sorted_items) {
@@ -242,12 +253,11 @@ public class ItemList implements Cloneable{
 		}
 		
 		Collections.sort(possibleItems, new ItemAverageScoreComparator());
-		for (int i=0; i<3; i++) {
-			System.out.println("possibleItems: "+(possibleItems.get(i).getComputedScore()+possibleItems.get(i).getBestscore()));
-		}
 		int k_possible = k - guaranteed.size();
 		Item<String> current_item;
 		for (int i=0; i<k_possible; i++) {
+			if (i >= possibleItems.size())
+				break;
 			current_item = possibleItems.get(i);
 			possible.add(current_item.getItemId()+"#"+current_item.getCompletion());
 		}
@@ -398,7 +408,7 @@ public class ItemList implements Cloneable{
 					curr_item.computeBestScore(high, user_weights, positions, approx);
 					double curr_candidate = curr_item.getBestscore();
 					if(curr_candidate<=scoremin) curr_item.setPruned(true);
-					if(scoremax<curr_candidate){ 
+					if(scoremax<curr_candidate){
 						scoremax = curr_candidate;
 						this.normcontrib = curr_item.getNormalContrib();
 						this.soccontrib = curr_item.getSocialContrib();

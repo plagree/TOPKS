@@ -17,30 +17,6 @@ import org.dbweb.socialsearch.topktrust.algorithm.score.BM25Score;
 
 public class Experiments {
 
-	private static final String[] queries = {
-		//"opening",
-		//"Obama",
-		//"Syria"
-		//"SOUGOFOLLOW",
-		//"Apple",
-		//"NoMatter",
-		/*"SOUGOF",
-		"SOUGOFOL",
-		"TFB",
-		"TFB_TeamFollow",*/
-		"TFB"
-		//"TFBjp"
-	};
-
-	private static final String[] seekers={
-		//"2", //TESTINGDB
-		"168885306", //twitter dump
-		//"238314320",
-		//"30132505",
-		//"20503",
-		//"80087208"
-	};
-
 	private static final float alpha = 0.0f;
 	private static final boolean heap = true;
 	private static final PathCompositionFunction pathFunction = new PathMultiplication();
@@ -60,7 +36,7 @@ public class Experiments {
 		BM25Score score = new BM25Score();
 
 		if (args.length != 2) {
-			System.out.println("Usage: java -jar -Xmx10000m executable.jar /path/to/files.txt numberOfDocuments\nYou gave:");
+			System.out.println("Usage: java -jar -Xmx10000m executable.jar /path/to/files.txt numberOfDocuments\nYou gave "+args.length+" parameters");
 			for (int i=0; i<args.length; i++) {
 				System.out.println("Argument "+(i+1)+": "+args[i]);
 			}
@@ -76,7 +52,7 @@ public class Experiments {
 
 			BufferedReader br = new BufferedReader(new FileReader(Params.dir+Params.inputTestFile));
 			BufferedWriter bw = new BufferedWriter(new FileWriter(Params.dir+Params.outputTestFile));
-
+			System.out.println("Initialisation done...");
 			String line;
 			String[] data;
 			String user, item, tag;
@@ -86,14 +62,18 @@ public class Experiments {
 			int ranking;
 			int counter = 0;
 			while ((line = br.readLine()) != null) {
+				System.out.println("New line");
 				data = line.split("\t");
-				if (data.length != 4)
+				if (data.length != 4) {
+					System.out.println("Wrong line in the input-file");
 					continue;
+				}
 				user = data[0]; item = data[1]; tag = data[2];
 				lengthTag = tag.length();
 				numberUsersWhoTaggedThisItem = Integer.parseInt(data[3]);
 				for (int t: times) {
 					query = new HashSet<String>();
+					System.out.println("New time: "+t+" ms...");
 					for (int l=lengthPrefixMinimum; l<=lengthTag; l++) {
 						if (query.isEmpty()) {
 							query.add(tag.substring(0, l));
@@ -112,8 +92,9 @@ public class Experiments {
 					topk_alg.reinitialize(tag.substring(0, lengthPrefixMinimum));
 				}
 				counter++;
-				if ((counter%100)==0)
-					System.out.println(counter+" lines processed...");
+				System.out.println(counter+" lines processed...");
+				//System.gc();
+				bw.flush();
 			}
 			br.close();
 			bw.close();
@@ -125,5 +106,4 @@ public class Experiments {
 			e.printStackTrace();
 		}
 	}
-
 }

@@ -389,7 +389,6 @@ public class TopKAlgorithm{
 				d_hist.setVals(tag, 0, 1.0f);
 			}
 		}
-		//this.d_distr = new DataDistribution(1.0f, 0.0f, this.number_users, query);
 
 		Comparator comparator = new MinScoreItemComparator();   
 		virtualItem = createNewCandidateItem("<rest_of_the_items>",query,virtualItem,"");
@@ -486,21 +485,15 @@ public class TopKAlgorithm{
 		guaranteed = new HashSet<String>();
 		possible = new HashSet<String>();
 		long before_main_loop = System.currentTimeMillis();
+		finished = false;
 		do{
 			docs_inserted = false;
 			boolean social = false;
-			finished = true;
-			boolean socialBranch = chooseBranch(query);
+			boolean socialBranch = true; // TEMPORARY FIXchooseBranch(query);
 			if(socialBranch){
 				processSocial(query);
 				if(((this.approxMethod&Methods.MET_VIEW)==Methods.MET_VIEW)&&userviews.containsKey(currentUser.getEntryId())){
 					boolean exist = viewTransformer.computeUsingViews(userWeight, userviews.get(currentUser.getEntryId()));
-					//        				HashMap<String,ViewScore> view = (HashMap<String,ViewScore>) view_ws.clone();
-					////        				if((this.approxMethod&Methods.MET_VIEW_TOPK)==0){ //only compute bestscores when we can't say anything
-					//        				HashMap<String,ViewScore> view_bs = viewTransformer.getTransformedView(Integer.parseInt(currentUser.getEntryId()),false);
-					//        				for(String it:view_bs.keySet())
-					//        					if(!view.containsKey(it)) view.put(it, view_bs.get(it));
-					////        				}
 					candidates.setViews(true);
 					if(exist){
 						processView(query);        				         				            			
@@ -527,10 +520,6 @@ public class TopKAlgorithm{
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-				////        		if((this.approxMethod&Methods.MET_VIEW)==Methods.MET_VIEW){
-				//        			if((terminationCondition==false)&&(candidates.getContribItem()!=null))
-				//        				getAllItemScores(candidates.getContribItem(),query);
-				////        		}
 				//For statistics only
 				if(candidates.topkChange()){
 					this.total_topk_changes++;
@@ -545,10 +534,12 @@ public class TopKAlgorithm{
 			else{
 				terminationCondition=false;
 			}
-			//loops++;
+			if (userWeight==0)
+				terminationCondition = true;
+			loops++;
 		}while(!terminationCondition&&!finished&&underTimeLimit);
-		this.numloops=loops;
-		//System.out.println("loops="+loops);
+		//this.numloops=loops;
+		System.out.println("There were "+loops+" loops ...");
 	}
 
 

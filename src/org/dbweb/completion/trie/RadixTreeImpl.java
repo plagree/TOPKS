@@ -201,6 +201,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 			n2.setReal(true);
 			n2.setValue(value);
 			node.insertChildWithRespectToAncestors(n2);
+			node.updatePreviousBestValue();
 		}        
 		// this key needs to be added as the child of the current node
 		else {
