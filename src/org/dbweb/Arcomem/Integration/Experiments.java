@@ -14,18 +14,19 @@ import org.dbweb.socialsearch.topktrust.algorithm.functions.PathCompositionFunct
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
 import org.dbweb.socialsearch.topktrust.algorithm.score.BM25Score;
+import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
 
 public class Experiments {
 
-	private static final float alpha = 0.0f;
+	//private static float alpha = 0.0f;
 	private static final boolean heap = true;
 	private static final PathCompositionFunction pathFunction = new PathMultiplication();
 	public static final String network = "soc_snet_dt";
 	public static final String taggers = "soc_tag_80";
 	private static final int k = 20;
 	private static final int method = 1;
-	private static final int[] times = {50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, Integer.MAX_VALUE};
-	private static final int lengthPrefixMinimum = 2;
+	private static final int[] times = {50, /*100,*/ 200, /*300, 400, 500,*/ 600, /*700, 800, 900, 1000, Integer.MAX_VALUE*/ 20000};
+	private static final int lengthPrefixMinimum = 3;
 	private static double coeff = 2.0f;
 
 	public static void main(String[] args) throws IllegalArgumentException, ClassNotFoundException, SQLException{
@@ -35,8 +36,8 @@ public class Experiments {
 		OptimalPaths optpath;
 		BM25Score score = new BM25Score();
 
-		if (args.length != 2) {
-			System.out.println("Usage: java -jar -Xmx10000m executable.jar /path/to/files.txt numberOfDocuments\nYou gave "+args.length+" parameters");
+		if (args.length != 4) {
+			System.out.println("Usage: java -jar -Xmx10000m executable.jar /path/to/files.txt numberOfDocuments threshold outputFileName\nYou gave "+args.length+" parameters");
 			for (int i=0; i<args.length; i++) {
 				System.out.println("Argument "+(i+1)+": "+args[i]);
 			}
@@ -44,6 +45,10 @@ public class Experiments {
 		}
 		Params.dir = args[0];
 		Params.number_documents = Integer.parseInt(args[1]);
+		Params.threshold = Float.parseFloat(args[2]);
+		Params.outputTestFile = args[3];
+
+		float alpha = 0f;
 
 		//TODO clean the main loop, method for writing in xml, method to launch query more easily
 		try {
@@ -69,33 +74,55 @@ public class Experiments {
 					continue;
 				}
 				user = data[0]; item = data[1]; tag = data[2];
+				if (!Params.numberOfNeighbours.containsKey(user)) {
+					System.out.println("User not connected...");
+					continue;
+				}
+				if (Params.numberOfNeighbours.get(user) < 3) {
+					System.out.println("Not enough friends...");
+					continue;
+				}
 				lengthTag = tag.length();
 				numberUsersWhoTaggedThisItem = Integer.parseInt(data[3]);
-				for (int t: times) {
-					query = new HashSet<String>();
-					System.out.println("New time: "+t+" ms...");
-					for (int l=lengthPrefixMinimum; l<=lengthTag; l++) {
-						if (query.isEmpty()) {
-							query.add(tag.substring(0, l));
-							topk_alg.executeQuery(user, query, k, t);
-							ranking = topk_alg.getRankingItem(item, k);
-							bw.write(user+"\t"+item+"\t"+tag+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+ranking+"\n");
+				for (alpha=0; alpha < 1.05 ; alpha+=0.5) {
+					System.out.println("New alpha: "+alpha+" ...");
+					topk_alg.setAlpha(alpha);
+					for (int t: times) {
+						query = new HashSet<String>();
+						System.out.println("New time "+t+"...");
+						for (int l=lengthPrefixMinimum; l<=lengthTag; l++) {
+							//System.out.println("l94");
+							if (query.isEmpty()) {
+								query.add(tag.substring(0, l));
+								//System.out.println("l97");
+								topk_alg.executeQuery(user, query, k, t);
+								//System.out.println("l99");
+								ranking = topk_alg.getRankingItem(item, k);
+								//System.out.println("l101");
+								bw.write(user+"\t"+item+"\t"+tag+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
+							}
+							else {
+								query.remove(tag.substring(0, l-1));
+								query.add(tag.substring(0, l));
+								//System.out.println("l107");
+								topk_alg.executeQueryPlusLetter(user, query, l, t);
+								//System.out.println("l109");
+								ranking = topk_alg.getRankingItem(item, k);
+								//System.out.println("l111");
+								bw.write(user+"\t"+item+"\t"+tag+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
+							}
 						}
-						else {
-							query.remove(tag.substring(0, l-1));
-							query.add(tag.substring(0, l));
-							topk_alg.executeQueryPlusLetter(user, query, l, t);
-							ranking = topk_alg.getRankingItem(item, k);
-							bw.write(user+"\t"+item+"\t"+tag+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+ranking+"\n");
-						}
+						topk_alg.reinitialize(tag.substring(0, lengthPrefixMinimum));
 					}
-					topk_alg.reinitialize(tag.substring(0, lengthPrefixMinimum));
 				}
 				counter++;
 				System.out.println(counter+" lines processed...");
-				//System.gc();
-				bw.flush();
+				if ((counter%20)==0) {
+					System.gc();
+					bw.flush();
+				}
 			}
+			System.out.println(counter+" lines have been processed...");
 			br.close();
 			bw.close();
 		} catch (SQLException ex) {

@@ -203,6 +203,10 @@ public class TopKAlgorithm{
 		resultList.sortItems();
 		return resultList;
 	}
+	
+	public void setAlpha(float alpha) {
+		this.alpha = alpha;
+	}
 
 	protected int approxMethod;
 	protected float max_pos_val;
@@ -325,6 +329,7 @@ public class TopKAlgorithm{
 		}
 
 		userWeight = 1.0f;
+		userWeights = new HashMap<String, Float>();
 		terminationCondition = false;
 		PreparedStatement ps;
 		ResultSet result;
@@ -343,6 +348,7 @@ public class TopKAlgorithm{
 			next_docs[index] = next_docs2.get(completion_trie.searchPrefix(tag, exact).getBestDescendant().getWord());
 			high_docs_query.put(tag, (int)completion_trie.searchPrefix(tag, false).getValue());
 			index++;
+			userWeights.put(tag, userWeight);
 		}
 		proximities = new ArrayList<Double>();
 		proximities.add((double)userWeight);
@@ -426,6 +432,7 @@ public class TopKAlgorithm{
 		SortedMap<String, String> completions = this.dictionaryTrie.prefixMap(prefix);
 		Iterator<Entry<String, String>> iterator = completions.entrySet().iterator();
 		Entry<String, String> currentEntry = null;
+		userWeight = 1;
 		while(iterator.hasNext()){
 			currentEntry = iterator.next();
 			String completion = currentEntry.getKey();
@@ -461,9 +468,18 @@ public class TopKAlgorithm{
 			return 0;
 		String bestCompletion = radixTreeNode.getBestDescendant().getWord();
 		ArrayList<DocumentNumTag> arr = docs2.get(bestCompletion);
-		high_docs_query.put(newPrefix, arr.get(positions.get(bestCompletion)).getNum());
+		if (positions.get(bestCompletion) < arr.size()) {
+			high_docs_query.put(newPrefix, arr.get(positions.get(bestCompletion)).getNum());
+			next_docs[next_docs.length-1] = arr.get(positions.get(bestCompletion)).getDocId();
+		}
+		else {
+			high_docs_query.put(newPrefix, 0);
+			next_docs[next_docs.length-1] = "";
+		}
 		high_docs_query.remove(previousPrefix);
-		next_docs[next_docs.length-1] = arr.get(positions.get(bestCompletion)).getDocId();
+		userWeights.put(newPrefix, userWeights.get(previousPrefix));
+		userWeights.remove(previousPrefix);
+		
 		candidates.filterTopk(query);
 
 		mainLoop(k, seeker, query, t);
@@ -489,7 +505,7 @@ public class TopKAlgorithm{
 		do{
 			docs_inserted = false;
 			boolean social = false;
-			boolean socialBranch = true; // TEMPORARY FIXchooseBranch(query);
+			boolean socialBranch = chooseBranch(query);
 			if(socialBranch){
 				processSocial(query);
 				if(((this.approxMethod&Methods.MET_VIEW)==Methods.MET_VIEW)&&userviews.containsKey(currentUser.getEntryId())){
@@ -534,12 +550,17 @@ public class TopKAlgorithm{
 			else{
 				terminationCondition=false;
 			}
+			long time_1 = System.currentTimeMillis();
+			if ((time_1-before_main_loop)>Math.max(t+25, t)) {
+				//System.out.println("l554");
+				underTimeLimit = false;
+			}
 			if (userWeight==0)
 				terminationCondition = true;
 			loops++;
 		}while(!terminationCondition&&!finished&&underTimeLimit);
 		//this.numloops=loops;
-		System.out.println("There were "+loops+" loops ...");
+		//System.out.println("There were "+loops+" loops ...");
 	}
 
 
@@ -548,9 +569,12 @@ public class TopKAlgorithm{
 		double upper_docs_score;
 		boolean textual = false;
 		for(String tag:query){
-			if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS)
+			if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS) {
 				//    			upper_social_score = (1-alpha)*userWeights.get(tag)*high_docs.get(tag);
-				upper_social_score = (1-alpha)*userWeight/*s.get(tag)*/*candidates.getSocialContrib(tag);
+				float Z = userWeights.get(tag);
+				double ZZ = candidates.getSocialContrib(tag);
+				upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getSocialContrib(tag);
+			}
 			else
 				//    			/*if((approxMethod&Methods.MET_EX_OPT)==Methods.MET_EX_OPT)
 				//    		upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getMaxContrib(tag, high_docs.get(tag));
@@ -620,8 +644,9 @@ public class TopKAlgorithm{
 										}
 									 */
 								}  
-								else
+								else {
 									candidates.removeItem(item);
+								}
 								userW = userWeight;    					
 								item.updateScore(tag, userW, pos[index], approxMethod);
 								candidates.addItem(item);
@@ -702,24 +727,26 @@ public class TopKAlgorithm{
 	}
 
 	/**
-	 * We chose the textual branch (alpha>0)
+	 * We chose the textual branch (alpha>0), this needs to be adapted !
 	 * @param query
 	 * @throws SQLException
 	 */
 	protected void processTextual(HashSet<String> query) throws SQLException{
+		
 		int index = 0;
+		RadixTreeNode currNode = null;
+		String currCompletion;
 		for(String tag:query){
 			if(next_docs[index]!=""){
-				Item<String> item = candidates.findItem(next_docs[index], "");
+				currNode = completion_trie.searchPrefix(tag, false);
+				currCompletion = currNode.getBestDescendant().getWord();
+				Item<String> item = candidates.findItem(next_docs[index], currCompletion);
 				if(item==null)
-					item = createNewCandidateItem(next_docs[index], query, item,"");
-				//    			candidates.addItem(item);
-				//    		}
+					item = createNewCandidateItem(next_docs[index], query, item, currCompletion);
 				else
 					candidates.removeItem(item);
-				item.updateScoreDocs(tag, high_docs.get(tag), approxMethod);
-				if(unknown_tf.get(tag).contains(item.getItemId())) unknown_tf.get(tag).remove(item.getItemId());
-				//    			item.computeBestScore(high_docs, total_sum, userWeights, positions, approxMethod);
+				item.updateScoreDocs(tag, high_docs_query.get(tag), approxMethod);
+				if(unknown_tf.get(tag).contains(item.getItemId()+"#"+currCompletion)) unknown_tf.get(tag).remove(item.getItemId()+"#"+currCompletion);
 				candidates.addItem(item);
 				docs_inserted = true;                    		
 				advanceTextualList(tag,index);
@@ -772,6 +799,7 @@ public class TopKAlgorithm{
 		if(possible.size()>0)
 			firstPossible = false;
 	}
+	
 
 	protected void advanceTextualList(String tag, int index) {
 
@@ -812,6 +840,7 @@ public class TopKAlgorithm{
 		candidates.removeItem(itm);
 		candidates.addItem(itm);
 	}
+	
 
 	protected Item<String> createNewCandidateItem(String itemId, HashSet<String> tagList, Item<String> item, String completion) throws SQLException{
 		item = new Item<String>(itemId, this.alpha, Params.number_users, this.score,  this.d_distr, this.d_hist, this.error, completion);        
@@ -820,10 +849,10 @@ public class TopKAlgorithm{
 		for(String tag:tagList){
 			index++;
 			if (index < sizeOfQuery) {
-				item.addTag(tag, tag_idf.find(tag));
+				item.addTag(tag, tag_idf.searchPrefix(tag, false).getValue());
 			}
 			else {
-				item.addTag(tag, tag_idf.find(completion));
+				item.addTag(tag, tag_idf.searchPrefix(completion, false).getValue());
 			}
 			unknown_tf.get(tag).add(itemId+"#"+completion);
 		}
@@ -1092,7 +1121,7 @@ public class TopKAlgorithm{
 			next_docs2.put(tag, firstDoc.getDocId());
 			completion_trie.insert(tag, firstDoc.getNum());
 			positions.put(tag, 0);
-			userWeights.put(tag, userWeight);
+			userWeights.put(tag, userWeight); // ??
 			tagFreqs.put(tag, firstDoc.getNum());
 			counter++;
 			if ((counter%50000)==0)

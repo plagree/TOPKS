@@ -72,6 +72,7 @@ public class Network {
 		String[] data;
 		int user1, user2;
 		float weight;
+		Params.numberOfNeighbours = new HashMap<String, Integer>();
 		for(int i=0;i<Params.network.length;i++){
 			networks.put(Params.network[i], new HashMap<Integer,ArrayList<UserLink<Integer,Float>>>());
 			BufferedReader br = new BufferedReader(new FileReader(Params.dir+Params.networkFile));
@@ -82,6 +83,15 @@ public class Network {
 				user1 = Integer.parseInt(data[0]);
 				user2 = Integer.parseInt(data[1]);
 				weight = Float.parseFloat(data[2]);
+				if (!Params.numberOfNeighbours.containsKey(data[0]))
+					Params.numberOfNeighbours.put(data[0], 0);
+				Params.numberOfNeighbours.put(data[0], Params.numberOfNeighbours.get(data[0])+1);
+				if (!Params.numberOfNeighbours.containsKey(data[1]))
+					Params.numberOfNeighbours.put(data[1], 0);
+				Params.numberOfNeighbours.put(data[1], Params.numberOfNeighbours.get(data[1])+1);
+				if (weight < Params.threshold)
+					continue;
+				Params.numberLinks++;
 				UserLink<Integer,Float> link = new UserLink<Integer,Float>(user1, user2, weight);
 				ArrayList<UserLink<Integer,Float>> nlist;
 				if(networks.get(Params.network[i]).containsKey(user1))
@@ -100,6 +110,7 @@ public class Network {
 				}
 				nlist.add(link);
 			}
+			System.out.println(Params.numberLinks+" links in the similarity network...");
 			br.close();
 		}
 	}

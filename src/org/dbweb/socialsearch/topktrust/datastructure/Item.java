@@ -10,6 +10,8 @@ import java.util.Locale;
 
 import org.dbweb.socialsearch.shared.Methods;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
+import org.dbweb.socialsearch.topktrust.datastructure.DataDistribution;
+import org.dbweb.socialsearch.topktrust.datastructure.DataHistogram;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,7 +196,9 @@ public class Item<E> implements Comparable<Item<E>>{
 	public double computeBestScore(HashMap<String, Integer> high, HashMap<String, Float> user_weights, HashMap<String, Integer> positions, int approx){
 		bestscore = 0;
 		for(E tag : this.tags.keySet()){
-			double uw = user_weights.get(tag);
+			double uw = 0;
+			if (user_weights.containsKey(tag))
+				uw = user_weights.get(tag);
 			double bsocial = 0; // social part of score (1-alpha)
 			double bnormal = 0; // normal part (alpha)
 			double bpartial = 0;
@@ -297,9 +301,6 @@ public class Item<E> implements Comparable<Item<E>>{
 			}
 			if(uf.containsKey(tag)){
 				wsocial=uf.get(tag);
-			}
-			else {
-				System.out.println(tag+", problem");
 			}
 			wpartial = alpha*wnormal + (1-alpha)*wsocial;
 			wscore+=score.getScore(wpartial, idf.get(tag));

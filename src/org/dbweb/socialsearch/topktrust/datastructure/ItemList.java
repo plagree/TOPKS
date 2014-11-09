@@ -127,7 +127,7 @@ public class ItemList implements Cloneable{
 	}
 
 	public void removeItem(Item<String> item){
-		this.items.remove(item.getItemId());
+		this.items.remove(item.getItemId()+"#"+item.getCompletion());
 		this.sorted_items.remove(item);
 		//        this.topk.remove(item);
 		//        this.rest.remove(item);
@@ -165,11 +165,15 @@ public class ItemList implements Cloneable{
 	}
 
 	public double getNormalContrib(String tag){
-		return normcontrib.get(tag);
+		if (normcontrib.containsKey(tag))
+			return normcontrib.get(tag);
+		return 0;
 	}
 
 	public double getSocialContrib(String tag){
-		return soccontrib.get(tag);
+		if (soccontrib.containsKey(tag))
+			return soccontrib.get(tag);
+		return 0;
 	}
 
 	public String getContribItem(){
@@ -178,6 +182,7 @@ public class ItemList implements Cloneable{
 
 	public void filterTopk(HashSet<String> query) {
 		PriorityQueue<Item<String>> filtered_items = new PriorityQueue<Item<String>>();
+		HashMap<String,Item<String>> newHashMapItems = new HashMap<String,Item<String>>();
 		String newPrefix = "";
 		for (String tag: query) {
 			newPrefix = tag;
@@ -210,10 +215,11 @@ public class ItemList implements Cloneable{
 			if (item.getCompletion().startsWith(newPrefix)) {
 				item.updatePrefix(previousPrefix, newPrefix);
 				filtered_items.add(item);
+				newHashMapItems.put(item.getItemId()+"#"+item.getCompletion(), item);
 			}
 		}
 		sorted_items = filtered_items;
-
+		items = newHashMapItems;
 	}
 	
 	/**
