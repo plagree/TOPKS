@@ -25,7 +25,7 @@ public class Experiments {
 	public static final String taggers = "soc_tag_80";
 	private static final int k = 20;
 	private static final int method = 1;
-	private static final int[] times = {50, /*100,*/ 200, /*300, 400, 500,*/ 600, /*700, 800, 900, 1000, Integer.MAX_VALUE*/ 20000};
+	private static final int[] times = {50, 100, 200, /*300,*/ 400, /*500, 600, 700,*/ 800, /*900, 1000, Integer.MAX_VALUE*/ 5000};
 	private static final int lengthPrefixMinimum = 3;
 	private static double coeff = 2.0f;
 
@@ -36,8 +36,8 @@ public class Experiments {
 		OptimalPaths optpath;
 		BM25Score score = new BM25Score();
 
-		if (args.length != 4) {
-			System.out.println("Usage: java -jar -Xmx10000m executable.jar /path/to/files.txt numberOfDocuments threshold outputFileName\nYou gave "+args.length+" parameters");
+		if (args.length != 5) {
+			System.out.println("Usage: java -jar -Xmx10000m executable.jar /path/to/files.txt numberOfDocuments networkFile inputTestFile outputFileName\nYou gave "+args.length+" parameters");
 			for (int i=0; i<args.length; i++) {
 				System.out.println("Argument "+(i+1)+": "+args[i]);
 			}
@@ -45,8 +45,10 @@ public class Experiments {
 		}
 		Params.dir = args[0];
 		Params.number_documents = Integer.parseInt(args[1]);
-		Params.threshold = Float.parseFloat(args[2]);
-		Params.outputTestFile = args[3];
+		Params.networkFile = args[2];
+		Params.inputTestFile = args[3];
+		Params.outputTestFile = args[4];
+		
 
 		float alpha = 0f;
 
@@ -84,7 +86,7 @@ public class Experiments {
 				}
 				lengthTag = tag.length();
 				numberUsersWhoTaggedThisItem = Integer.parseInt(data[3]);
-				for (alpha=0; alpha < 1.05 ; alpha+=0.5) {
+				for (alpha=0; alpha < 1.05 ; alpha+=0.25) {
 					System.out.println("New alpha: "+alpha+" ...");
 					topk_alg.setAlpha(alpha);
 					for (int t: times) {
@@ -121,6 +123,8 @@ public class Experiments {
 					System.gc();
 					bw.flush();
 				}
+				if (counter > 3999)
+					break;
 			}
 			System.out.println(counter+" lines have been processed...");
 			br.close();
