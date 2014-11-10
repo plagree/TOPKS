@@ -36,8 +36,8 @@ public class Experiments {
 		OptimalPaths optpath;
 		BM25Score score = new BM25Score();
 
-		if (args.length != 5) {
-			System.out.println("Usage: java -jar -Xmx10000m executable.jar /path/to/files.txt numberOfDocuments networkFile inputTestFile outputFileName\nYou gave "+args.length+" parameters");
+		if (args.length != 7) {
+			System.out.println("Usage: java -jar -Xmx10000m executable.jar /path/to/files.txt numberOfDocuments networkFile inputTestFile outputFileName numberLinesTest\nYou gave "+args.length+" parameters");
 			for (int i=0; i<args.length; i++) {
 				System.out.println("Argument "+(i+1)+": "+args[i]);
 			}
@@ -48,6 +48,8 @@ public class Experiments {
 		Params.networkFile = args[2];
 		Params.inputTestFile = args[3];
 		Params.outputTestFile = args[4];
+		int counterMax = Integer.parseInt(args[5]);
+		Params.threshold = Float.parseFloat(args[6]);
 		
 
 		float alpha = 0f;
@@ -123,7 +125,7 @@ public class Experiments {
 					System.gc();
 					bw.flush();
 				}
-				if (counter > 600)
+				if (counter > counterMax)
 					break;
 			}
 			System.out.println(counter+" lines have been processed...");
