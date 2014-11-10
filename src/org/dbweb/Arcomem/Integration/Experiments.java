@@ -88,7 +88,7 @@ public class Experiments {
 				}
 				lengthTag = tag.length();
 				numberUsersWhoTaggedThisItem = Integer.parseInt(data[3]);
-				for (alpha=0; alpha < 1.05 ; alpha+=0.25) {
+				for (alpha=0; alpha < 1.05 ; alpha+=2) {
 					System.out.println("New alpha: "+alpha+" ...");
 					topk_alg.setAlpha(alpha);
 					for (int t: times) {

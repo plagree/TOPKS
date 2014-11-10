@@ -101,7 +101,7 @@ public class ItemList implements Cloneable{
 	public int getRankingItem(String item, int k) {
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
-		Collections.sort(sorted_av, new ItemBestScoreComparator());
+		Collections.sort(sorted_av);
 		for (Item<String> currItem: sorted_av) {
 			if (item.equals(currItem.getItemId()))
 				return counter;
