@@ -123,7 +123,7 @@ public class Experiments {
 					System.gc();
 					bw.flush();
 				}
-				if (counter > 3999)
+				if (counter > 600)
 					break;
 			}
 			System.out.println(counter+" lines have been processed...");
