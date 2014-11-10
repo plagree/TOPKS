@@ -25,7 +25,7 @@ public class Experiments {
 	public static final String taggers = "soc_tag_80";
 	private static final int k = 20;
 	private static final int method = 1;
-	private static final int[] times = {50, 100, 200, /*300,*/ 400, /*500, 600, 700,*/ 800, /*900, 1000, Integer.MAX_VALUE*/ 5000};
+	private static final int[] times = {50, /*100,*/ 200, /*300, 400, 500, 600, 700,*/ 800, /*900, 1000, Integer.MAX_VALUE*/ 5000};
 	private static final int lengthPrefixMinimum = 3;
 	private static double coeff = 2.0f;
 
@@ -95,7 +95,6 @@ public class Experiments {
 						query = new HashSet<String>();
 						System.out.println("New time "+t+"...");
 						for (int l=lengthPrefixMinimum; l<=lengthTag; l++) {
-							//System.out.println("l94");
 							if (query.isEmpty()) {
 								query.add(tag.substring(0, l));
 								//System.out.println("l97");

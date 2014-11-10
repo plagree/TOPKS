@@ -103,6 +103,8 @@ public class ItemList implements Cloneable{
 		int counter = 1;
 		Collections.sort(sorted_av);
 		for (Item<String> currItem: sorted_av) {
+			if (counter<5)
+				System.out.println(currItem.getComputedScore());
 			if (item.equals(currItem.getItemId()))
 				return counter;
 			counter++;
