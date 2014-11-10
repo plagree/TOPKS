@@ -92,6 +92,8 @@ public class Experiments {
 					System.out.println("New alpha: "+alpha+" ...");
 					topk_alg.setAlpha(alpha);
 					for (int t: times) {
+						if ((alpha>0.1) && (t!=50))
+							continue;
 						query = new HashSet<String>();
 						System.out.println("New time "+t+"...");
 						for (int l=lengthPrefixMinimum; l<=lengthTag; l++) {
