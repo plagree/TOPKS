@@ -25,7 +25,7 @@ public class Experiments {
 	public static final String taggers = "soc_tag_80";
 	private static final int k = 20;
 	private static final int method = 1;
-	private static final int[] times = {10, 30, 50, 100, 200, 1000};
+	private static final int[] times = {3, 10, 50, 200, 1000};
 	private static final int lengthPrefixMinimum = 2;
 	private static double coeff = 2.0f;
 
@@ -36,8 +36,8 @@ public class Experiments {
 		OptimalPaths optpath;
 		BM25Score score = new BM25Score();
 
-		if (args.length != 7) {
-			System.out.println("Usage: java -jar -Xmx10000m executable.jar /path/to/files.txt numberOfDocuments networkFile inputTestFile outputFileName numberLinesTest\nYou gave "+args.length+" parameters");
+		if (args.length != 8) {
+			System.out.println("Usage: java -jar -Xmx10000m executable.jar /path/to/files.txt numberOfDocuments networkFile inputTestFile outputFileName numberLinesTest thresholdRef\nYou gave "+args.length+" parameters");
 			for (int i=0; i<args.length; i++) {
 				System.out.println("Argument "+(i+1)+": "+args[i]);
 			}
@@ -50,17 +50,23 @@ public class Experiments {
 		Params.outputTestFile = args[4];
 		int counterMax = Integer.parseInt(args[5]);
 		Params.threshold = Float.parseFloat(args[6]);
+		float threshold_ref = Float.parseFloat(args[7]);
 		
-
-		float alpha = 0f;
+		float alphas[] = {
+				0f,
+				0.005f,
+				0.01f,
+				0.1f,
+				1f
+		};
 
 		//TODO clean the main loop, method for writing in xml, method to launch query more easily
 		try {
 			optpath = new OptimalPaths(network, null, heap, null, coeff);
-			topk_alg = new TopKAlgorithm(null, taggers, network, method, score, alpha, pathFunction, optpath, 1);
+			topk_alg = new TopKAlgorithm(null, taggers, network, method, score, 0f, pathFunction, optpath, 1);
 
 			BufferedReader br = new BufferedReader(new FileReader(Params.dir+Params.inputTestFile));
-			BufferedWriter bw = new BufferedWriter(new FileWriter(Params.dir+Params.outputTestFile));
+			BufferedWriter bw = new BufferedWriter(new FileWriter(Params.dir+Params.outputTestFile, true));
 			System.out.println("Initialisation done...");
 			String line;
 			String[] data;
@@ -70,6 +76,7 @@ public class Experiments {
 			HashSet<String> query;
 			int ranking;
 			int counter = 0;
+			int counter2 = 0;
 			while ((line = br.readLine()) != null) {
 				System.out.println("New line");
 				data = line.split("\t");
@@ -88,11 +95,11 @@ public class Experiments {
 				}
 				lengthTag = tag.length();
 				numberUsersWhoTaggedThisItem = Integer.parseInt(data[3]);
-				for (alpha=0; alpha < 1.05 ; alpha+=0.25) {
+				for (float alpha: alphas) {
 					System.out.println("New alpha: "+alpha+" ...");
 					topk_alg.setAlpha(alpha);
 					for (int t: times) {
-						if ((alpha>0.1) && (t!=50))
+						if (((alpha!=0) && (t!=50)) || ((Params.threshold!=threshold_ref) && ((alpha!=0) || (t!=50))))
 							continue;
 						query = new HashSet<String>();
 						System.out.println("New time "+t+"...");
@@ -128,6 +135,7 @@ public class Experiments {
 				if (counter >= counterMax)
 					break;
 			}
+			System.out.println(counter2);
 			System.out.println(counter+" lines have been processed...");
 			br.close();
 			bw.close();
