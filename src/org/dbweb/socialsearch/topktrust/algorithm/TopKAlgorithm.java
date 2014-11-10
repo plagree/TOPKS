@@ -647,10 +647,9 @@ public class TopKAlgorithm{
 								else {
 									candidates.removeItem(item);
 								}
-								userW = userWeight;    					
+								userW = userWeight;
 								item.updateScore(tag, userW, pos[index], approxMethod);
-								candidates.addItem(item);
-
+								candidates.addItem(item);								
 								docs_inserted = true;
 								total_documents_social++;                            
 							}

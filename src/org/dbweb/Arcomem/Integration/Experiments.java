@@ -25,7 +25,7 @@ public class Experiments {
 	public static final String taggers = "soc_tag_80";
 	private static final int k = 20;
 	private static final int method = 1;
-	private static final int[] times = {50, /*100,*/ 200, /*300, 400, 500, 600, 700,*/ 800, /*900, 1000, Integer.MAX_VALUE*/ 5000};
+	private static final int[] times = {50, 100, 200, 400, 800, 5000};
 	private static final int lengthPrefixMinimum = 3;
 	private static double coeff = 2.0f;
 
@@ -88,7 +88,7 @@ public class Experiments {
 				}
 				lengthTag = tag.length();
 				numberUsersWhoTaggedThisItem = Integer.parseInt(data[3]);
-				for (alpha=0; alpha < 1.05 ; alpha+=2) {
+				for (alpha=0; alpha < 1.05 ; alpha+=0.25) {
 					System.out.println("New alpha: "+alpha+" ...");
 					topk_alg.setAlpha(alpha);
 					for (int t: times) {
@@ -97,7 +97,6 @@ public class Experiments {
 						for (int l=lengthPrefixMinimum; l<=lengthTag; l++) {
 							if (query.isEmpty()) {
 								query.add(tag.substring(0, l));
-								//System.out.println("l97");
 								topk_alg.executeQuery(user, query, k, t);
 								//System.out.println("l99");
 								ranking = topk_alg.getRankingItem(item, k);
@@ -124,7 +123,7 @@ public class Experiments {
 					System.gc();
 					bw.flush();
 				}
-				if (counter > counterMax)
+				if (counter >= counterMax)
 					break;
 			}
 			System.out.println(counter+" lines have been processed...");

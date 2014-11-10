@@ -65,6 +65,7 @@ public class ItemList implements Cloneable{
 	private PriorityQueue<Item<String>> sorted_items; 
 	private boolean topk_changed = false;
 	private double sumconf;
+	private int ranking=0;
 
 	private Comparator comparator;
 
@@ -103,10 +104,9 @@ public class ItemList implements Cloneable{
 		int counter = 1;
 		Collections.sort(sorted_av);
 		for (Item<String> currItem: sorted_av) {
-			if (counter<5)
-				System.out.println(currItem.getComputedScore());
-			if (item.equals(currItem.getItemId()))
+			if (item.equals(currItem.getItemId())) {
 				return counter;
+			}
 			counter++;
 		}
 		return 0;
@@ -183,8 +183,8 @@ public class ItemList implements Cloneable{
 	}
 
 	public void filterTopk(HashSet<String> query) {
-		PriorityQueue<Item<String>> filtered_items = new PriorityQueue<Item<String>>();
-		HashMap<String,Item<String>> newHashMapItems = new HashMap<String,Item<String>>();
+		PriorityQueue<Item<String>> filtered_items = new PriorityQueue<Item<String>>(sorted_items);
+		//HashMap<String,Item<String>> newHashMapItems = new HashMap<String,Item<String>>();
 		String newPrefix = "";
 		for (String tag: query) {
 			newPrefix = tag;
@@ -213,15 +213,19 @@ public class ItemList implements Cloneable{
 			
 		}
 		// END OF UPDATE
-		for (Item<String> item: sorted_items) {
+		for (Item<String> item: filtered_items) {
 			if (item.getCompletion().startsWith(newPrefix)) {
 				item.updatePrefix(previousPrefix, newPrefix);
-				filtered_items.add(item);
-				newHashMapItems.put(item.getItemId()+"#"+item.getCompletion(), item);
+				//filtered_items.add(item);
+				//newHashMapItems.put(item.getItemId()+"#"+item.getCompletion(), item);
+			}
+			else {
+				this.removeItem(item);
 			}
 		}
-		sorted_items = filtered_items;
-		items = newHashMapItems;
+		//sorted_items = filtered_items;
+		
+		//items = newHashMapItems;
 	}
 	
 	/**
@@ -415,7 +419,7 @@ public class ItemList implements Cloneable{
 				if((needUnseen||possible.contains(curr_item.getItemId()))&&(!guaranteed.contains(curr_item.getItemId()))){
 					curr_item.computeBestScore(high, user_weights, positions, approx);
 					double curr_candidate = curr_item.getBestscore();
-					if(curr_candidate<=scoremin) curr_item.setPruned(true);
+					//if(curr_candidate<=scoremin) curr_item.setPruned(true);
 					if(scoremax<curr_candidate){
 						scoremax = curr_candidate;
 						this.normcontrib = curr_item.getNormalContrib();
