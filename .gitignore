@@ -10,3 +10,7 @@ tests/
 libs/
 zipped_code/
 *.csv
+dbscripts/
+img/
+.externalToolBuilders/
+outputs11-11/
