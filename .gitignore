@@ -1,6 +1,12 @@
+.classpath
 /bin/
 *.swp
 *~
 tmp/
 *.r
 *.xml
+.settings/
+tests/
+libs/
+zipped_code/
+*.csv

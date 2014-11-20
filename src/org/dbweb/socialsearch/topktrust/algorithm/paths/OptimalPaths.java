@@ -55,16 +55,14 @@ public class OptimalPaths {
 	
 	public OptimalPaths(String networkTable, DBConnection connection, boolean heap, ArrayList<Float> values, double coeff){
 		this.networkTable = networkTable;
-		this.connection = connection.DBConnect();
+		if (connection != null)
+			this.connection = connection.DBConnect();
+		else
+			this.connection = null;
 		this.values = values;
 		this.heap = heap;
 		this.func[2]=new PathPow(coeff);
-		LoadIntoMemory.loadData(this.connection);
-//		if(heap) try {
-//			loadNetwork();
-//		} catch (SQLException e) {
-//			log.error(e.getMessage());
-//		}
+		LoadIntoMemory.loadData(this.connection); //DEBUG PURPOSE
 	}
 	
 	public void setValues(ArrayList<Float> values){
