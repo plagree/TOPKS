@@ -107,19 +107,14 @@ public class Experiments {
 							if (query.isEmpty()) {
 								query.add(tag.substring(0, l));
 								topk_alg.executeQuery(user, query, k, t);
-								//System.out.println("l99");
 								ranking = topk_alg.getRankingItem(item, k);
-								//System.out.println("l101");
 								bw.write(user+"\t"+item+"\t"+tag+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
 							}
 							else {
 								query.remove(tag.substring(0, l-1));
 								query.add(tag.substring(0, l));
-								//System.out.println("l107");
 								topk_alg.executeQueryPlusLetter(user, query, l, t);
-								//System.out.println("l109");
 								ranking = topk_alg.getRankingItem(item, k);
-								//System.out.println("l111");
 								bw.write(user+"\t"+item+"\t"+tag+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
 							}
 						}

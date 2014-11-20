@@ -203,7 +203,7 @@ public class TopKAlgorithm{
 		resultList.sortItems();
 		return resultList;
 	}
-	
+
 	public void setAlpha(float alpha) {
 		this.alpha = alpha;
 	}
@@ -288,7 +288,8 @@ public class TopKAlgorithm{
 
 	/**
 	 * Main call from TopKAlgorithm class, call this after building a new object to run algorithm
-	 * l 388-550
+	 * This query method must be called for the FIRST prefix, when iterating to the next letter, use
+	 * the method executeQueryPlusLetter
 	 * @param seeker
 	 * @param query
 	 * @param k
@@ -316,7 +317,6 @@ public class TopKAlgorithm{
 		unknown_tf = new HashMap<String,HashSet<String>>();
 		for(String tag:query)
 			unknown_tf.put(tag, new HashSet<String>());
-		//connection.setAutoCommit(false);
 		this.optpath.setValues(values);
 		this.optpath.setDistFunc(distFunc);
 		if((this.approxMethod&Methods.MET_APPR_LAND)==Methods.MET_APPR_LAND){
@@ -344,7 +344,6 @@ public class TopKAlgorithm{
 		for(String tag:query){
 			docs[index] = docs2.get(tag);
 			pos[index]=0;
-			//System.out.println("tag: "+tag+", trieWord: "+completion_trie.searchPrefix(tag).getBestDescendant().getWord()+", "+next_docs2.get(tag)+", "+next_docs2.get(completion_trie.searchPrefix(tag).getBestDescendant().getWord()));
 			next_docs[index] = next_docs2.get(completion_trie.searchPrefix(tag, exact).getBestDescendant().getWord());
 			high_docs_query.put(tag, (int)completion_trie.searchPrefix(tag, false).getValue());
 			index++;
@@ -415,10 +414,7 @@ public class TopKAlgorithm{
 		//long time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query, t); /* MAIN ALGORITHM */
 		//long time1 = System.currentTimeMillis();
-
 		//System.out.println("Only mainLoop : "+(time1-time0)/1000+"sec.");
-
-		//this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
 
 		return 0;
 	}
@@ -479,20 +475,24 @@ public class TopKAlgorithm{
 		high_docs_query.remove(previousPrefix);
 		userWeights.put(newPrefix, userWeights.get(previousPrefix));
 		userWeights.remove(previousPrefix);
-		
+
 		candidates.filterTopk(query);
 
 		mainLoop(k, seeker, query, t);
-		//this.setQueryResultsArrayList(query, seeker, k, this.approxMethod, this.alpha);
 		return 0;
 	}
 
 	/**
-	 * MAIN LOOP
+	 * MAIN LOOP of the TOPKS algorithm
+	 * @param k : number of answers in the top-k
+	 * @param seeker : 
+	 * @param query
+	 * @param t
+	 * @throws SQLException
 	 */
 	protected void mainLoop(int k, String seeker, HashSet<String> query, int t) throws SQLException{
-		int loops=0; //amine
-		int skipped_tests = 10000;
+		int loops=0;
+		int skipped_tests = 10000; // Number of loops before testing the exit condition
 		int steps = 1;
 		boolean underTimeLimit = true;
 		firstPossible = true;
@@ -552,7 +552,6 @@ public class TopKAlgorithm{
 			}
 			long time_1 = System.currentTimeMillis();
 			if ((time_1-before_main_loop)>Math.max(t+25, t)) {
-				//System.out.println("l554");
 				underTimeLimit = false;
 			}
 			if (userWeight==0)
@@ -563,22 +562,23 @@ public class TopKAlgorithm{
 		//System.out.println("There were "+loops+" loops ...");
 	}
 
-
+	/**
+	 * When alpha > 0, we need to alternate between Social Branch and Textual Branch
+	 * This method selects which branch will be chosen in the current loop
+	 * @param query
+	 * @return true (social) , false (textual)
+	 */
 	protected boolean chooseBranch(HashSet<String> query){
 		double upper_social_score;
 		double upper_docs_score;
 		boolean textual = false;
 		for(String tag:query){
 			if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS) {
-				//    			upper_social_score = (1-alpha)*userWeights.get(tag)*high_docs.get(tag);
 				float Z = userWeights.get(tag);
 				double ZZ = candidates.getSocialContrib(tag);
 				upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getSocialContrib(tag);
 			}
 			else
-				//    			/*if((approxMethod&Methods.MET_EX_OPT)==Methods.MET_EX_OPT)
-				//    		upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getMaxContrib(tag, high_docs.get(tag));
-				//    	else*/
 				upper_social_score = (1-alpha)*userWeights.get(tag)*tagFreqs.get(tag);
 			if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS)
 				upper_docs_score = alpha*candidates.getNormalContrib(tag);
@@ -608,9 +608,7 @@ public class TopKAlgorithm{
 		for(String tag:query){  		    		
 			if(currentUser!=null){
 				boolean found_docs = false;
-				//pos[index]++;   			
-				//float prev_part_sum = pos[index];
-				//positions.put(tag, prev_part_sum);
+				
 				if((approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR)
 					d_distr.setPos(tag, userWeight, pos[index]+1);
 				else if((approxMethod&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST)
@@ -621,6 +619,7 @@ public class TopKAlgorithm{
 				else{
 					userWeights.put(tag, userWeight);
 				}
+				
 				currentUserId = currentUser.getEntryId();
 
 				if(this.docs_users.containsKey(currentUserId) && !(currentUserId==seeker)){
@@ -638,11 +637,6 @@ public class TopKAlgorithm{
 								if(item==null){
 									item = createNewCandidateItem(itemId, query,item, completion); 
 									item.setMaxScorefromviews(bestScoreEstim);
-									/*for(String tag1:query)
-										if(!item.tdf.containsKey(tag1)) {
-											unknown_tf.get(tag1).add(itemId+"#"+completion);
-										}
-									 */
 								}  
 								else {
 									candidates.removeItem(item);
@@ -666,8 +660,6 @@ public class TopKAlgorithm{
 				pos[index]++;
 				userWeight = 0;
 				float prev_part_sum = pos[index];
-				//positions.put(tag, prev_part_sum);
-				//positions.put(tag, prev_part_sum);
 				if((approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR)
 					d_distr.setPos(tag, userWeight, pos[index]+1);
 				else if((approxMethod&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST)
@@ -696,7 +688,8 @@ public class TopKAlgorithm{
 	}
 
 	/**
-	 * We advance on Inverted Lists here
+	 * We advance on Inverted Lists here (method for social branch)
+	 * Given the new discovered items in User Spaces, do top-items can be updated?
 	 * @param query HashSet<String>
 	 */
 	private void lookIntoList(HashSet<String> query){
@@ -726,12 +719,12 @@ public class TopKAlgorithm{
 	}
 
 	/**
-	 * We chose the textual branch (alpha>0), this needs to be adapted !
+	 * We chose the textual branch (alpha>0), we advance in lists
 	 * @param query
 	 * @throws SQLException
 	 */
 	protected void processTextual(HashSet<String> query) throws SQLException{
-		
+
 		int index = 0;
 		RadixTreeNode currNode = null;
 		String currCompletion;
@@ -755,7 +748,7 @@ public class TopKAlgorithm{
 	}
 
 	/**
-	 * Process with views
+	 * Process with views, not used in the current project
 	 * @param query
 	 * @throws SQLException
 	 */
@@ -798,8 +791,13 @@ public class TopKAlgorithm{
 		if(possible.size()>0)
 			firstPossible = false;
 	}
-	
 
+	/**
+	 * Method to advance in inverted lists (using the trie)
+	 * Used both in Social and Textual branches
+	 * @param tag
+	 * @param index
+	 */
 	protected void advanceTextualList(String tag, int index) {
 
 		RadixTreeNode current_best_leaf = completion_trie.searchPrefix(tag, false).getBestDescendant();
@@ -820,6 +818,13 @@ public class TopKAlgorithm{
 		}
 	}
 
+	/**
+	 * Not used in current version
+	 * @param item
+	 * @param query
+	 * @param completion
+	 * @throws SQLException
+	 */
 	protected void getAllItemScores(String item, HashSet<String> query, String completion) throws SQLException{
 		Item<String> itm = candidates.findItem(item, completion);
 		for(String tag:query)
@@ -839,8 +844,16 @@ public class TopKAlgorithm{
 		candidates.removeItem(itm);
 		candidates.addItem(itm);
 	}
-	
 
+	/**
+	 * Creates a new candidate in the discovered items of the query.
+	 * @param itemId
+	 * @param tagList (tags of query)
+	 * @param item
+	 * @param completion
+	 * @return
+	 * @throws SQLException
+	 */
 	protected Item<String> createNewCandidateItem(String itemId, HashSet<String> tagList, Item<String> item, String completion) throws SQLException{
 		item = new Item<String>(itemId, this.alpha, Params.number_users, this.score,  this.d_distr, this.d_hist, this.error, completion);        
 		int sizeOfQuery = tagList.size();
@@ -857,7 +870,11 @@ public class TopKAlgorithm{
 		}
 		return item;
 	}
-
+	
+	/**
+	 * Not used in current version
+	 * @return
+	 */
 	public String statistics(){
 		String idfs="";
 		String tkpos="";
@@ -894,7 +911,7 @@ public class TopKAlgorithm{
 	}
 
 	/**
-	 * TOO lONG
+	 * Not used in current version (used when exiting results in XML format)
 	 */
 	protected void setQueryResultsArrayList(HashSet<String> query, String seeker, int k, int method, float alpha){
 		System.out.println(this.candidates.getNumberOfSortedItems());
@@ -960,10 +977,21 @@ public class TopKAlgorithm{
 
 	}
 
+	/**
+	 * Gives the ranking of a given item in the ranked list of discovered items
+	 * @param item
+	 * @param k
+	 * @return
+	 */
 	public int getRankingItem(String item, int k) {
 		return this.candidates.getRankingItem(item, k);
 	}
 
+	/**
+	 * Method to update unknown_tf HashMap from query to query+l
+	 * @param previousPrefix
+	 * @param newPrefix
+	 */
 	private void updateKeys(String previousPrefix, String newPrefix) {
 		if (unknown_tf.containsKey(previousPrefix)) {
 			HashSet<String> old_unknown_tf = unknown_tf.get(previousPrefix);
@@ -979,7 +1007,12 @@ public class TopKAlgorithm{
 	public void setLandmarkPaths(LandmarkPathsComputing landmark){
 		this.landmark = landmark;
 	}
-
+	
+	/**
+	 * Not used in current version
+	 * @param originalUnprotectedString
+	 * @return
+	 */
 	private String protectSpecialCharacters(String originalUnprotectedString) {
 		if (originalUnprotectedString == null) {
 			return null;
@@ -1078,6 +1111,10 @@ public class TopKAlgorithm{
 		return chaine;
 	}
 
+	/**
+	 * Method to load file with triples in memory
+	 * @throws IOException
+	 */
 	private void fileLoadingInMemory() throws IOException {
 		this.completion_trie = new RadixTreeImpl(); //DONE
 		this.high_docs = new HashMap<String,Integer>(); //DONE
@@ -1175,6 +1212,10 @@ public class TopKAlgorithm{
 		br.close();
 	}
 
+	/**
+	 * Method to load triples from a database to memory
+	 * @throws SQLException
+	 */
 	private void dbLoadingInMemory() throws SQLException{
 		this.connection = dbConnection.DBConnect();
 		PreparedStatement ps;
