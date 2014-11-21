@@ -16,7 +16,6 @@ import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
 import org.dbweb.socialsearch.topktrust.algorithm.score.BM25Score;
 import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
-import org.externals.Tools.Tools;
 
 public class Experiments {
 
@@ -113,7 +112,6 @@ public class Experiments {
 						nbSeenWords = 0;
 						System.out.println("New time "+t+"...");
 						for (String word: words) {
-							System.out.println("New word...:"+word+"#");
 							lengthTag = word.length();
 							query = new HashSet<String>();
 							nbSeenWords++;
@@ -132,7 +130,6 @@ public class Experiments {
 								else {
 									query.remove(word.substring(0, l-1));
 									query.add(word.substring(0, l));
-									System.out.println("ping");
 									topk_alg.executeQueryPlusLetter(user, query, l, t);
 									ranking = topk_alg.getRankingItem(item, k);
 									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"/*+nbSeenWords+"\t"*/+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");

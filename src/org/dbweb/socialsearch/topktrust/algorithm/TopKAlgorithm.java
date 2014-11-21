@@ -479,7 +479,6 @@ public class TopKAlgorithm{
 			next_docs[next_docs.length-1] = "";
 		}
 		high_docs_query.remove(previousPrefix);
-		System.out.println("new: "+newPrefix+", old:"+previousPrefix);
 		userWeights.put(newPrefix, userWeights.get(previousPrefix));
 		userWeights.remove(previousPrefix);
 
@@ -581,10 +580,8 @@ public class TopKAlgorithm{
 		boolean textual = false;
 		for(String tag:query){
 			if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS) {
-				System.out.println(tag);
-				System.out.println(userWeights.keySet());
-				float Z = userWeights.get(tag);
-				double ZZ = candidates.getSocialContrib(tag);
+				//float Z = userWeights.get(tag);
+				//double ZZ = candidates.getSocialContrib(tag);
 				upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getSocialContrib(tag);
 			}
 			else
