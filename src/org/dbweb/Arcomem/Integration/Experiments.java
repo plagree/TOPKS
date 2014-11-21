@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
 
 import org.dbweb.socialsearch.shared.Params;
@@ -15,6 +16,7 @@ import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
 import org.dbweb.socialsearch.topktrust.algorithm.score.BM25Score;
 import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
+import org.externals.Tools.Tools;
 
 public class Experiments {
 
@@ -51,7 +53,7 @@ public class Experiments {
 		int counterMax = Integer.parseInt(args[5]);
 		Params.threshold = Float.parseFloat(args[6]);
 		float threshold_ref = Float.parseFloat(args[7]);
-		
+
 		float alphas[] = {
 				0f,
 				0.005f,
@@ -70,13 +72,16 @@ public class Experiments {
 			System.out.println("Initialisation done...");
 			String line;
 			String[] data;
-			String user, item, tag;
+			String user, item, tags;
+			String words[];
 			int numberUsersWhoTaggedThisItem;
 			int lengthTag;
 			HashSet<String> query;
 			int ranking;
 			int counter = 0;
 			int counter2 = 0;
+			int nbSeenWords = 0;
+			boolean newQuery = false;
 			while ((line = br.readLine()) != null) {
 				System.out.println("New line");
 				data = line.split("\t");
@@ -84,7 +89,12 @@ public class Experiments {
 					System.out.println("Wrong line in the input-file");
 					continue;
 				}
-				user = data[0]; item = data[1]; tag = data[2];
+				user = data[0]; item = data[1]; tags = data[2];
+				words = tags.split(",");
+				if(words.length < 1) {
+					System.out.println("No keyword in the query...");
+					continue;
+				}
 				if (!Params.numberOfNeighbours.containsKey(user)) {
 					System.out.println("User not connected...");
 					continue;
@@ -93,7 +103,6 @@ public class Experiments {
 					System.out.println("Not enough friends...");
 					continue;
 				}
-				lengthTag = tag.length();
 				numberUsersWhoTaggedThisItem = Integer.parseInt(data[3]);
 				for (float alpha: alphas) {
 					System.out.println("New alpha: "+alpha+" ...");
@@ -101,24 +110,36 @@ public class Experiments {
 					for (int t: times) {
 						if (((alpha!=0) && (t!=50)) || ((Params.threshold!=threshold_ref) && ((alpha!=0) || (t!=50))))
 							continue;
-						query = new HashSet<String>();
+						nbSeenWords = 0;
 						System.out.println("New time "+t+"...");
-						for (int l=lengthPrefixMinimum; l<=lengthTag; l++) {
-							if (query.isEmpty()) {
-								query.add(tag.substring(0, l));
-								topk_alg.executeQuery(user, query, k, t);
-								ranking = topk_alg.getRankingItem(item, k);
-								bw.write(user+"\t"+item+"\t"+tag+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
-							}
-							else {
-								query.remove(tag.substring(0, l-1));
-								query.add(tag.substring(0, l));
-								topk_alg.executeQueryPlusLetter(user, query, l, t);
-								ranking = topk_alg.getRankingItem(item, k);
-								bw.write(user+"\t"+item+"\t"+tag+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
+						for (String word: words) {
+							System.out.println("New word...:"+word+"#");
+							lengthTag = word.length();
+							query = new HashSet<String>();
+							nbSeenWords++;
+							for (int l=lengthPrefixMinimum; l<=lengthTag; l++) {
+								System.out.println("New prefix");
+								if (query.isEmpty()) {
+									query.add(word.substring(0, l));
+									if (nbSeenWords == 1)
+										newQuery = true;
+									else
+										newQuery = false;
+									topk_alg.executeQuery(user, query, k, t, newQuery);
+									ranking = topk_alg.getRankingItem(item, k);
+									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"/*+nbSeenWords+"\t"*/+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
+								}
+								else {
+									query.remove(word.substring(0, l-1));
+									query.add(word.substring(0, l));
+									System.out.println("ping");
+									topk_alg.executeQueryPlusLetter(user, query, l, t);
+									ranking = topk_alg.getRankingItem(item, k);
+									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"/*+nbSeenWords+"\t"*/+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
+								}
 							}
 						}
-						topk_alg.reinitialize(tag.substring(0, lengthPrefixMinimum));
+						topk_alg.reinitialize(words, lengthPrefixMinimum);
 					}
 				}
 				counter++;

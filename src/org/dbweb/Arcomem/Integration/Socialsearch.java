@@ -221,7 +221,7 @@ public class Socialsearch implements SocialsearchInterface {
 									{
 										log.info("\t\t\tseeker {} alpha {}",seekers.get(index_s),alpha.get(index_a));
 										topk_alg = new TopKAlgorithm(dbConn, taggers, network, met.get(index_mt), scores[score.get(index_sc)], alpha.get(index_a).floatValue(), func_obj[func.get(index_f)], optpaths, error);
-										topk_alg.executeQuery(String.valueOf(seekers.get(index_s)), query, k.get(index_k), Integer.MAX_VALUE);
+										topk_alg.executeQuery(String.valueOf(seekers.get(index_s)), query, k.get(index_k), Integer.MAX_VALUE,true);
 
 										//
 										ps = connection.prepareStatement(sqlInsViews);
@@ -289,7 +289,7 @@ public class Socialsearch implements SocialsearchInterface {
 									{
 										log.info("\t\t\tseeker {} alpha {} - exact",seekers.get(index_s),alpha.get(index_a));
 										topk_alg = new TopKAlgorithm(dbConn, taggers, network, met.get(index_mt), scores[score.get(index_sc)], alpha.get(index_a).floatValue(), func_obj[func.get(index_f)], optpaths, error);
-										topk_alg.executeQuery(String.valueOf(seekers.get(index_s)), query, k.get(index_k), Integer.MAX_VALUE);
+										topk_alg.executeQuery(String.valueOf(seekers.get(index_s)), query, k.get(index_k), Integer.MAX_VALUE,true);
 										HashSet<String> exact = topk_alg.getTopKSet();
 										precisions[index_q][0]=1.0f;
 										int idx = 1;
@@ -300,7 +300,7 @@ public class Socialsearch implements SocialsearchInterface {
 											double prec = 1.0f;
 											if(seeker!=null){
 												log.info("\t\t\tseeker {} - approx",seeker);
-												topk_alg.executeQuery(String.valueOf(seeker), query, k.get(index_k), Integer.MAX_VALUE);
+												topk_alg.executeQuery(String.valueOf(seeker), query, k.get(index_k), Integer.MAX_VALUE,true);
 												double common = 0f;
 												for(String itm:topk_alg.getTopKSet()){													
 													if(exact.contains(itm))
@@ -379,7 +379,7 @@ public class Socialsearch implements SocialsearchInterface {
 					ArrayList<Double> tp = new ArrayList<Double>();
 					//Alpha = 0
 					topk_alg = new TopKAlgorithm(dbConn, taggers, Params.network[index_n], Methods.MET_TOPKS, scores[1], 1, func_obj[0], optpaths, error);
-					topk_alg.executeQuery(seekers.get(index), qrys.get(index), num.get(index), Integer.MAX_VALUE);
+					topk_alg.executeQuery(seekers.get(index), qrys.get(index), num.get(index), Integer.MAX_VALUE,true);
 					int good = 0;
 					for(String res:topk_alg.getTopKSet()){
 						if(base.contains(res)) good++;
@@ -387,7 +387,7 @@ public class Socialsearch implements SocialsearchInterface {
 					tp.add((double)good/(double)num.get(index));
 					for(int index_f=0; index_f<func_obj.length;index_f++){
 						topk_alg = new TopKAlgorithm(dbConn, taggers, Params.network[index_n], Methods.MET_TOPKS, scores[1], 0, func_obj[index_f], optpaths, error);
-						topk_alg.executeQuery(seekers.get(index), qrys.get(index), num.get(index), Integer.MAX_VALUE);
+						topk_alg.executeQuery(seekers.get(index), qrys.get(index), num.get(index), Integer.MAX_VALUE,true);
 						good = 0;
 						for(String res:topk_alg.getTopKSet()){
 							if(base.contains(res)) good++;
@@ -451,7 +451,7 @@ public class Socialsearch implements SocialsearchInterface {
 			//Dummy query for loading the networks
 			topk_alg = new TopKAlgorithm(dbConn, taggers, network, Methods.MET_TOPKS, new TfIdfScore(), 0.0f, new PathMultiplication(), optpaths, error, number_documents, number_users);
 			topk_alg.setLandmarkPaths(landmark);
-			topk_alg.executeQuery("53150930", query, 1, Integer.MAX_VALUE);
+			topk_alg.executeQuery("53150930", query, 1, Integer.MAX_VALUE,true);
 
 			int test_num = 0;
 			for(int index_sc=0; index_sc<score.size(); index_sc++)
@@ -478,7 +478,7 @@ public class Socialsearch implements SocialsearchInterface {
 										log.info("\t\t\tseeker {} alpha {}",seekers.get(index_s),alpha.get(index_a));
 										topk_alg = new TopKAlgorithm(dbConn, taggers, network, met.get(index_mt), scores[score.get(index_sc)], alpha.get(index_a).floatValue(), func_obj[func.get(index_f)], optpaths, error, number_documents, number_users);
 										topk_alg.setLandmarkPaths(landmark);
-										topk_alg.executeQuery(String.valueOf(seekers.get(index_s)), query, k.get(index_k), Integer.MAX_VALUE);
+										topk_alg.executeQuery(String.valueOf(seekers.get(index_s)), query, k.get(index_k), Integer.MAX_VALUE,true);
 										xmlFile.write(topk_alg.getResultsXML());
 									}
 							}
@@ -589,7 +589,7 @@ public class Socialsearch implements SocialsearchInterface {
 			/*
 			 * call the social search functionality directly through the executeQuery() method
 			 */
-			topk_alg.executeQuery(seeker, keywords.getQuery(), k, Integer.MAX_VALUE);
+			topk_alg.executeQuery(seeker, keywords.getQuery(), k, Integer.MAX_VALUE,true);
 
 			res = topk_alg.getResultsList();
 
@@ -654,7 +654,7 @@ public class Socialsearch implements SocialsearchInterface {
 
 
 			int k = Integer.parseInt(qryProps.getProperty("topks.query.k","10"));
-			topk_alg.executeQuery(seek.getUserId(), keywords.getQuery(), k, Integer.MAX_VALUE);
+			topk_alg.executeQuery(seek.getUserId(), keywords.getQuery(), k, Integer.MAX_VALUE,true);
 			res = topk_alg.getResultsList();
 		}
 
