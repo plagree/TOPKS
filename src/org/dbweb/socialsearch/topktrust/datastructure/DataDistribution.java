@@ -1,7 +1,7 @@
 package org.dbweb.socialsearch.topktrust.datastructure;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 
 public class DataDistribution {
 	
@@ -13,7 +13,7 @@ public class DataDistribution {
 	private HashMap<String,Double> tot_2;
 	private HashMap<String,Double> tot;
 	
-	public DataDistribution(double mean, double variance, double n_total, HashSet<String> query){
+	public DataDistribution(double mean, double variance, double n_total, ArrayList<String> query){
 		this.mean = mean;
 		this.variance = variance;
 		this.n_total = n_total;

@@ -100,7 +100,7 @@ public class Test{
 									
 									// loop on QUERIES
 									for(int index_q=0; index_q<query1.length;index_q++) { 
-										HashSet<String> query = new HashSet<String>();
+										ArrayList<String> query = new ArrayList<String>();
 										query.add(query1[index_q]);
 										n += 1;
 										xmlFile = new FileWriter(String.format("tests_%s_%s_%s"+n+".xml", metname[index_mt], network[index_n], func[index_f].toString()));

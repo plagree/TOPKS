@@ -296,7 +296,7 @@ public class TopKAlgorithm{
 	 * @return
 	 * @throws SQLException
 	 */
-	public int executeQuery(String seeker, HashSet<String> query, int k, int t, boolean newQuery) throws SQLException{
+	public int executeQuery(String seeker, ArrayList<String> query, int k, int t, boolean newQuery) throws SQLException{
 
 		this.time_dji = 0;
 		this.time_term = 0;
@@ -458,7 +458,7 @@ public class TopKAlgorithm{
 	 * @return
 	 * @throws SQLException
 	 */
-	public int executeQueryPlusLetter(String seeker, HashSet<String> query, int k, int t) throws SQLException{
+	public int executeQueryPlusLetter(String seeker, ArrayList<String> query, int k, int t) throws SQLException{
 		String newPrefix = "";
 		for (String tag: query) {
 			newPrefix = tag;
@@ -496,7 +496,7 @@ public class TopKAlgorithm{
 	 * @param t
 	 * @throws SQLException
 	 */
-	protected void mainLoop(int k, String seeker, HashSet<String> query, int t) throws SQLException{
+	protected void mainLoop(int k, String seeker, ArrayList<String> query, int t) throws SQLException{
 		int loops=0;
 		int skipped_tests = 10000; // Number of loops before testing the exit condition
 		int steps = 1;
@@ -574,14 +574,12 @@ public class TopKAlgorithm{
 	 * @param query
 	 * @return true (social) , false (textual)
 	 */
-	protected boolean chooseBranch(HashSet<String> query){
+	protected boolean chooseBranch(ArrayList<String> query){
 		double upper_social_score;
 		double upper_docs_score;
 		boolean textual = false;
 		for(String tag:query){
 			if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS) {
-				//float Z = userWeights.get(tag);
-				//double ZZ = candidates.getSocialContrib(tag);
 				upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getSocialContrib(tag);
 			}
 			else
@@ -600,17 +598,14 @@ public class TopKAlgorithm{
 	/**
 	 * Social process of the TOPKS algorithm
 	 */
-	protected void processSocial(HashSet<String> query) throws SQLException{
-		HashMap<String, HashSet<String>> soclist = new HashMap<String, HashSet<String>>();
-		PreparedStatement ps;
+	protected void processSocial(ArrayList<String> query) throws SQLException{
+		//HashMap<String, HashSet<String>> soclist = new HashMap<String, HashSet<String>>();
 		int currentUserId;
 		int index = 0;
 
 		if(currentUser!=null) vst.add(currentUser.getEntryId());
 
-		/*
-		 * for all tags in the query Q, triples Tagged(u,i,t_j)
-		 */
+		// for all tags in the query Q, triples Tagged(u,i,t_j)
 		for(String tag:query){  		    		
 			if(currentUser!=null){
 				boolean found_docs = false;
@@ -698,7 +693,7 @@ public class TopKAlgorithm{
 	 * Given the new discovered items in User Spaces, do top-items can be updated?
 	 * @param query HashSet<String>
 	 */
-	private void lookIntoList(HashSet<String> query){
+	private void lookIntoList(ArrayList<String> query){
 		int index=0;
 		boolean found = true;
 		String[] tags = new String[query.size()];
@@ -729,7 +724,7 @@ public class TopKAlgorithm{
 	 * @param query
 	 * @throws SQLException
 	 */
-	protected void processTextual(HashSet<String> query) throws SQLException{
+	protected void processTextual(ArrayList<String> query) throws SQLException{
 
 		int index = 0;
 		RadixTreeNode currNode = null;
@@ -758,7 +753,7 @@ public class TopKAlgorithm{
 	 * @param query
 	 * @throws SQLException
 	 */
-	protected void processView(HashSet<String> query) throws SQLException{
+	protected void processView(ArrayList<String> query) throws SQLException{
 		HashMap<String,ViewScore> guar = viewTransformer.getGuaranteed();
 		HashMap<String,ViewScore> need = viewTransformer.getPossible();
 		boolean early = viewTransformer.isEarly();
@@ -831,7 +826,7 @@ public class TopKAlgorithm{
 	 * @param completion
 	 * @throws SQLException
 	 */
-	protected void getAllItemScores(String item, HashSet<String> query, String completion) throws SQLException{
+	protected void getAllItemScores(String item, ArrayList<String> query, String completion) throws SQLException{
 		Item<String> itm = candidates.findItem(item, completion);
 		for(String tag:query)
 			if(!itm.tdf.containsKey(tag)){
@@ -860,7 +855,7 @@ public class TopKAlgorithm{
 	 * @return
 	 * @throws SQLException
 	 */
-	protected Item<String> createNewCandidateItem(String itemId, HashSet<String> tagList, Item<String> item, String completion) throws SQLException{
+	protected Item<String> createNewCandidateItem(String itemId, ArrayList<String> tagList, Item<String> item, String completion) throws SQLException{
 		item = new Item<String>(itemId, this.alpha, Params.number_users, this.score,  this.d_distr, this.d_hist, this.error, completion);        
 		int sizeOfQuery = tagList.size();
 		int index = 0;
@@ -919,7 +914,7 @@ public class TopKAlgorithm{
 	/**
 	 * Not used in current version (used when exiting results in XML format)
 	 */
-	protected void setQueryResultsArrayList(HashSet<String> query, String seeker, int k, int method, float alpha){
+	protected void setQueryResultsArrayList(ArrayList<String> query, String seeker, int k, int method, float alpha){
 		System.out.println(this.candidates.getNumberOfSortedItems());
 		System.out.println("this.candidates.get_topk().size()="+this.candidates.get_topk().size());
 		String queryStr="";

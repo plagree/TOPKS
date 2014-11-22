@@ -57,7 +57,7 @@ public class Socialsearch implements SocialsearchInterface {
 	private static ArrayList<Integer> func;
 	private static int qsize;
 	private static ArrayList<ArrayList<String>> queries;
-	private static ArrayList<HashSet<String>> qrys;
+	private static ArrayList<ArrayList<String>> qrys;
 	private static ArrayList<String> seekers;
 	private static ArrayList<Double> alpha;
 	private static ArrayList<Integer> num;
@@ -135,7 +135,7 @@ public class Socialsearch implements SocialsearchInterface {
 		try {
 			log.info("Reading file {}",fileName);
 			seekers = new ArrayList<String>();
-			qrys = new ArrayList<HashSet<String>>();
+			qrys = new ArrayList<ArrayList<String>>();
 			num = new ArrayList<Integer>();
 			BufferedReader file = new BufferedReader(new FileReader(fileName));
 			String line = null;
@@ -146,7 +146,7 @@ public class Socialsearch implements SocialsearchInterface {
 					String elem = st.nextToken();
 					if(idx==0) seekers.add(elem);
 					if(idx==1){
-						HashSet<String> qry = new HashSet<String>();
+						ArrayList<String> qry = new ArrayList<String>();
 						qry.add	(elem);
 						qrys.add(qry);
 					}
@@ -209,7 +209,7 @@ public class Socialsearch implements SocialsearchInterface {
 							log.info("\tmethod {} function {}",String.format("met%s", met.get(index_mt)),func_obj[func.get(index_f)].toString());
 							for(int index_q=0; index_q<queries.size();index_q++){
 								String s_query = "";
-								HashSet<String> query = new HashSet<String>();
+								ArrayList<String> query = new ArrayList<String>();
 								for(int idx_qq=0; idx_qq<queries.get(index_q).size();idx_qq++){									
 									String p_query = queries.get(index_q).get(idx_qq);
 									query.add(p_query);
@@ -277,7 +277,7 @@ public class Socialsearch implements SocialsearchInterface {
 							double[][] precisions = new double[queries.size()][num]; 
 							for(int index_q=0; index_q<qsize;index_q++){
 								String s_query = "";
-								HashSet<String> query = new HashSet<String>();
+								ArrayList<String> query = new ArrayList<String>();
 								for(int idx_qq=0; idx_qq<queries.get(index_q).size();idx_qq++){									
 									String p_query = queries.get(index_q).get(idx_qq);
 									query.add(p_query);
@@ -446,7 +446,7 @@ public class Socialsearch implements SocialsearchInterface {
 
 			landmark.loadLandmarks();
 
-			HashSet<String> query = new HashSet<String>();
+			ArrayList<String> query = new ArrayList<String>();
 			query.add("Syria"); 
 			//Dummy query for loading the networks
 			topk_alg = new TopKAlgorithm(dbConn, taggers, network, Methods.MET_TOPKS, new TfIdfScore(), 0.0f, new PathMultiplication(), optpaths, error, number_documents, number_users);
@@ -465,7 +465,7 @@ public class Socialsearch implements SocialsearchInterface {
 							xmlFile.write("<tests>");
 							for(int index_q=0; index_q<qsize;index_q++){
 								String s_query = "";
-								query = new HashSet<String>();
+								query = new ArrayList<String>();
 								for(int idx_qq=0; idx_qq<queries.get(index_q).size();idx_qq++){									
 									String p_query = queries.get(index_q).get(idx_qq);
 									query.add(p_query);
@@ -589,10 +589,9 @@ public class Socialsearch implements SocialsearchInterface {
 			/*
 			 * call the social search functionality directly through the executeQuery() method
 			 */
-			topk_alg.executeQuery(seeker, keywords.getQuery(), k, Integer.MAX_VALUE,true);
+			topk_alg.executeQuery(seeker, keywords.getQuery(), k, Integer.MAX_VALUE, true);
 
 			res = topk_alg.getResultsList();
-
 
 		}
 
@@ -652,7 +651,6 @@ public class Socialsearch implements SocialsearchInterface {
 			Connection connection = dbConn.DBConnect();
 			connection.setAutoCommit(false);
 
-
 			int k = Integer.parseInt(qryProps.getProperty("topks.query.k","10"));
 			topk_alg.executeQuery(seek.getUserId(), keywords.getQuery(), k, Integer.MAX_VALUE,true);
 			res = topk_alg.getResultsList();
@@ -668,7 +666,4 @@ public class Socialsearch implements SocialsearchInterface {
 		return res;
 	}
 
-
 }	
-
-

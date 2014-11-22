@@ -7,7 +7,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashSet;
 
 import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
@@ -75,7 +74,7 @@ public class Experiments {
 			String words[];
 			int numberUsersWhoTaggedThisItem;
 			int lengthTag;
-			HashSet<String> query;
+			ArrayList<String> query;
 			int ranking;
 			int counter = 0;
 			int counter2 = 0;
@@ -110,25 +109,22 @@ public class Experiments {
 						if (((alpha!=0) && (t!=50)) || ((Params.threshold!=threshold_ref) && ((alpha!=0) || (t!=50))))
 							continue;
 						nbSeenWords = 0;
+						query = new ArrayList<String>();
 						System.out.println("New time "+t+"...");
 						for (String word: words) {
 							lengthTag = word.length();
-							query = new HashSet<String>();
 							nbSeenWords++;
 							for (int l=lengthPrefixMinimum; l<=lengthTag; l++) {
 								System.out.println("New prefix");
-								if (query.isEmpty()) {
+								if (l==lengthPrefixMinimum) {
 									query.add(word.substring(0, l));
-									if (nbSeenWords == 1)
-										newQuery = true;
-									else
-										newQuery = false;
+									newQuery = true; // new word in query
 									topk_alg.executeQuery(user, query, k, t, newQuery);
 									ranking = topk_alg.getRankingItem(item, k);
 									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"/*+nbSeenWords+"\t"*/+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
-								}
+									}
 								else {
-									query.remove(word.substring(0, l-1));
+									query.remove(nbSeenWords-1);
 									query.add(word.substring(0, l));
 									topk_alg.executeQueryPlusLetter(user, query, l, t);
 									ranking = topk_alg.getRankingItem(item, k);

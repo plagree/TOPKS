@@ -1,26 +1,26 @@
 package org.dbweb.Arcomem.datastructures;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 
 public class Keywords {
-	private HashSet<String>  query;
+	private ArrayList<String>  query;
 
-	public Keywords(HashSet<String> query) {
+	public Keywords(ArrayList<String> query) {
 		super();
 		this.query = query;
 	}
 
-	public HashSet<String> getQuery() {
+	public ArrayList<String> getQuery() {
 		return query;
 	}
 
-	public void setQuery(HashSet<String> query) {
+	public void setQuery(ArrayList<String> query) {
 		this.query = query;
 	}
 
 	public Keywords() {
 		super();
-		query=new HashSet<String>();
+		query=new ArrayList<String>();
 	}
 	
 	public void addtotQuery(String kwd) {

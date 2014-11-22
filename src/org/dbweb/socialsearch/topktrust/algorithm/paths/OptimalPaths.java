@@ -82,7 +82,7 @@ public class OptimalPaths {
 				
 	}
 	
-	public UserEntry<Float> initiateHeapCalculation(int seeker, HashSet<String> query) throws SQLException {
+	public UserEntry<Float> initiateHeapCalculation(int seeker, ArrayList<String> query) throws SQLException {
     	
     	total_users = 0;
     	this.max_pos_val = 1.0f;
@@ -102,17 +102,10 @@ public class OptimalPaths {
     	UserEntry<Float> retVal = new UserEntry<Float>(currentUser.getData(),(float)currentUser.getKey());
     	friends.add(retVal);
     	
-//    	for(String tag:query)
-//    		this.friends_list.put(tag, friends.listIterator());
     	return retVal;
 	}
 	
-	public UserEntry<Float> advanceFriendsList(UserEntry<Float> currentUser, HashSet<String> query) throws SQLException{
-//    	if(friends_list.get(tag).hasNext()){//if we have calculated_values; get the next value
-//    		UserEntry<Float> retVal = friends_list.get(tag).next();
-//    		values.get(tag).add(retVal.getDist());
-//    		return retVal;    		
-//    	}
+	public UserEntry<Float> advanceFriendsList(UserEntry<Float> currentUser, ArrayList<String> query) throws SQLException{
     	FibonacciHeapNode<Integer> currUser = null;
     	if(currentUser!=null)
     		if(nodes.containsKey(currentUser.getEntryId()))
@@ -120,17 +113,10 @@ public class OptimalPaths {
     	if(this.heap&&currentUser!=null&&currUser!=null){//if we don't have any new values -- calculate a new heap
     		calculateHeap(currUser);
     		if(prioQueue.size()>0){
-    			//prioQueue.rebuild_heap();
     			currUser = prioQueue.removeMin();
-    			//log.info(currUser.getData().toString());
     			total_users++;
     			UserEntry<Float> retVal = new UserEntry<Float>(currUser.getData(),(float)(1.0f/currUser.getKey())); 
     			friends.add(new UserEntry<Float>(currUser.getData(),(float)(1.0f/currUser.getKey())));    			
-//    			for(String tag1:query){
-//    				int idx1 = friends_list.get(tag1).nextIndex();
-//    				friends_list.put(tag1, friends.listIterator(idx1));
-//    			}
-    			//friends_list.put(tag, friends.listIterator(idx));
     			values.add(retVal.getDist());
         		return retVal;
     		}
