@@ -98,7 +98,7 @@ public class ItemList implements Cloneable{
 		this.score = score;
 		this.k = k;
 	}
-	
+
 	public int getRankingItem(String item, int k) {
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
@@ -122,7 +122,7 @@ public class ItemList implements Cloneable{
 	public int getNumberOfSortedItems() {
 		return this.sorted_items.size();
 	}
-	
+
 	public void addItem(Item<String> item){
 		this.items.put(item.getItemId()+"#"+item.getCompletion(), item);
 		if(!item.isPruned()) this.sorted_items.add(item);
@@ -184,11 +184,8 @@ public class ItemList implements Cloneable{
 
 	public void filterTopk(ArrayList<String> query) {
 		PriorityQueue<Item<String>> filtered_items = new PriorityQueue<Item<String>>(sorted_items);
-		//HashMap<String,Item<String>> newHashMapItems = new HashMap<String,Item<String>>();
 		String newPrefix = "";
-		for (String tag: query) {
-			newPrefix = tag;
-		}
+		newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		// UPDATE OF KEYS ON PREVIOUS PREFIX
 		if (this.soccontrib.containsKey(previousPrefix)) {
@@ -210,24 +207,19 @@ public class ItemList implements Cloneable{
 				this.normcontrib.put(newPrefix, null);
 			}
 			this.normcontrib.remove(previousPrefix);
-			
+
 		}
 		// END OF UPDATE
 		for (Item<String> item: filtered_items) {
 			if (item.getCompletion().startsWith(newPrefix)) {
 				item.updatePrefix(previousPrefix, newPrefix);
-				//filtered_items.add(item);
-				//newHashMapItems.put(item.getItemId()+"#"+item.getCompletion(), item);
 			}
 			else {
 				this.removeItem(item);
 			}
 		}
-		//sorted_items = filtered_items;
-		
-		//items = newHashMapItems;
 	}
-	
+
 	/**
 	 * If time limit has been passed, we try to extract the best from what we found so far.
 	 * @param k
@@ -242,7 +234,7 @@ public class ItemList implements Cloneable{
 		ArrayList<Item<String>> sorted_bs = new ArrayList<Item<String>>(sorted_items);
 		Collections.sort(sorted_bs, new ItemBestScoreComparator());
 		ArrayList<Item<String>> possibleItems = new ArrayList<Item<String>>();
-		
+
 		if(sorted_ws.size() >= k)
 			wsc_t = sorted_ws.get(k-1).getComputedScore();
 		else {
@@ -263,7 +255,7 @@ public class ItemList implements Cloneable{
 			else if(item.getBestscore() > wsc_t)
 				possibleItems.add(item);
 		}
-		
+
 		Collections.sort(possibleItems, new ItemAverageScoreComparator());
 		int k_possible = k - guaranteed.size();
 		Item<String> current_item;
@@ -325,7 +317,7 @@ public class ItemList implements Cloneable{
 			idx++;
 		}
 		//    	try {
-			//			fil.write(String.format("%d,%.5f,%d\n",position,confidence,possible.size()));
+		//			fil.write(String.format("%d,%.5f,%d\n",position,confidence,possible.size()));
 		//		} catch (IOException e) {
 		//			// TODO Auto-generated catch block
 		//			e.printStackTrace();
@@ -334,7 +326,7 @@ public class ItemList implements Cloneable{
 		//    	log.info(String.format("maximal confidence %.5f - position %d",confidence,position));
 		return confidence;
 	}
-	
+
 
 	public boolean terminationCondition(ArrayList<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, HashMap<String,Integer> high, HashMap<String,Float> user_weights, HashMap<String,Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, HashSet<String> guaranteed, HashSet<String> possible) throws IOException{
 		//if(sortNeeded) Collections.sort(items,comparator);
@@ -353,7 +345,7 @@ public class ItemList implements Cloneable{
 		else        	        
 			return false;        
 	}
-	
+
 	public void resetChange(){
 		topk_changed = false;
 	}

@@ -65,7 +65,7 @@ import com.ibm.icu.util.Calendar;
 
 /**
  *
- * @author Silver
+ * @author Silviu & Paul
  */
 public class TopKAlgorithm{
 
@@ -122,22 +122,21 @@ public class TopKAlgorithm{
 	protected ArrayList<UserEntry<Float>> friends;
 	protected ArrayList<Float> values;
 	protected PriorityQueue<UserEntry<Float>> prioQueue;
-	//protected HashMap<String,Integer> high_docs;
 	protected HashMap<String,Integer> high_docs_query;
 	protected HashMap<String, Integer> positions;
 	protected HashMap<String,Float> userWeights;
 	protected ArrayList<Double> proximities;
 	protected HashMap<String,Integer> tagFreqs;
-	protected HashMap<String,Integer> lastpos;
-	protected HashMap<String,Float> lastval;
+	//protected HashMap<String,Integer> lastpos;
+	//protected HashMap<String,Float> lastval;
 	protected HashMap<String,Float> maxval;
 	protected HashSet<String> taggers;
 	protected HashMap<String,ArrayList<UserView>> userviews;
 	protected HashMap<String,HashSet<String>> unknown_tf;
 	protected ArrayList<Integer> vst;
 	protected HashSet<Integer> skr;
-	protected String[] next_docs;
-	protected ArrayList<DocumentNumTag>[] docs;
+	protected HashMap<String, String> next_docs;
+	//protected ArrayList<DocumentNumTag>[] docs;
 	protected ArrayList<String> dictionary;
 	protected PatriciaTrie<String> dictionaryTrie;
 	protected RadixTreeImpl completion_trie; // Completion trie
@@ -226,22 +225,21 @@ public class TopKAlgorithm{
 
 	private boolean docs_inserted;
 	private boolean finished;
-	private boolean all_landmarks;
 
 	private boolean firstPossible = true;
 	private boolean needUnseen = true;
-	private boolean skipViews = true;
 	private HashSet<String> guaranteed;
 	private HashSet<String> possible;
 
 	// NEW
 	private HashMap<String, ArrayList<DocumentNumTag>> docs2;
 	private HashMap<String, String> next_docs2;
+	private int nbNeighbour;
+	private ArrayList<Integer> queryNbNeighbour;
 
 	private int numloops=0; //amine
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error) throws SQLException{
-		//super(distFunc, dbConnection, networkTable, tagTable);
 		this.distFunc = distFunc;
 		this.dbConnection = dbConnection;
 		this.networkTable = networkTable;
@@ -251,8 +249,6 @@ public class TopKAlgorithm{
 		this.optpath = optPathClass;
 		this.error = error;
 		this.score = itemScore;
-		//this.number_documents = 1570866;//595811;
-		//this.number_users = 570347;//80000;
 
 		long time_before_loading = System.currentTimeMillis();
 		if (dbConnection != null)
@@ -270,8 +266,6 @@ public class TopKAlgorithm{
 	}
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error, int number_documents, int number_users){
-		//super(distFunc, dbConnection, networkTable, tagTable);
-		log.info("dbconn{}", dbConnection);
 		this.distFunc = distFunc;
 		this.dbConnection = dbConnection;
 		this.networkTable = networkTable;
@@ -329,33 +323,35 @@ public class TopKAlgorithm{
 		}
 
 		userWeight = 1.0f;
-		userWeights = new HashMap<String, Float>();
 		terminationCondition = false;
 		PreparedStatement ps;
 		ResultSet result;
-		lastpos = new HashMap<String,Integer>();
-		lastval = new HashMap<String,Float>();
-		high_docs_query = new HashMap<String, Integer>();
-		next_docs = new String[query.size()];
+		//lastpos = new HashMap<String,Integer>();
+		//lastval = new HashMap<String,Float>();
+
+		if (newQuery) {
+			high_docs_query = new HashMap<String, Integer>();
+			next_docs = new HashMap<String, String>();
+			userWeights = new HashMap<String, Float>();
+		}
 		pos = new int[query.size()];
-		docs = new ArrayList[query.size()];
+
+		String tag = query.get(query.size()-1);
 		int index = 0;
 		boolean exact = false;
-		for(String tag:query){
-			docs[index] = docs2.get(tag);
-			pos[index]=0;
-			next_docs[index] = next_docs2.get(completion_trie.searchPrefix(tag, exact).getBestDescendant().getWord());
-			high_docs_query.put(tag, (int)completion_trie.searchPrefix(tag, false).getValue());
-			index++;
-			userWeights.put(tag, userWeight);
-		}
+		pos[index]=0;
+		next_docs.put(tag, next_docs2.get(completion_trie.searchPrefix(tag, exact).getBestDescendant().getWord()));
+		high_docs_query.put(tag, (int)completion_trie.searchPrefix(tag, false).getValue());
+		index++;
+		userWeights.put(tag, userWeight);
+
 		proximities = new ArrayList<Double>();
 		proximities.add((double)userWeight);
 
 		//getting the userviews
 		String sqlGetViews = sqlGetViewsTemplate;
 		int idx=0;
-		for(String tag:query){
+		/*for(String tag:query){
 			if(idx<query.size()-1){
 				sqlGetViews+=String.format("\'%s\',", tag);
 			}
@@ -363,7 +359,7 @@ public class TopKAlgorithm{
 				sqlGetViews+=String.format("\'%s\')", tag);
 			}
 			idx++;
-		}
+		}*/
 
 		if((this.approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
 			String sqlGetDistribution = String.format(sqlGetDistributionTemplate, this.networkTable);
@@ -389,18 +385,20 @@ public class TopKAlgorithm{
 				hist.add(num);
 			}
 			this.d_hist = new DataHistogram(Params.number_users, hist);
-			for(String tag:query)
+			/*for(String tag:query)
 			{
 				d_hist.setVals(tag, 0, 1.0f);
-			}
+			}*/
 		}
 
 		if (newQuery) {
+			this.nbNeighbour = 0;
 			Comparator comparator = new MinScoreItemComparator();   
 			virtualItem = createNewCandidateItem("<rest_of_the_items>",query,virtualItem,"");
 			candidates = new ItemList(comparator, this.score, Params.number_users, k, this.virtualItem, this.d_distr, this.d_hist, this.error);
 		}
 		candidates.setContribs(query, completion_trie);
+		this.queryNbNeighbour.add(0);
 
 		total_users = 0;        
 		total_lists_social = 0;
@@ -459,10 +457,7 @@ public class TopKAlgorithm{
 	 * @throws SQLException
 	 */
 	public int executeQueryPlusLetter(String seeker, ArrayList<String> query, int k, int t) throws SQLException{
-		String newPrefix = "";
-		for (String tag: query) {
-			newPrefix = tag;
-		}
+		String newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
 		RadixTreeNode radixTreeNode = completion_trie.searchPrefix(newPrefix, false);
@@ -472,13 +467,14 @@ public class TopKAlgorithm{
 		ArrayList<DocumentNumTag> arr = docs2.get(bestCompletion);
 		if (positions.get(bestCompletion) < arr.size()) {
 			high_docs_query.put(newPrefix, arr.get(positions.get(bestCompletion)).getNum());
-			next_docs[next_docs.length-1] = arr.get(positions.get(bestCompletion)).getDocId();
+			next_docs.put(newPrefix, arr.get(positions.get(bestCompletion)).getDocId());
 		}
 		else {
 			high_docs_query.put(newPrefix, 0);
-			next_docs[next_docs.length-1] = "";
+			next_docs.put(newPrefix, "");
 		}
 		high_docs_query.remove(previousPrefix);
+		next_docs.remove(previousPrefix);
 		userWeights.put(newPrefix, userWeights.get(previousPrefix));
 		userWeights.remove(previousPrefix);
 
@@ -503,7 +499,6 @@ public class TopKAlgorithm{
 		boolean underTimeLimit = true;
 		firstPossible = true;
 		needUnseen = true;
-		skipViews = false;
 		guaranteed = new HashSet<String>();
 		possible = new HashSet<String>();
 		long before_main_loop = System.currentTimeMillis();
@@ -605,8 +600,15 @@ public class TopKAlgorithm{
 
 		if(currentUser!=null) vst.add(currentUser.getEntryId());
 
+		String tag;
+		int nbNeighbourTag = 0;
 		// for all tags in the query Q, triples Tagged(u,i,t_j)
-		for(String tag:query){  		    		
+		for(int i=0; i<query.size(); i++) {
+			tag = query.get(i);
+			nbNeighbourTag = this.queryNbNeighbour.get(i);
+			if (nbNeighbourTag > this.nbNeighbour)
+				continue; // We don't need to analyse this word because it was already done previously
+			this.queryNbNeighbour.add(i, this.nbNeighbour+1);
 			if(currentUser!=null){
 				boolean found_docs = false;
 
@@ -669,13 +671,13 @@ public class TopKAlgorithm{
 			}
 			index++;
 		}/* END FOR ALL TAGS IN QUERY Q */
-
+		this.nbNeighbour++;
 		if((this.approxMethod&Methods.MET_APPR_LAND)==Methods.MET_APPR_LAND){
 			currentUser = landmark.getNextUser();
 		}
 		else{
 			long time_loading_before = System.currentTimeMillis();
-			currentUser = optpath.advanceFriendsList(currentUser, query);
+			currentUser = optpath.advanceFriendsList(currentUser);
 			long time_loading_after = System.currentTimeMillis();
 			long tl = (time_loading_after-time_loading_before)/1000;
 			if (tl>1)
@@ -691,27 +693,34 @@ public class TopKAlgorithm{
 	/**
 	 * We advance on Inverted Lists here (method for social branch)
 	 * Given the new discovered items in User Spaces, do top-items can be updated?
-	 * @param query HashSet<String>
+	 * @param query ArrayList<String>
 	 */
 	private void lookIntoList(ArrayList<String> query){
 		int index=0;
 		boolean found = true;
-		String[] tags = new String[query.size()];
-		for(String tag:query){
+		//String[] tags = new String[query.size()];
+		/*for(String tag:query){
 			tags[index] = tag;
 			index++;
-		}
+		}*/
 		while (found) {
 			String completion;
 			for(index=0;index<query.size();index++) {
 				found = false;
-				completion = completion_trie.searchPrefix(tags[index], false).getBestDescendant().getWord();
-				if(unknown_tf.get(tags[index]).contains(next_docs[index]+"#"+completion)){
-					Item<String> item1 = candidates.findItem(next_docs[index], completion);
+				if (index == (query.size()-1)) //  prefix
+					completion = completion_trie.searchPrefix(query.get(index), false).getBestDescendant().getWord();
+				else
+					completion = query.get(index);
+				if(unknown_tf.get(query.get(index)).contains(next_docs.get(query.get(index))+"#"+completion)){
+					Item<String> item1 = candidates.findItem(next_docs.get(query.get(index)), completion);
 					candidates.removeItem(item1);
-					item1.updateScoreDocs(tags[index], high_docs_query.get(tags[index]), approxMethod);
-					unknown_tf.get(tags[index]).remove(next_docs[index]+"#"+completion); 
-					advanceTextualList(tags[index],index);
+					item1.updateScoreDocs(query.get(index), high_docs_query.get(query.get(index)), approxMethod);
+					unknown_tf.get(query.get(index)).remove(next_docs.get(query.get(index))+"#"+completion); 
+					if (index == (query.size()-1)) //  prefix
+						advanceTextualList(query.get(index),index,false);
+					else
+						advanceTextualList(query.get(index),index,true);
+					
 					candidates.addItem(item1);
 					found = true;
 				}
@@ -730,19 +739,22 @@ public class TopKAlgorithm{
 		RadixTreeNode currNode = null;
 		String currCompletion;
 		for(String tag:query){
-			if(next_docs[index]!=""){
+			if(next_docs.get(tag)!=""){
 				currNode = completion_trie.searchPrefix(tag, false);
 				currCompletion = currNode.getBestDescendant().getWord();
-				Item<String> item = candidates.findItem(next_docs[index], currCompletion);
+				Item<String> item = candidates.findItem(next_docs.get(tag), currCompletion);
 				if(item==null)
-					item = createNewCandidateItem(next_docs[index], query, item, currCompletion);
+					item = createNewCandidateItem(next_docs.get(tag), query, item, currCompletion);
 				else
 					candidates.removeItem(item);
 				item.updateScoreDocs(tag, high_docs_query.get(tag), approxMethod);
 				if(unknown_tf.get(tag).contains(item.getItemId()+"#"+currCompletion)) unknown_tf.get(tag).remove(item.getItemId()+"#"+currCompletion);
 				candidates.addItem(item);
-				docs_inserted = true;                    		
-				advanceTextualList(tag,index);
+				docs_inserted = true;
+				if ((index+1)==query.size()) // prefix, we don't serach for exact match
+					advanceTextualList(tag,index,false);
+				else
+					advanceTextualList(tag,index,true);
 			}
 			index++;
 		}
@@ -799,9 +811,9 @@ public class TopKAlgorithm{
 	 * @param tag
 	 * @param index
 	 */
-	protected void advanceTextualList(String tag, int index) {
+	protected void advanceTextualList(String tag, int index, boolean exact){
 
-		RadixTreeNode current_best_leaf = completion_trie.searchPrefix(tag, false).getBestDescendant();
+		RadixTreeNode current_best_leaf = completion_trie.searchPrefix(tag, exact).getBestDescendant();
 		String word = current_best_leaf.getWord();
 		ArrayList<DocumentNumTag> invertedList = docs2.get(word);
 		positions.put(word, positions.get(word)+1);
@@ -810,12 +822,12 @@ public class TopKAlgorithm{
 		if(position < invertedList.size()){
 			total_documents_asocial++;
 			high_docs_query.put(tag, invertedList.get(position).getNum());
-			next_docs[index] = invertedList.get(position).getDocId();
+			next_docs.put(tag, invertedList.get(position).getDocId());
 			current_best_leaf.updatePreviousBestValue(invertedList.get(position).getNum());
 		}
 		else{
 			high_docs_query.put(tag, 0);
-			next_docs[index] = "";
+			next_docs.put(tag, "");
 		}
 	}
 
@@ -882,8 +894,8 @@ public class TopKAlgorithm{
 		String tkval="";
 		for(String tag:this.docs2.keySet()){
 			idfs = String.format(Locale.US,"%.3f", tag_idf.find(tag));
-			tkpos = String.format(Locale.US,"%d", lastpos.get(tag));
-			tkval = String.format(Locale.US,"%.3f", lastval.get(tag));
+			//tkpos = String.format(Locale.US,"%d", lastpos.get(tag));
+			//tkval = String.format(Locale.US,"%.3f", lastval.get(tag));
 		}
 		return String.format(Locale.US, ""+
 				"<br><stat><b>Time</b>: main loop <b>%.3f</b> sec</stat><br><br>"+

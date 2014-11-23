@@ -105,7 +105,7 @@ public class OptimalPaths {
     	return retVal;
 	}
 	
-	public UserEntry<Float> advanceFriendsList(UserEntry<Float> currentUser, ArrayList<String> query) throws SQLException{
+	public UserEntry<Float> advanceFriendsList(UserEntry<Float> currentUser) throws SQLException{
     	FibonacciHeapNode<Integer> currUser = null;
     	if(currentUser!=null)
     		if(nodes.containsKey(currentUser.getEntryId()))
