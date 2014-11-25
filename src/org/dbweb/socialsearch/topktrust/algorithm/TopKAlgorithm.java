@@ -292,7 +292,7 @@ public class TopKAlgorithm{
 	 */
 	public int executeQuery(String seeker, ArrayList<String> query, int k, int t, boolean newQuery) throws SQLException{
 		if (query.size() != 1)
-			System.out.println(query.toString());
+			System.out.println("Query: "+query.toString());
 		this.time_dji = 0;
 		this.time_term = 0;
 		this.time_clist = 0;
@@ -329,7 +329,8 @@ public class TopKAlgorithm{
 		ResultSet result;
 		//lastpos = new HashMap<String,Integer>();
 		//lastval = new HashMap<String,Float>();
-
+		//System.out.println(query.toString());
+		//System.out.println(newQuery);
 		if (newQuery) {
 			high_docs_query = new HashMap<String, Integer>();
 			next_docs = new HashMap<String, String>();
@@ -350,8 +351,8 @@ public class TopKAlgorithm{
 		proximities.add((double)userWeight);
 
 		//getting the userviews
-		String sqlGetViews = sqlGetViewsTemplate;
-		int idx=0;
+		//String sqlGetViews = sqlGetViewsTemplate;
+		//int idx=0;
 		/*for(String tag:query){
 			if(idx<query.size()-1){
 				sqlGetViews+=String.format("\'%s\',", tag);
@@ -391,15 +392,20 @@ public class TopKAlgorithm{
 				d_hist.setVals(tag, 0, 1.0f);
 			}*/
 		}
-
+		
+		this.nbNeighbour = 0;
 		if (newQuery) {
-			this.nbNeighbour = 0;
 			this.queryNbNeighbour = new ArrayList<Integer>();
 			Comparator comparator = new MinScoreItemComparator();   
 			virtualItem = createNewCandidateItem("<rest_of_the_items>",query,virtualItem,"");
 			candidates = new ItemList(comparator, this.score, Params.number_users, k, this.virtualItem, this.d_distr, this.d_hist, this.error);
+			candidates.setContribs(query, completion_trie);
 		}
-		candidates.setContribs(query, completion_trie);
+		else {
+			// clean results obtained so far
+			candidates.cleanForNewWord(query, this.tag_idf, completion_trie);
+		}
+		
 		this.queryNbNeighbour.add(0);
 
 		total_users = 0;        
@@ -460,7 +466,7 @@ public class TopKAlgorithm{
 	 */
 	public int executeQueryPlusLetter(String seeker, ArrayList<String> query, int k, int t) throws SQLException{
 		if (query.size() != 1)
-			System.out.println(query.toString());
+			System.out.println("Query+l: "+query.toString());
 		String newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
@@ -579,6 +585,10 @@ public class TopKAlgorithm{
 		boolean textual = false;
 		for(String tag:query){
 			if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS) {
+				//if (query.size()==2) {
+					//System.out.println(userWeights.toString());
+					//System.out.println(candidates.getSocialContrib(tag));
+				//}
 				upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getSocialContrib(tag);
 			}
 			else
@@ -603,7 +613,7 @@ public class TopKAlgorithm{
 		int index = 0;
 
 		if(currentUser!=null) vst.add(currentUser.getEntryId());
-
+		//System.out.println("pb 614");
 		String tag;
 		int nbNeighbourTag = 0;
 		// for all tags in the query Q, triples Tagged(u,i,t_j)
@@ -611,10 +621,11 @@ public class TopKAlgorithm{
 			tag = query.get(i);
 			nbNeighbourTag = this.queryNbNeighbour.get(i);
 			if (nbNeighbourTag > this.nbNeighbour) {
-				System.out.println("pb 614");
+				//System.out.println("before: "+nbNeighbourTag+" --> "+tag);
 				continue; // We don't need to analyse this word because it was already done previously
 			}
-			this.queryNbNeighbour.add(i, this.nbNeighbour+1);
+			//System.out.println("after: "+nbNeighbourTag+" --> "+tag);
+			this.queryNbNeighbour.set(i, this.nbNeighbour+1);
 			if(currentUser!=null){
 				boolean found_docs = false;
 
@@ -630,7 +641,7 @@ public class TopKAlgorithm{
 				}
 
 				currentUserId = currentUser.getEntryId();
-
+				boolean TESTING = false;
 				if(this.docs_users.containsKey(currentUserId) && !(currentUserId==seeker)){
 					SortedMap<String, HashSet<String>> completions = docs_users.get(currentUserId).prefixMap(tag);
 					if (completions.size()>0) {
@@ -642,16 +653,58 @@ public class TopKAlgorithm{
 							for(String itemId: currentEntry.getValue()) {
 								found_docs = true;
 								Item<String> item = candidates.findItem(itemId, completion);
-								float userW = 0;
-								if(item==null){
-									item = createNewCandidateItem(itemId, query,item, completion); 
-									item.setMaxScorefromviews(bestScoreEstim);
-								}  
+								if (item==null) {
+									Item<String> item2 = candidates.findItem(itemId, "");
+									
+									if (item2!=null) {
+										if (query.size()>1) {
+											//item2.computeWorstScore(approxMethod);
+											System.out.println("ANALYSIS: "+item2.getComputedScore());
+										}
+										item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
+										item.computeWorstScore(approxMethod);
+										if (query.size()>1) {
+											System.out.println("ANALYSIS: "+item2.getComputedScore());
+											//item2.debugging();
+											System.out.println("ANALYSIS: "+item.getComputedScore());
+											//item.debugging();
+											TESTING = true;
+											//System.exit(0);
+										}
+									}
+									else
+										item = this.createNewCandidateItem(itemId, query,item, completion);
+								}
 								else {
 									candidates.removeItem(item);
 								}
+								float userW = 0;
+								//if(item==null){
+									
+									//item.setMaxScorefromviews(bestScoreEstim);
+								//}  
+								
 								userW = userWeight;
+								if (query.size()>1) {
+									item.computeWorstScore(approxMethod);
+									System.out.println("Completion: "+completion);
+									//System.out.println("ANALYSIS: "+item2.getComputedScore());
+									System.out.println("ANALYSIS2: "+item.getComputedScore());
+									//System.exit(0);
+								}
 								item.updateScore(tag, userW, pos[index], approxMethod);
+								//if (query.size()>1) {
+									//System.out.println("ANALYSIS: "+item2.getComputedScore());
+								//}
+								//item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
+								
+								if (query.size()>1) {
+									item.computeWorstScore(approxMethod);
+									//System.out.println("ANALYSIS: "+item2.getComputedScore());
+									System.out.println("ANALYSIS3: "+item.getComputedScore());
+									if (TESTING)
+										System.exit(0);
+								}
 								candidates.addItem(item);								
 								docs_inserted = true;
 								total_documents_social++;                            
@@ -694,6 +747,8 @@ public class TopKAlgorithm{
 		else
 			userWeight = 0.0f;
 		proximities.add((double)userWeight);
+		//if (query.size()>1)
+		//	System.exit(0);
 	}
 
 	/**
@@ -716,7 +771,7 @@ public class TopKAlgorithm{
 				if (index == (query.size()-1)) //  prefix
 					completion = completion_trie.searchPrefix(query.get(index), false).getBestDescendant().getWord();
 				else {
-					System.out.println("problem 717");
+					//System.out.println("problem 717");
 					completion = query.get(index);
 				}
 				if(unknown_tf.get(query.get(index)).contains(next_docs.get(query.get(index))+"#"+completion)){
@@ -728,9 +783,9 @@ public class TopKAlgorithm{
 						advanceTextualList(query.get(index),index,false);
 					else {
 						advanceTextualList(query.get(index),index,true);
-						System.out.println("problem");
+						System.out.println("problem 752");
 					}
-					
+
 					candidates.addItem(item1);
 					found = true;
 				}
@@ -748,17 +803,40 @@ public class TopKAlgorithm{
 		int index = 0;
 		RadixTreeNode currNode = null;
 		String currCompletion;
+		//System.out.println("AQUI");
 		for(String tag:query){
+			//System.out.println(this.queryNbNeighbour.get(index)+", current: "+this.nbNeighbour);
 			if (this.queryNbNeighbour.get(index)>this.nbNeighbour) {
-				System.out.println("problem 752");
+				//System.out.println("problem 752");
 				continue;
 			}
+			//System.out.println("AQUI");
+			
+			/*
+			 * Item<String> item = candidates.findItem(itemId, completion);
+								if (item==null) {
+									Item<String> item2 = candidates.findItem(itemId, "");
+									if (item2!=null)
+										item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
+									else
+										item = this.createNewCandidateItem(itemId, query,item, completion);
+								}
+								else {
+									candidates.removeItem(item);
+								}
+			 */
 			if(!next_docs.get(tag).equals("")){
 				currNode = completion_trie.searchPrefix(tag, false);
 				currCompletion = currNode.getBestDescendant().getWord();
 				Item<String> item = candidates.findItem(next_docs.get(tag), currCompletion);
-				if(item==null)
-					item = createNewCandidateItem(next_docs.get(tag), query, item, currCompletion);
+				if(item==null) {
+					//item = createNewCandidateItem(next_docs.get(tag), query, item, currCompletion);
+					Item<String> item2 = candidates.findItem(next_docs.get(tag), "");
+					if (item2!=null)
+						item = this.createCopyCandidateItem(item2, next_docs.get(tag), query, item, currCompletion);
+					else
+						item = this.createNewCandidateItem(next_docs.get(tag), query,item, currCompletion);
+				}
 				else
 					candidates.removeItem(item);
 				item.updateScoreDocs(tag, high_docs_query.get(tag), approxMethod);
@@ -768,12 +846,13 @@ public class TopKAlgorithm{
 				if ((index+1)==query.size()) // prefix, we don't serach for exact match
 					advanceTextualList(tag,index,false);
 				else {
-					System.out.println("problem l765");
+					//System.out.println("problem l765");
 					advanceTextualList(tag,index,true);
 				}
 			}
 			index++;
 		}
+		//System.exit(0);
 	}
 
 	/**
@@ -890,7 +969,7 @@ public class TopKAlgorithm{
 		for(String tag:tagList){
 			index++;
 			if (index < sizeOfQuery) {
-				item.addTag(tag, tag_idf.searchPrefix(tag, false).getValue());
+				item.addTag(tag, tag_idf.searchPrefix(tag, true).getValue());
 			}
 			else {
 				item.addTag(tag, tag_idf.searchPrefix(completion, false).getValue());
@@ -898,6 +977,33 @@ public class TopKAlgorithm{
 			unknown_tf.get(tag).add(itemId+"#"+completion);
 		}
 		return item;
+	}
+	
+	/**
+	 * Creates a new candidate copy of the given one, which will be used for new prefix
+	 * @param itemId
+	 * @param tagList
+	 * @param item
+	 * @param completion
+	 * @return
+	 * @throws SQLException
+	 */
+	protected Item<String> createCopyCandidateItem(Item<String> itemToCopy, String itemId, ArrayList<String> tagList, Item<String> copy, String completion) throws SQLException{
+		copy = new Item<String>(itemId, this.alpha, Params.number_users, this.score,  this.d_distr, this.d_hist, this.error, completion);        
+		int sizeOfQuery = tagList.size();
+		int index = 0;
+		for(String tag:tagList){
+			index++;
+			if (index < sizeOfQuery) {
+				copy.addTag(tag, tag_idf.searchPrefix(tag, true).getValue());
+			}
+			else {
+				copy.addTag(tag, tag_idf.searchPrefix(completion, false).getValue());
+			}
+			unknown_tf.get(tag).add(itemId+"#"+completion);
+		}
+		copy.copyValuesFirstWords(tagList, itemToCopy);
+		return copy;
 	}
 
 	/**
@@ -915,28 +1021,13 @@ public class TopKAlgorithm{
 		}
 		return String.format(Locale.US, ""+
 				"<br><stat><b>Time</b>: main loop <b>%.3f</b> sec</stat><br><br>"+
-				//    			"Time for queries: %.3fsec Time for cand list: %.3fsec Time for termination condition: %.3fsec<br>"+
-				//    			"Time for heap transversal: %.3fsec Dji alg.: %.3f data ret: %.3f relaxation: %.3f<br>"+
-				//    			"Heap extractions: %d<br>"+
-				//    			"Heap insertions: %d<br>"+
-				//    			"Heap rebuilds:%d<br>"+
-				//    			"Heap interchanges: %d<br>"+
-				//    			"Total memory seeks: %d<br>"+
 				"<stat><b>%d</b> total <b>user lists</b>, last proximity <b>%.3f</b></stat><br><br>"+
 				"<stat><b>%d top-k changes</b>, last at position <b>%s</b></stat><br><br>"+
-				"<stat><b>%d</b> docs in <b>user lists</b>, <b>%d</b> in <b>inverted lists</b>, <b>%d</b> random</stat><br><br>",
-				//    			(float)time_preinit/(float)1000, 
+				"<stat><b>%d</b> docs in <b>user lists</b>, <b>%d</b> in <b>inverted lists</b>, <b>%d</b> random</stat><br><br>", 
 				(float)time_loop/(float)1000,
 				total_lists_social, this.userWeight,
 				total_topk_changes, tkpos,
 				total_documents_social, total_documents_asocial, total_rnd);
-		//    			(float)time_heapinit/(float)1000, (float)time_preinit/(float)1000, (float)time_loop/(float)1000,
-		//    			(float)time_queries/(float)1000, (float)time_clist/(float)1000, (float)time_term/(float)1000, 
-		//    			(float)time_heap/(float)1000, (float)time_dji/(float)1000, (float)time_dat/(float)1000, (float)time_rel/(float)1000,
-		//    			total_users, total_heap_adds, total_heap_interchanges, total_memory_seeks, 
-		//    			total_documents_social, total_conforming_lists, total_lists_social, 
-		//    			total_documents_asocial, total_topk_changes, 
-		//    			tkpos, tkval, idfs);
 	}
 
 	/**

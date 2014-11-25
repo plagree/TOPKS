@@ -5,9 +5,11 @@
 
 package org.dbweb.socialsearch.topktrust.datastructure;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 
+import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.socialsearch.shared.Methods;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 import org.dbweb.socialsearch.topktrust.datastructure.DataDistribution;
@@ -45,7 +47,7 @@ public class Item<E> implements Comparable<Item<E>>{
 	private HashMap<E,Float> uf = new HashMap<E,Float>();
 	public HashMap<E,Integer> tdf = new HashMap<E,Integer>();
 
-	private HashMap<E,Integer> r = new HashMap<E,Integer>();
+	private HashMap<E,Integer> r = new HashMap<E,Integer>(); //
 
 	private HashMap<E,Float> lastval = new HashMap<E,Float>();
 	private HashMap<E,Float> firstval = new HashMap<E,Float>();
@@ -72,6 +74,7 @@ public class Item<E> implements Comparable<Item<E>>{
 	private boolean candidate = false;
 	private boolean pruned = false;
 
+
 	private double minscorefromviews = 0;
 	private double maxscorefromviews = Double.POSITIVE_INFINITY;
 
@@ -92,6 +95,18 @@ public class Item<E> implements Comparable<Item<E>>{
 
 	public String getCompletion() {
 		return this.completion;
+	}
+	
+	public HashMap<E,Float> getUf() {
+		return this.uf;
+	}
+	
+	public HashMap<E,Integer> getR() {
+		return this.r;
+	}
+	
+	public HashMap<E,Integer> getTdf() {
+		return this.tdf;
 	}
 
 	//Public functionality methods
@@ -115,6 +130,38 @@ public class Item<E> implements Comparable<Item<E>>{
 
 	public void updateIdf(E tag, float idf) {
 		this.idf.put(tag, idf);
+	}
+	
+	public void updateNewWord(ArrayList<E> query, RadixTreeImpl tag_idf) {
+		System.out.println("TESTTTTTTTTTTTTTT: "+tag_idf.searchPrefix("sorrynotsorry", true).getValue());
+		System.out.println("TESTTTTTTTTTTTTTT: "+tag_idf.searchPrefix("sorrynotsorryy", true).getValue());
+		System.exit(0);
+		for (int i=0; i<query.size()-1; i++) {
+			this.idf.put(query.get(i), tag_idf.searchPrefix((String)query.get(i), true).getValue());
+		}
+		this.completion = "";
+	}
+	
+	public void copyValuesFirstWords(ArrayList<E >tagList, Item<E> itemToCopy) {
+		// = "";
+		for (int i=0; i<tagList.size()-1;i++) {
+			E tag = tagList.get(i);
+			if (itemToCopy.getSocialContrib().containsKey(tag)) {
+				this.soccontrib.put(tag, itemToCopy.getSocialContrib().get(tag));
+			}
+			if (itemToCopy.getNormalContrib().containsKey(tag)) {
+				this.normcontrib.put(tag, itemToCopy.getNormalContrib().get(tag));
+			}
+			if (itemToCopy.getTdf().containsKey(tag)) {
+				this.tdf.put(tag, itemToCopy.getTdf().get(tag));
+			}
+			if (itemToCopy.getUf().containsKey(tag)) {
+				this.uf.put(tag, itemToCopy.getUf().get(tag));
+			}
+			if (itemToCopy.getR().containsKey(tag)) {
+				r.put(tag, itemToCopy.getR().get(tag));
+			}
+		}
 	}
 
 	public void updatePrefix(E oldPrefix, E newPrefix) {
@@ -157,18 +204,19 @@ public class Item<E> implements Comparable<Item<E>>{
 		if(this.r.containsKey(tag))
 			prevR = r.get(tag);
 		r.put(tag, prevR + 1);
-		if(!firstval.containsKey(tag))
-			firstval.put(tag, value);
-		if(!firstpos.containsKey(tag))
-			firstpos.put(tag, pos);
-		lastval.put(tag, value);
-		lastpos.put(tag, pos);
+		//if(!firstval.containsKey(tag))
+		//	firstval.put(tag, value);
+		//if(!firstpos.containsKey(tag))
+		//	firstpos.put(tag, pos);
+		//lastval.put(tag, value);
+		//lastpos.put(tag, pos);
 		computedScoreUpdated = false;
 		computeWorstScore(approx);
 		return 0;
 	}
 
-	public int updateScoreDocs(E tag, int tdf, int approx){  	
+	public int updateScoreDocs(E tag, int tdf, int approx){
+		System.out.println("PING");
 		if(!this.tdf.containsKey(tag))    		
 			this.tdf.put(tag, tdf);    	
 		computedScoreUpdated = false;
@@ -223,14 +271,12 @@ public class Item<E> implements Comparable<Item<E>>{
 					double euw;
 					if(stf-stf_known>0)
 						euw = d_distr.getMean((String)tag)+Math.sqrt(d_distr.getVar((String)tag)/((stf - stf_known)*(float)(1.0f-Math.pow(1.0f-this.error,(float)1/(float)idf.size()))));
-					//    					euw = d_distr.getMean((String)tag)+Math.sqrt(d_distr.getVar((String)tag)/((stdf - r_ul)*(float)this.error));
 					else
 						euw = 0;
 					uw = (uw>euw)?euw:uw;
 				}
 				else{
 					double euw = d_distr.getMean((String)tag)+Math.sqrt(d_distr.getVar((String)tag)/(float)(1.0f-Math.pow(1.0f-this.error,(float)1/(float)idf.size())));
-					//    				double euw = d_distr.getMean((String)tag)+Math.sqrt(d_distr.getVar((String)tag)/this.error);
 					uw = (uw>euw)?euw:uw;
 				}
 				bsocial += (double)(stf - stf_known) * uw;   
@@ -239,7 +285,6 @@ public class Item<E> implements Comparable<Item<E>>{
 				double euw;
 				if(stf-stf_known>0)
 					euw = d_hist.getMaxEst((String)tag, (float)(1.0f-Math.pow(1.0f-this.error,(float)1/(float)(idf.size()*(stf - stf_known)))));
-				//					euw = d_hist.getMaxEst((String)tag, (float)(1.0f-Math.pow(1.0f-this.error,(float)1/(stdf - r_ul))));
 				else
 					euw = 0;
 				uw = (uw>euw)?euw:uw;
@@ -249,7 +294,6 @@ public class Item<E> implements Comparable<Item<E>>{
 				bsocial += (stf - stf_known) * uw;
 			}
 			bpartial = alpha*bnormal + (1-alpha)*bsocial;
-			//bestscore+=idf.get(tag)*bpartial;
 			bestscore += score.getScore(bpartial, idf.get(tag));
 		}    	
 		return this.bestscore;
@@ -285,8 +329,18 @@ public class Item<E> implements Comparable<Item<E>>{
 		}
 		return 0;
 	}
-
-	private void computeWorstScore(int approx){
+	
+	public void debugging() {
+		System.out.println(this.r.toString());	  // number of users seen
+		System.out.println(this.tags.toString()); // 1 for tag in
+		System.out.println(this.uf.toString());  // sum of weights of users found
+		System.out.println(this.idf.toString()); // IDF of tag
+		System.out.println(this.tdf.toString());  // real tdf in ILs
+		System.out.println(this.alpha);
+		System.out.println(this.score.toString());
+	}
+	
+	public void computeWorstScore(int approx){
 		float wscore = 0;
 		for(E tag : this.idf.keySet()){
 			float wsocial = 0;
@@ -302,8 +356,11 @@ public class Item<E> implements Comparable<Item<E>>{
 			if(uf.containsKey(tag)){
 				wsocial=uf.get(tag);
 			}
+			System.out.println((String)tag+", "+wnormal+", "+wsocial);
 			wpartial = alpha*wnormal + (1-alpha)*wsocial;
+			System.out.println("partial: "+wpartial);
 			wscore+=score.getScore(wpartial, idf.get(tag));
+			System.out.println("wscore: "+wscore);
 		}
 		this.worstscore = wscore;
 	}

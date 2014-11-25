@@ -34,8 +34,8 @@ public class ItemList implements Cloneable{
 	private static Logger log = LoggerFactory.getLogger(ItemList.class);
 
 	private HashMap<String,Item<String>> items; //this is a map (for fast access to item pointers)
-	private TreeSet<Item<String>> topk;			//the list of top-k items
-	private TreeSet<Item<String>> rest;			//the rest of the items
+	//private TreeSet<Item<String>> topk;			//the list of top-k items
+	//private TreeSet<Item<String>> rest;			//the rest of the items
 
 	private HashSet<String> current_topk = new HashSet<String>();
 	private DataDistribution d_distr;
@@ -102,15 +102,18 @@ public class ItemList implements Cloneable{
 	public int getRankingItem(String item, int k) {
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
+		int res = 0;
 		Collections.sort(sorted_av);
 		for (Item<String> currItem: sorted_av) {
 			if (item.equals(currItem.getItemId())) {
-				System.out.println(currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
-				return counter;
+				System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
+				System.out.println("Counter: "+counter);
+				if (res > 0)
+					res = counter;
 			}
 			counter++;
 		}
-		return 0;
+		return res;
 	}
 
 	public ItemList(HashMap<String,Item<String>> itemList){
@@ -132,14 +135,12 @@ public class ItemList implements Cloneable{
 	public void removeItem(Item<String> item){
 		this.items.remove(item.getItemId()+"#"+item.getCompletion());
 		this.sorted_items.remove(item);
-		//        this.topk.remove(item);
-		//        this.rest.remove(item);
 	}
 
-	public void updateVirtualItem(Item<String> virtualItem){
+	/*public void updateVirtualItem(Item<String> virtualItem){
 		//    	this.rest.remove(virtualItem);
 		//    	this.rest.add(virtualItem);
-	}
+	}*/
 
 	public Item<String> findItem(String itemId, String completion){
 		if(items.containsKey(itemId+"#"+completion))
@@ -161,9 +162,11 @@ public class ItemList implements Cloneable{
 	}
 
 	public void setContribs(ArrayList<String> query, RadixTreeImpl trie){
-		for(String tag:query){
-			this.normcontrib.put(tag, (double)trie.searchPrefix(tag, false).getValue());
-			this.soccontrib.put(tag, (double)trie.searchPrefix(tag, false).getValue());
+		boolean exact = false;
+		for(int i=0; i<query.size(); i++){
+			exact = !((i+1)==query.size()); // exact if not the last word (not a prefix)
+			this.normcontrib.put(query.get(i), (double)trie.searchPrefix(query.get(i), exact).getValue());
+			this.soccontrib.put(query.get(i), (double)trie.searchPrefix(query.get(i), exact).getValue());
 		}
 	}
 
@@ -211,8 +214,70 @@ public class ItemList implements Cloneable{
 		}
 		// END OF UPDATE
 		for (Item<String> item: filtered_items) {
+			if (item.getItemId().equals("234841160923877376")) {
+				System.out.println("Completion: "+item.getCompletion());
+				//System.out.println(item.getCompletion());
+			}
+			if (item.getCompletion().equals(""))
+				continue;
 			if (item.getCompletion().startsWith(newPrefix)) {
 				item.updatePrefix(previousPrefix, newPrefix);
+			}
+			else {
+				this.removeItem(item);
+			}
+		}
+	}
+	
+	public void cleanForNewWord(ArrayList<String> query, RadixTreeImpl tag_idf, RadixTreeImpl trie) {
+		String previousWord = query.get(query.size()-2);
+		PriorityQueue<Item<String>> filtered_items = new PriorityQueue<Item<String>>(sorted_items);
+		//String newPrefix = query.get(query.size()-1);
+		//String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
+		// UPDATE OF KEYS ON PREVIOUS PREFIX
+		this.setContribs(query, trie);
+		/*if (this.soccontrib.containsKey(previousPrefix)) {
+			if (this.soccontrib.get(previousPrefix) != null) {
+				double value = this.soccontrib.get(previousPrefix);
+				this.soccontrib.put(newPrefix, value);
+			}
+			else {
+				this.soccontrib.put(newPrefix, null);
+			}
+			this.soccontrib.remove(previousPrefix);
+		}
+		if (this.normcontrib.containsKey(previousPrefix)) {
+			if (this.normcontrib.get(previousPrefix) != null) {
+				double value = this.normcontrib.get(previousPrefix);
+				this.normcontrib.put(newPrefix, value);
+			}
+			else {
+				this.normcontrib.put(newPrefix, null);
+			}
+			this.normcontrib.remove(previousPrefix);
+
+		}*/
+		// END OF UPDATE
+		for (Item<String> item: filtered_items) {
+			//if (item.getItemId().equals("234841160923877376"))
+			//	System.out.println(item.getCompletion());
+			if (item.getCompletion().equals(previousWord)) {
+				if (item.getItemId().equals("234841160923877376")) {
+					System.out.println("before");
+					item.debugging();
+					item.computeWorstScore(1);
+					System.out.println(item.getComputedScore());
+				}
+					
+				item.updateNewWord(query, tag_idf);
+				this.removeItem(item); // to change the keys in the HashMaps
+				this.addItem(item);
+				if (item.getItemId().equals("234841160923877376")) {
+					System.out.println("after");
+					item.debugging();
+					item.computeWorstScore(1);
+					System.out.println(item.getComputedScore());
+				}
 			}
 			else {
 				this.removeItem(item);

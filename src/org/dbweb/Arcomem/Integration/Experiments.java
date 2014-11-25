@@ -25,7 +25,7 @@ public class Experiments {
 	public static final String taggers = "soc_tag_80";
 	private static final int k = 20;
 	private static final int method = 1;
-	private static final int[] times = {3, 10, 50, 200, 1000};
+	private static final int[] times = {/*3, 10,*/ 50/*, 200, 1000*/};
 	private static final int lengthPrefixMinimum = 2;
 	private static double coeff = 2.0f;
 
@@ -55,10 +55,10 @@ public class Experiments {
 
 		float alphas[] = {
 				0f,
-				//0.005f,
+				0.005f,
 				//0.01f,
 				//0.1f,
-				//1f
+				1f
 		};
 
 		//TODO clean the main loop, method for writing in xml, method to launch query more easily
@@ -112,6 +112,7 @@ public class Experiments {
 						nbSeenWords = 0;
 						query = new ArrayList<String>();
 						System.out.println("New time "+t+"...");
+						newQuery = true; // new word in query
 						for (String word: words) {
 							lengthTag = word.length();
 							nbSeenWords++;
@@ -119,8 +120,8 @@ public class Experiments {
 								System.out.println("New prefix");
 								if (l==lengthPrefixMinimum) {
 									query.add(word.substring(0, l));
-									newQuery = true; // new word in query
 									topk_alg.executeQuery(user, query, k, t, newQuery);
+									newQuery = false;
 									ranking = topk_alg.getRankingItem(item, k);
 									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"/*+nbSeenWords+"\t"*/+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
 									}
