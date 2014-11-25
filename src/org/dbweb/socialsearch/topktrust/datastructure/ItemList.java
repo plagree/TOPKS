@@ -105,6 +105,7 @@ public class ItemList implements Cloneable{
 		Collections.sort(sorted_av);
 		for (Item<String> currItem: sorted_av) {
 			if (item.equals(currItem.getItemId())) {
+				System.out.println(currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
 				return counter;
 			}
 			counter++;
@@ -184,8 +185,7 @@ public class ItemList implements Cloneable{
 
 	public void filterTopk(ArrayList<String> query) {
 		PriorityQueue<Item<String>> filtered_items = new PriorityQueue<Item<String>>(sorted_items);
-		String newPrefix = "";
-		newPrefix = query.get(query.size()-1);
+		String newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		// UPDATE OF KEYS ON PREVIOUS PREFIX
 		if (this.soccontrib.containsKey(previousPrefix)) {

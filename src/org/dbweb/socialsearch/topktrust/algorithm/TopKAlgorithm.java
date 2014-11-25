@@ -291,7 +291,8 @@ public class TopKAlgorithm{
 	 * @throws SQLException
 	 */
 	public int executeQuery(String seeker, ArrayList<String> query, int k, int t, boolean newQuery) throws SQLException{
-
+		if (query.size() != 1)
+			System.out.println(query.toString());
 		this.time_dji = 0;
 		this.time_term = 0;
 		this.time_clist = 0;
@@ -393,6 +394,7 @@ public class TopKAlgorithm{
 
 		if (newQuery) {
 			this.nbNeighbour = 0;
+			this.queryNbNeighbour = new ArrayList<Integer>();
 			Comparator comparator = new MinScoreItemComparator();   
 			virtualItem = createNewCandidateItem("<rest_of_the_items>",query,virtualItem,"");
 			candidates = new ItemList(comparator, this.score, Params.number_users, k, this.virtualItem, this.d_distr, this.d_hist, this.error);
@@ -457,6 +459,8 @@ public class TopKAlgorithm{
 	 * @throws SQLException
 	 */
 	public int executeQueryPlusLetter(String seeker, ArrayList<String> query, int k, int t) throws SQLException{
+		if (query.size() != 1)
+			System.out.println(query.toString());
 		String newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
@@ -606,8 +610,10 @@ public class TopKAlgorithm{
 		for(int i=0; i<query.size(); i++) {
 			tag = query.get(i);
 			nbNeighbourTag = this.queryNbNeighbour.get(i);
-			if (nbNeighbourTag > this.nbNeighbour)
+			if (nbNeighbourTag > this.nbNeighbour) {
+				System.out.println("pb 614");
 				continue; // We don't need to analyse this word because it was already done previously
+			}
 			this.queryNbNeighbour.add(i, this.nbNeighbour+1);
 			if(currentUser!=null){
 				boolean found_docs = false;
@@ -709,8 +715,10 @@ public class TopKAlgorithm{
 				found = false;
 				if (index == (query.size()-1)) //  prefix
 					completion = completion_trie.searchPrefix(query.get(index), false).getBestDescendant().getWord();
-				else
+				else {
+					System.out.println("problem 717");
 					completion = query.get(index);
+				}
 				if(unknown_tf.get(query.get(index)).contains(next_docs.get(query.get(index))+"#"+completion)){
 					Item<String> item1 = candidates.findItem(next_docs.get(query.get(index)), completion);
 					candidates.removeItem(item1);
@@ -718,8 +726,10 @@ public class TopKAlgorithm{
 					unknown_tf.get(query.get(index)).remove(next_docs.get(query.get(index))+"#"+completion); 
 					if (index == (query.size()-1)) //  prefix
 						advanceTextualList(query.get(index),index,false);
-					else
+					else {
 						advanceTextualList(query.get(index),index,true);
+						System.out.println("problem");
+					}
 					
 					candidates.addItem(item1);
 					found = true;
@@ -739,7 +749,11 @@ public class TopKAlgorithm{
 		RadixTreeNode currNode = null;
 		String currCompletion;
 		for(String tag:query){
-			if(next_docs.get(tag)!=""){
+			if (this.queryNbNeighbour.get(index)>this.nbNeighbour) {
+				System.out.println("problem 752");
+				continue;
+			}
+			if(!next_docs.get(tag).equals("")){
 				currNode = completion_trie.searchPrefix(tag, false);
 				currCompletion = currNode.getBestDescendant().getWord();
 				Item<String> item = candidates.findItem(next_docs.get(tag), currCompletion);
@@ -753,8 +767,10 @@ public class TopKAlgorithm{
 				docs_inserted = true;
 				if ((index+1)==query.size()) // prefix, we don't serach for exact match
 					advanceTextualList(tag,index,false);
-				else
+				else {
+					System.out.println("problem l765");
 					advanceTextualList(tag,index,true);
+				}
 			}
 			index++;
 		}

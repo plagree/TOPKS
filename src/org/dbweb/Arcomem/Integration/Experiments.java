@@ -49,15 +49,16 @@ public class Experiments {
 		Params.inputTestFile = args[3];
 		Params.outputTestFile = args[4];
 		int counterMax = Integer.parseInt(args[5]);
+		counterMax = 1;
 		Params.threshold = Float.parseFloat(args[6]);
 		float threshold_ref = Float.parseFloat(args[7]);
 
 		float alphas[] = {
 				0f,
-				0.005f,
-				0.01f,
-				0.1f,
-				1f
+				//0.005f,
+				//0.01f,
+				//0.1f,
+				//1f
 		};
 
 		//TODO clean the main loop, method for writing in xml, method to launch query more easily
