@@ -54,8 +54,8 @@ public class Experiments {
 		float threshold_ref = Float.parseFloat(args[7]);
 
 		float alphas[] = {
-				0f,
-				0.005f,
+				//0f,
+				//0.005f,
 				//0.01f,
 				//0.1f,
 				1f

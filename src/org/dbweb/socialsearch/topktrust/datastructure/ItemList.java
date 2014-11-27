@@ -32,11 +32,7 @@ import org.slf4j.LoggerFactory;
 public class ItemList implements Cloneable{
 
 	private static Logger log = LoggerFactory.getLogger(ItemList.class);
-
 	private HashMap<String,Item<String>> items; //this is a map (for fast access to item pointers)
-	//private TreeSet<Item<String>> topk;			//the list of top-k items
-	//private TreeSet<Item<String>> rest;			//the rest of the items
-
 	private HashSet<String> current_topk = new HashSet<String>();
 	private DataDistribution d_distr;
 	private DataHistogram d_hist;
@@ -98,23 +94,57 @@ public class ItemList implements Cloneable{
 		this.score = score;
 		this.k = k;
 	}
+	
 
+	public void removeItem(Item<String> item){
+		this.items.remove(item.getItemId()+"#"+item.getCompletion());
+		removeSortItem(this.sorted_items, item);
+	}
+
+	private static void removeSortItem(PriorityQueue<Item<String>> queue, Item<String> item) {
+		final Iterator<Item<String>> it = queue.iterator();
+		while(it.hasNext()) {
+			final Item<String> current = it.next();
+			if (current.getItemId().equals(item.getItemId()) 
+					&& current.getCompletion().equals(item.getCompletion())) {
+				it.remove();
+				break;
+			}
+		}
+	}
+	
 	public int getRankingItem(String item, int k) {
+		this.removeDuplicates();
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
 		int res = 0;
 		Collections.sort(sorted_av);
 		for (Item<String> currItem: sorted_av) {
+			//System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
 			if (item.equals(currItem.getItemId())) {
-				currItem.debugging();
 				System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
 				System.out.println("Counter: "+counter);
-				if (res > 0)
-					res = counter;
+				res = counter;
+				return res;
 			}
 			counter++;
 		}
 		return res;
+	}
+	
+	private void removeDuplicates() {
+		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
+		HashSet<String> uniqueItemIds = new HashSet<String>();
+		Collections.sort(sorted_av);
+		
+		for (Item<String> item: sorted_av) {
+			if (uniqueItemIds.contains(item.getItemId())) {
+				this.removeItem(item);
+			}
+			else {
+				uniqueItemIds.add(item.getItemId());
+			}
+		}
 	}
 
 	public ItemList(HashMap<String,Item<String>> itemList){
@@ -131,11 +161,6 @@ public class ItemList implements Cloneable{
 	public void addItem(Item<String> item){
 		this.items.put(item.getItemId()+"#"+item.getCompletion(), item);
 		if(!item.isPruned()) this.sorted_items.add(item);
-	}
-
-	public void removeItem(Item<String> item){
-		this.items.remove(item.getItemId()+"#"+item.getCompletion());
-		this.sorted_items.remove(item);
 	}
 
 	public Item<String> findItem(String itemId, String completion){
@@ -210,10 +235,6 @@ public class ItemList implements Cloneable{
 		}
 		// END OF UPDATE
 		for (Item<String> item: filtered_items) {
-			//if (item.getItemId().equals("234841160923877376")) {
-			//	System.out.println("Completion: "+item.getCompletion());
-				//System.out.println(item.getCompletion());
-			//}
 			if (item.getCompletion().equals(""))
 				continue;
 			if (item.getCompletion().startsWith(newPrefix)) {

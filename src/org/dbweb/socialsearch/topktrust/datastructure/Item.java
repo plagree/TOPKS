@@ -125,7 +125,6 @@ public class Item<E> implements Comparable<Item<E>>{
 	public void addTag(E tag, float idf){
 		this.tags.put(tag, 1);
 		this.idf.put(tag, new Float(idf));
-		//this.totalTags += number;
 	}
 
 	public void updateIdf(E tag, float idf) {
@@ -141,7 +140,6 @@ public class Item<E> implements Comparable<Item<E>>{
 	}
 	
 	public void copyValuesFirstWords(ArrayList<E >tagList, Item<E> itemToCopy) {
-		// = "";
 		for (int i=0; i<tagList.size()-1;i++) {
 			E tag = tagList.get(i);
 			if (itemToCopy.getSocialContrib().containsKey(tag)) {
@@ -202,19 +200,12 @@ public class Item<E> implements Comparable<Item<E>>{
 		if(this.r.containsKey(tag))
 			prevR = r.get(tag);
 		r.put(tag, prevR + 1);
-		//if(!firstval.containsKey(tag))
-		//	firstval.put(tag, value);
-		//if(!firstpos.containsKey(tag))
-		//	firstpos.put(tag, pos);
-		//lastval.put(tag, value);
-		//lastpos.put(tag, pos);
 		computedScoreUpdated = false;
 		computeWorstScore(approx);
 		return 0;
 	}
 
 	public int updateScoreDocs(E tag, int tdf, int approx){
-		//System.out.println("PING");
 		if(!this.tdf.containsKey(tag))    		
 			this.tdf.put(tag, tdf);    	
 		computedScoreUpdated = false;
@@ -354,11 +345,8 @@ public class Item<E> implements Comparable<Item<E>>{
 			if(uf.containsKey(tag)){
 				wsocial=uf.get(tag);
 			}
-			//System.out.println((String)tag+", "+wnormal+", "+wsocial);
 			wpartial = alpha*wnormal + (1-alpha)*wsocial;
-			//System.out.println("partial: "+wpartial);
 			wscore+=score.getScore(wpartial, idf.get(tag));
-			//System.out.println("wscore: "+wscore);
 		}
 		this.worstscore = wscore;
 	}
@@ -407,7 +395,6 @@ public class Item<E> implements Comparable<Item<E>>{
 			}    		
 			wpartial = alpha*wnormal + (1-alpha)*wsocial;
 			wpartial = (wpartial>wpart_est)?wpartial:wpart_est;
-			//wscore+=idf.get(tag)*wpartial;
 			wscore+=score.getScore(wpartial, idf.get(tag));
 		}
 		this.worstscore = wscore;
@@ -471,7 +458,6 @@ public class Item<E> implements Comparable<Item<E>>{
 					output_social +=".</br>";
 				else
 					output_social +=", ";
-
 				index++;
 			}
 		}
@@ -486,7 +472,6 @@ public class Item<E> implements Comparable<Item<E>>{
 					output_textual +=".<br>";
 				else
 					output_textual +=", ";
-
 				index++;
 			}
 		}
