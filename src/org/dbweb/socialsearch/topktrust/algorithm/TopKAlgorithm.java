@@ -238,6 +238,7 @@ public class TopKAlgorithm{
 	private ArrayList<Integer> queryNbNeighbour;
 
 	private int numloops=0; //amine
+	private boolean premiere = true;
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error) throws SQLException{
 		this.distFunc = distFunc;
@@ -293,6 +294,7 @@ public class TopKAlgorithm{
 	public int executeQuery(String seeker, ArrayList<String> query, int k, int t, boolean newQuery) throws SQLException{
 		if (query.size() != 1)
 			System.out.println("Query: "+query.toString());
+		this.premiere=true;
 		this.time_dji = 0;
 		this.time_term = 0;
 		this.time_clist = 0;
@@ -343,6 +345,7 @@ public class TopKAlgorithm{
 		boolean exact = false;
 		pos[index]=0;
 		next_docs.put(tag, next_docs2.get(completion_trie.searchPrefix(tag, exact).getBestDescendant().getWord()));
+		System.out.println("next_docs: "+next_docs.toString());
 		high_docs_query.put(tag, (int)completion_trie.searchPrefix(tag, false).getValue());
 		index++;
 		userWeights.put(tag, userWeight);
@@ -387,10 +390,6 @@ public class TopKAlgorithm{
 				hist.add(num);
 			}
 			this.d_hist = new DataHistogram(Params.number_users, hist);
-			/*for(String tag:query)
-			{
-				d_hist.setVals(tag, 0, 1.0f);
-			}*/
 		}
 		
 		this.nbNeighbour = 0;
@@ -403,7 +402,7 @@ public class TopKAlgorithm{
 		}
 		else {
 			// clean results obtained so far
-			candidates.cleanForNewWord(query, this.tag_idf, completion_trie);
+			candidates.cleanForNewWord(query, this.tag_idf, completion_trie, this.approxMethod);
 		}
 		
 		this.queryNbNeighbour.add(0);
@@ -467,6 +466,7 @@ public class TopKAlgorithm{
 	public int executeQueryPlusLetter(String seeker, ArrayList<String> query, int k, int t) throws SQLException{
 		if (query.size() != 1)
 			System.out.println("Query+l: "+query.toString());
+		this.premiere=true;
 		String newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
@@ -489,7 +489,7 @@ public class TopKAlgorithm{
 		userWeights.remove(previousPrefix);
 
 		candidates.filterTopk(query);
-
+		System.out.println("next_docs: "+next_docs.toString());
 		mainLoop(k, seeker, query, t);
 		return 0;
 	}
@@ -585,10 +585,6 @@ public class TopKAlgorithm{
 		boolean textual = false;
 		for(String tag:query){
 			if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS) {
-				//if (query.size()==2) {
-					//System.out.println(userWeights.toString());
-					//System.out.println(candidates.getSocialContrib(tag));
-				//}
 				upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getSocialContrib(tag);
 			}
 			else
@@ -657,20 +653,20 @@ public class TopKAlgorithm{
 									Item<String> item2 = candidates.findItem(itemId, "");
 									
 									if (item2!=null) {
-										if (query.size()>1) {
+										//if (query.size()>1) {
 											//item2.computeWorstScore(approxMethod);
-											System.out.println("ANALYSIS: "+item2.getComputedScore());
-										}
+											//System.out.println("ANALYSIS 1: "+item2.getComputedScore());
+										//}
 										item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
-										item.computeWorstScore(approxMethod);
-										if (query.size()>1) {
-											System.out.println("ANALYSIS: "+item2.getComputedScore());
+										//item.computeWorstScore(approxMethod);
+										//if (query.size()>1) {
+											//System.out.println("ANALYSIS 2: "+item2.getComputedScore());
 											//item2.debugging();
-											System.out.println("ANALYSIS: "+item.getComputedScore());
+											//System.out.println("ANALYSIS 3: "+item.getComputedScore());
 											//item.debugging();
-											TESTING = true;
+											//TESTING = true;
 											//System.exit(0);
-										}
+										//}
 									}
 									else
 										item = this.createNewCandidateItem(itemId, query,item, completion);
@@ -685,26 +681,24 @@ public class TopKAlgorithm{
 								//}  
 								
 								userW = userWeight;
-								if (query.size()>1) {
-									item.computeWorstScore(approxMethod);
-									System.out.println("Completion: "+completion);
+								//if (query.size()>1) {
+									//item.computeWorstScore(approxMethod);
+									//System.out.println("Completion: "+completion);
 									//System.out.println("ANALYSIS: "+item2.getComputedScore());
-									System.out.println("ANALYSIS2: "+item.getComputedScore());
+									//System.out.println("ANALYSIS 4: "+item.getComputedScore());
 									//System.exit(0);
-								}
+								//}
 								item.updateScore(tag, userW, pos[index], approxMethod);
 								//if (query.size()>1) {
 									//System.out.println("ANALYSIS: "+item2.getComputedScore());
 								//}
 								//item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
 								
-								if (query.size()>1) {
-									item.computeWorstScore(approxMethod);
+								//if (query.size()>1) {
+									//item.computeWorstScore(approxMethod);
 									//System.out.println("ANALYSIS: "+item2.getComputedScore());
-									System.out.println("ANALYSIS3: "+item.getComputedScore());
-									if (TESTING)
-										System.exit(0);
-								}
+									//System.out.println("ANALYSIS 5: "+item.getComputedScore());
+								//}
 								candidates.addItem(item);								
 								docs_inserted = true;
 								total_documents_social++;                            
@@ -803,37 +797,28 @@ public class TopKAlgorithm{
 		int index = 0;
 		RadixTreeNode currNode = null;
 		String currCompletion;
-		//System.out.println("AQUI");
 		for(String tag:query){
-			//System.out.println(this.queryNbNeighbour.get(index)+", current: "+this.nbNeighbour);
+			if (premiere)
+				System.out.println("Premiere : "+tag+", "+this.queryNbNeighbour.toString());
 			if (this.queryNbNeighbour.get(index)>this.nbNeighbour) {
-				//System.out.println("problem 752");
 				continue;
 			}
-			//System.out.println("AQUI");
-			
-			/*
-			 * Item<String> item = candidates.findItem(itemId, completion);
-								if (item==null) {
-									Item<String> item2 = candidates.findItem(itemId, "");
-									if (item2!=null)
-										item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
-									else
-										item = this.createNewCandidateItem(itemId, query,item, completion);
-								}
-								else {
-									candidates.removeItem(item);
-								}
-			 */
+			if (premiere)
+				System.out.println("Premiere : "+tag+", "+next_docs.get(tag));
 			if(!next_docs.get(tag).equals("")){
+				//System.out.println("ping l810 ");
+				System.out.println("ping l808 "+next_docs.get(tag));
 				currNode = completion_trie.searchPrefix(tag, false);
 				currCompletion = currNode.getBestDescendant().getWord();
+				System.out.println("ICI "+next_docs.get(tag)+", "+currCompletion);
 				Item<String> item = candidates.findItem(next_docs.get(tag), currCompletion);
 				if(item==null) {
 					//item = createNewCandidateItem(next_docs.get(tag), query, item, currCompletion);
 					Item<String> item2 = candidates.findItem(next_docs.get(tag), "");
-					if (item2!=null)
+					if (item2!=null) {
+						System.out.println("here l816");
 						item = this.createCopyCandidateItem(item2, next_docs.get(tag), query, item, currCompletion);
+					}
 					else
 						item = this.createNewCandidateItem(next_docs.get(tag), query,item, currCompletion);
 				}
@@ -852,7 +837,8 @@ public class TopKAlgorithm{
 			}
 			index++;
 		}
-		//System.exit(0);
+		if (premiere)
+			premiere=false;
 	}
 
 	/**

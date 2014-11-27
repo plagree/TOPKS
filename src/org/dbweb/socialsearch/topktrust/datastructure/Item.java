@@ -132,14 +132,12 @@ public class Item<E> implements Comparable<Item<E>>{
 		this.idf.put(tag, idf);
 	}
 	
-	public void updateNewWord(ArrayList<E> query, RadixTreeImpl tag_idf) {
-		System.out.println("TESTTTTTTTTTTTTTT: "+tag_idf.searchPrefix("sorrynotsorry", true).getValue());
-		System.out.println("TESTTTTTTTTTTTTTT: "+tag_idf.searchPrefix("sorrynotsorryy", true).getValue());
-		System.exit(0);
+	public void updateNewWord(ArrayList<E> query, RadixTreeImpl tag_idf, int approx) {
 		for (int i=0; i<query.size()-1; i++) {
 			this.idf.put(query.get(i), tag_idf.searchPrefix((String)query.get(i), true).getValue());
 		}
 		this.completion = "";
+		this.computeWorstScore(approx);
 	}
 	
 	public void copyValuesFirstWords(ArrayList<E >tagList, Item<E> itemToCopy) {
@@ -216,7 +214,7 @@ public class Item<E> implements Comparable<Item<E>>{
 	}
 
 	public int updateScoreDocs(E tag, int tdf, int approx){
-		System.out.println("PING");
+		//System.out.println("PING");
 		if(!this.tdf.containsKey(tag))    		
 			this.tdf.put(tag, tdf);    	
 		computedScoreUpdated = false;
@@ -356,11 +354,11 @@ public class Item<E> implements Comparable<Item<E>>{
 			if(uf.containsKey(tag)){
 				wsocial=uf.get(tag);
 			}
-			System.out.println((String)tag+", "+wnormal+", "+wsocial);
+			//System.out.println((String)tag+", "+wnormal+", "+wsocial);
 			wpartial = alpha*wnormal + (1-alpha)*wsocial;
-			System.out.println("partial: "+wpartial);
+			//System.out.println("partial: "+wpartial);
 			wscore+=score.getScore(wpartial, idf.get(tag));
-			System.out.println("wscore: "+wscore);
+			//System.out.println("wscore: "+wscore);
 		}
 		this.worstscore = wscore;
 	}

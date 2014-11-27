@@ -106,6 +106,7 @@ public class ItemList implements Cloneable{
 		Collections.sort(sorted_av);
 		for (Item<String> currItem: sorted_av) {
 			if (item.equals(currItem.getItemId())) {
+				currItem.debugging();
 				System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
 				System.out.println("Counter: "+counter);
 				if (res > 0)
@@ -136,11 +137,6 @@ public class ItemList implements Cloneable{
 		this.items.remove(item.getItemId()+"#"+item.getCompletion());
 		this.sorted_items.remove(item);
 	}
-
-	/*public void updateVirtualItem(Item<String> virtualItem){
-		//    	this.rest.remove(virtualItem);
-		//    	this.rest.add(virtualItem);
-	}*/
 
 	public Item<String> findItem(String itemId, String completion){
 		if(items.containsKey(itemId+"#"+completion))
@@ -214,10 +210,10 @@ public class ItemList implements Cloneable{
 		}
 		// END OF UPDATE
 		for (Item<String> item: filtered_items) {
-			if (item.getItemId().equals("234841160923877376")) {
-				System.out.println("Completion: "+item.getCompletion());
+			//if (item.getItemId().equals("234841160923877376")) {
+			//	System.out.println("Completion: "+item.getCompletion());
 				//System.out.println(item.getCompletion());
-			}
+			//}
 			if (item.getCompletion().equals(""))
 				continue;
 			if (item.getCompletion().startsWith(newPrefix)) {
@@ -229,55 +225,28 @@ public class ItemList implements Cloneable{
 		}
 	}
 	
-	public void cleanForNewWord(ArrayList<String> query, RadixTreeImpl tag_idf, RadixTreeImpl trie) {
+	public void cleanForNewWord(ArrayList<String> query, RadixTreeImpl tag_idf, RadixTreeImpl trie, int approx) {
 		String previousWord = query.get(query.size()-2);
 		PriorityQueue<Item<String>> filtered_items = new PriorityQueue<Item<String>>(sorted_items);
-		//String newPrefix = query.get(query.size()-1);
-		//String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
-		// UPDATE OF KEYS ON PREVIOUS PREFIX
 		this.setContribs(query, trie);
-		/*if (this.soccontrib.containsKey(previousPrefix)) {
-			if (this.soccontrib.get(previousPrefix) != null) {
-				double value = this.soccontrib.get(previousPrefix);
-				this.soccontrib.put(newPrefix, value);
-			}
-			else {
-				this.soccontrib.put(newPrefix, null);
-			}
-			this.soccontrib.remove(previousPrefix);
-		}
-		if (this.normcontrib.containsKey(previousPrefix)) {
-			if (this.normcontrib.get(previousPrefix) != null) {
-				double value = this.normcontrib.get(previousPrefix);
-				this.normcontrib.put(newPrefix, value);
-			}
-			else {
-				this.normcontrib.put(newPrefix, null);
-			}
-			this.normcontrib.remove(previousPrefix);
-
-		}*/
 		// END OF UPDATE
 		for (Item<String> item: filtered_items) {
-			//if (item.getItemId().equals("234841160923877376"))
-			//	System.out.println(item.getCompletion());
 			if (item.getCompletion().equals(previousWord)) {
-				if (item.getItemId().equals("234841160923877376")) {
-					System.out.println("before");
-					item.debugging();
-					item.computeWorstScore(1);
-					System.out.println(item.getComputedScore());
-				}
-					
-				item.updateNewWord(query, tag_idf);
+				//if (item.getItemId().equals("234841160923877376")) {
+				//	System.out.println("before");
+				//	item.debugging();
+				//	item.computeWorstScore(1);
+				//	System.out.println(item.getComputedScore());
+				//}
+				item.updateNewWord(query, tag_idf, approx);
 				this.removeItem(item); // to change the keys in the HashMaps
 				this.addItem(item);
-				if (item.getItemId().equals("234841160923877376")) {
-					System.out.println("after");
-					item.debugging();
-					item.computeWorstScore(1);
-					System.out.println(item.getComputedScore());
-				}
+				//if (item.getItemId().equals("234841160923877376")) {
+				//	System.out.println("after");
+				//	item.debugging();
+				//	item.computeWorstScore(1);
+				//	System.out.println(item.getComputedScore());
+				//}
 			}
 			else {
 				this.removeItem(item);
