@@ -49,7 +49,6 @@ public class Experiments {
 		Params.inputTestFile = args[3];
 		Params.outputTestFile = args[4];
 		int counterMax = Integer.parseInt(args[5]);
-		//counterMax = 1;
 		Params.threshold = Float.parseFloat(args[6]);
 		float threshold_ref = Float.parseFloat(args[7]);
 
@@ -73,12 +72,11 @@ public class Experiments {
 			String[] data;
 			String user, item, tags;
 			String words[];
-			int numberUsersWhoTaggedThisItem;
+			String numberUsersWhoTaggedThisItem;
 			int lengthTag;
 			ArrayList<String> query;
 			int ranking;
 			int counter = 0;
-			int counter2 = 0;
 			int nbSeenWords = 0;
 			boolean newQuery = false;
 			while ((line = br.readLine()) != null) {
@@ -102,7 +100,7 @@ public class Experiments {
 					System.out.println("Not enough friends...");
 					continue;
 				}
-				numberUsersWhoTaggedThisItem = Integer.parseInt(data[3]);
+				numberUsersWhoTaggedThisItem = data[3]; //Integer.parseInt(data[3]);
 				for (float alpha: alphas) {
 					System.out.println("New alpha: "+alpha+" ...");
 					topk_alg.setAlpha(alpha);
@@ -146,7 +144,6 @@ public class Experiments {
 				if (counter >= counterMax)
 					break;
 			}
-			System.out.println(counter2);
 			System.out.println(counter+" lines have been processed...");
 			br.close();
 			bw.close();
