@@ -25,7 +25,7 @@ public class Experiments {
 	public static final String taggers = "soc_tag_80";
 	private static final int k = 20;
 	private static final int method = 1;
-	private static final int[] times = {/*3, 10,*/ 50/*, 200, 1000*/};
+	private static final int[] times = {3, 10, 50, 200, 1000};
 	private static final int lengthPrefixMinimum = 2;
 	private static double coeff = 2.0f;
 
@@ -49,15 +49,15 @@ public class Experiments {
 		Params.inputTestFile = args[3];
 		Params.outputTestFile = args[4];
 		int counterMax = Integer.parseInt(args[5]);
-		counterMax = 1;
+		//counterMax = 1;
 		Params.threshold = Float.parseFloat(args[6]);
 		float threshold_ref = Float.parseFloat(args[7]);
 
 		float alphas[] = {
-				//0f,
-				//0.005f,
-				//0.01f,
-				//0.1f,
+				0f,
+				0.005f,
+				0.01f,
+				0.1f,
 				1f
 		};
 
@@ -123,14 +123,14 @@ public class Experiments {
 									topk_alg.executeQuery(user, query, k, t, newQuery);
 									newQuery = false;
 									ranking = topk_alg.getRankingItem(item, k);
-									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"/*+nbSeenWords+"\t"*/+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
+									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+'\t'+ranking+"\t"+nbSeenWords+"\n");
 									}
 								else {
 									query.remove(nbSeenWords-1);
 									query.add(word.substring(0, l));
 									topk_alg.executeQueryPlusLetter(user, query, l, t);
 									ranking = topk_alg.getRankingItem(item, k);
-									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"/*+nbSeenWords+"\t"*/+alpha+"\t"+Params.threshold+"\t"+ranking+"\n");
+									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\t"+nbSeenWords+"\n");
 								}
 							}
 						}

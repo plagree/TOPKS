@@ -74,19 +74,12 @@ public class ItemList implements Cloneable{
 	}
 
 	public ItemList(Comparator comparator, Score score, int num_users, int k, Item<String> virtualItem, DataDistribution d_distr, DataHistogram d_hist, double error){
-		try {
-			fil = new FileWriter("confidence.csv");
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		this.min_from_topk = 0;
 		this.max_from_rest = 0;
 		this.number_of_candidates = 0;
 		this.items = new HashMap<String,Item<String>>();
 		this.sorted_items = new PriorityQueue<Item<String>>();
 		this.comparator = comparator;
-		this.k1 = k1;
 		this.num_users = num_users;
 		this.d_distr = d_distr;
 		this.d_hist = d_hist;
@@ -114,25 +107,32 @@ public class ItemList implements Cloneable{
 	}
 	
 	public int getRankingItem(String item, int k) {
+
 		this.removeDuplicates();
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
-		int res = 0;
 		Collections.sort(sorted_av);
+		//System.out.println("Top 10:");
 		for (Item<String> currItem: sorted_av) {
-			//System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
-			if (item.equals(currItem.getItemId())) {
+			if (counter <10)
 				System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
-				System.out.println("Counter: "+counter);
-				res = counter;
-				return res;
+			if (item.equals(currItem.getItemId())) {
+				return counter;
 			}
 			counter++;
 		}
-		return res;
+		return 0;
 	}
 	
 	private void removeDuplicates() {
+		/*ArrayList<Item<String>> sorted_av2 = new ArrayList<Item<String>>(sorted_items);
+		Collections.sort(sorted_av2);
+		int counter = 0;
+		for (Item<String> currItem: sorted_av2) {
+			if (counter <4)
+				System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
+			counter++;
+		}*/
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		HashSet<String> uniqueItemIds = new HashSet<String>();
 		Collections.sort(sorted_av);
@@ -247,31 +247,37 @@ public class ItemList implements Cloneable{
 	}
 	
 	public void cleanForNewWord(ArrayList<String> query, RadixTreeImpl tag_idf, RadixTreeImpl trie, int approx) {
+		System.out.println("BEFORE");
+		ArrayList<Item<String>> sorted_av2 = new ArrayList<Item<String>>(sorted_items);
+		Collections.sort(sorted_av2);
+		int counter = 0;
+		for (Item<String> currItem: sorted_av2) {
+			if (counter <4)
+				System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
+			counter++;
+		}
 		String previousWord = query.get(query.size()-2);
 		PriorityQueue<Item<String>> filtered_items = new PriorityQueue<Item<String>>(sorted_items);
 		this.setContribs(query, trie);
 		// END OF UPDATE
 		for (Item<String> item: filtered_items) {
 			if (item.getCompletion().equals(previousWord)) {
-				//if (item.getItemId().equals("234841160923877376")) {
-				//	System.out.println("before");
-				//	item.debugging();
-				//	item.computeWorstScore(1);
-				//	System.out.println(item.getComputedScore());
-				//}
 				item.updateNewWord(query, tag_idf, approx);
 				this.removeItem(item); // to change the keys in the HashMaps
 				this.addItem(item);
-				//if (item.getItemId().equals("234841160923877376")) {
-				//	System.out.println("after");
-				//	item.debugging();
-				//	item.computeWorstScore(1);
-				//	System.out.println(item.getComputedScore());
-				//}
 			}
 			else {
 				this.removeItem(item);
 			}
+		}
+		System.out.println("AFTER");
+		sorted_av2 = new ArrayList<Item<String>>(sorted_items);
+		Collections.sort(sorted_av2);
+		counter = 0;
+		for (Item<String> currItem: sorted_av2) {
+			if (counter <4)
+				System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
+			counter++;
 		}
 	}
 

@@ -292,8 +292,8 @@ public class TopKAlgorithm{
 	 * @throws SQLException
 	 */
 	public int executeQuery(String seeker, ArrayList<String> query, int k, int t, boolean newQuery) throws SQLException{
-		if (query.size() != 1)
-			System.out.println("Query: "+query.toString());
+		//if (query.size() != 1)
+		//	System.out.println("Query: "+query.toString());
 		this.premiere=true;
 		this.time_dji = 0;
 		this.time_term = 0;
@@ -459,8 +459,8 @@ public class TopKAlgorithm{
 	 * @throws SQLException
 	 */
 	public int executeQueryPlusLetter(String seeker, ArrayList<String> query, int k, int t) throws SQLException{
-		if (query.size() != 1)
-			System.out.println("Query+l: "+query.toString());
+		//if (query.size() != 1)
+		//	System.out.println("Query+l: "+query.toString());
 		this.premiere=true;
 		String newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
@@ -724,7 +724,6 @@ public class TopKAlgorithm{
 						advanceTextualList(query.get(index),index,false);
 					else {
 						advanceTextualList(query.get(index),index,true);
-						System.out.println("We ADVANCE ON THE WORDS BEFORE PREFIX - l 730");
 					}
 
 					candidates.addItem(item1);
@@ -755,7 +754,6 @@ public class TopKAlgorithm{
 				if(item==null) {
 					Item<String> item2 = candidates.findItem(next_docs.get(tag), "");
 					if (item2!=null) {
-						System.out.println("NEW ITEM IN TEXTUAL l758");
 						item = this.createCopyCandidateItem(item2, next_docs.get(tag), query, item, currCompletion);
 					}
 					else
