@@ -107,7 +107,6 @@ public class ItemList implements Cloneable{
 	}
 	
 	public int getRankingItem(String item, int k) {
-
 		this.removeDuplicates();
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
@@ -136,7 +135,6 @@ public class ItemList implements Cloneable{
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		HashSet<String> uniqueItemIds = new HashSet<String>();
 		Collections.sort(sorted_av);
-		
 		for (Item<String> item: sorted_av) {
 			if (uniqueItemIds.contains(item.getItemId())) {
 				this.removeItem(item);

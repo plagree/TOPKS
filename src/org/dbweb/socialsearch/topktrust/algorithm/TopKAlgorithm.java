@@ -127,8 +127,6 @@ public class TopKAlgorithm{
 	protected HashMap<String,Float> userWeights;
 	protected ArrayList<Double> proximities;
 	protected HashMap<String,Integer> tagFreqs;
-	//protected HashMap<String,Integer> lastpos;
-	//protected HashMap<String,Float> lastval;
 	protected HashMap<String,Float> maxval;
 	protected HashSet<String> taggers;
 	protected HashMap<String,ArrayList<UserView>> userviews;
@@ -136,7 +134,6 @@ public class TopKAlgorithm{
 	protected ArrayList<Integer> vst;
 	protected HashSet<Integer> skr;
 	protected HashMap<String, String> next_docs;
-	//protected ArrayList<DocumentNumTag>[] docs;
 	protected ArrayList<String> dictionary;
 	protected PatriciaTrie<String> dictionaryTrie;
 	protected RadixTreeImpl completion_trie; // Completion trie
@@ -708,6 +705,7 @@ public class TopKAlgorithm{
 		boolean found = true;
 		while (found) {
 			String completion;
+			String autre = completion_trie.searchPrefix(query.get(query.size()-1), false).getBestDescendant().getWord();;
 			for(index=0;index<query.size();index++) {
 				found = false;
 				if (index == (query.size()-1)) //  prefix
@@ -716,7 +714,7 @@ public class TopKAlgorithm{
 					completion = query.get(index);
 				}
 				if(unknown_tf.get(query.get(index)).contains(next_docs.get(query.get(index))+"#"+completion)){
-					Item<String> item1 = candidates.findItem(next_docs.get(query.get(index)), completion);
+					Item<String> item1 = candidates.findItem(next_docs.get(query.get(index)), autre);
 					candidates.removeItem(item1);
 					item1.updateScoreDocs(query.get(index), high_docs_query.get(query.get(index)), approxMethod);
 					unknown_tf.get(query.get(index)).remove(next_docs.get(query.get(index))+"#"+completion); 
@@ -892,7 +890,7 @@ public class TopKAlgorithm{
 				item.addTag(tag, tag_idf.searchPrefix(tag, true).getValue());
 			}
 			else {
-				item.addTag(tag, tag_idf.searchPrefix(completion, false).getValue());
+				item.addTag(tag, tag_idf.searchPrefix(completion, true).getValue());
 			}
 			unknown_tf.get(tag).add(itemId+"#"+completion);
 		}
@@ -918,7 +916,7 @@ public class TopKAlgorithm{
 				copy.addTag(tag, tag_idf.searchPrefix(tag, true).getValue());
 			}
 			else {
-				copy.addTag(tag, tag_idf.searchPrefix(completion, false).getValue());
+				copy.addTag(tag, tag_idf.searchPrefix(completion, true).getValue());
 			}
 			unknown_tf.get(tag).add(itemId+"#"+completion);
 		}
