@@ -110,7 +110,7 @@ public class ItemList implements Cloneable{
 		this.removeDuplicates();
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
-		Collections.sort(sorted_av);
+		Collections.sort(sorted_av, new ItemAverageScoreComparator());
 		//System.out.println("Top 10:");
 		for (Item<String> currItem: sorted_av) {
 			if (counter <10)
@@ -124,14 +124,6 @@ public class ItemList implements Cloneable{
 	}
 	
 	private void removeDuplicates() {
-		/*ArrayList<Item<String>> sorted_av2 = new ArrayList<Item<String>>(sorted_items);
-		Collections.sort(sorted_av2);
-		int counter = 0;
-		for (Item<String> currItem: sorted_av2) {
-			if (counter <4)
-				System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
-			counter++;
-		}*/
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		HashSet<String> uniqueItemIds = new HashSet<String>();
 		Collections.sort(sorted_av);
