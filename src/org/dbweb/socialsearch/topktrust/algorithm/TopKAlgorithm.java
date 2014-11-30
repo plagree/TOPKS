@@ -715,6 +715,10 @@ public class TopKAlgorithm{
 				}
 				if(unknown_tf.get(query.get(index)).contains(next_docs.get(query.get(index))+"#"+completion)){
 					Item<String> item1 = candidates.findItem(next_docs.get(query.get(index)), autre);
+					if (item1==null) {
+						unknown_tf.get(query.get(index)).remove(next_docs.get(query.get(index))+"#"+completion); // DON4T UNDERSTAND
+						continue;
+					}
 					candidates.removeItem(item1);
 					item1.updateScoreDocs(query.get(index), high_docs_query.get(query.get(index)), approxMethod);
 					unknown_tf.get(query.get(index)).remove(next_docs.get(query.get(index))+"#"+completion); 
