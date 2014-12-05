@@ -18,15 +18,14 @@ import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
 
 public class Experiments {
 
-	//private static float alpha = 0.0f;
 	private static final boolean heap = true;
 	private static final PathCompositionFunction pathFunction = new PathMultiplication();
 	public static final String network = "soc_snet_dt";
 	public static final String taggers = "soc_tag_80";
 	private static final int k = 20;
 	private static final int method = 1;
-	private static final int[] times = {3, 10, 50, 200, 1000};
-	private static final int lengthPrefixMinimum = 2;
+	private static final int[] times = {3, /*10, 50,*/ 200/*, 1000*/};
+	private static final int lengthPrefixMinimum = 1;
 	private static double coeff = 2.0f;
 
 	public static void main(String[] args) throws IllegalArgumentException, ClassNotFoundException, SQLException{
@@ -37,7 +36,7 @@ public class Experiments {
 		BM25Score score = new BM25Score();
 
 		if (args.length != 8) {
-			System.out.println("Usage: java -jar -Xmx10000m executable.jar /path/to/files.txt numberOfDocuments networkFile inputTestFile outputFileName numberLinesTest thresholdRef\nYou gave "+args.length+" parameters");
+			System.out.println("Usage: java -jar -Xmx13000m executable.jar /path/to/files.txt numberOfDocuments networkFile inputTestFile outputFileName numberLinesTest thresholdRef\nYou gave "+args.length+" parameters");
 			for (int i=0; i<args.length; i++) {
 				System.out.println("Argument "+(i+1)+": "+args[i]);
 			}
@@ -56,7 +55,7 @@ public class Experiments {
 				0f,
 				0.005f,
 				0.01f,
-				0.1f,
+				//0.1f,
 				1f
 		};
 
@@ -100,7 +99,7 @@ public class Experiments {
 					System.out.println("Not enough friends...");
 					continue;
 				}
-				numberUsersWhoTaggedThisItem = data[3]; //Integer.parseInt(data[3]);
+				numberUsersWhoTaggedThisItem = data[3];
 				for (float alpha: alphas) {
 					System.out.println("New alpha: "+alpha+" ...");
 					topk_alg.setAlpha(alpha);
@@ -131,6 +130,7 @@ public class Experiments {
 									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\t"+nbSeenWords+"\n");
 								}
 							}
+							break; // Just one word so far
 						}
 						topk_alg.reinitialize(words, lengthPrefixMinimum);
 					}

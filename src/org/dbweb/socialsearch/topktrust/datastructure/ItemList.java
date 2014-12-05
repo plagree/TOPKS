@@ -107,14 +107,13 @@ public class ItemList implements Cloneable{
 	}
 	
 	public int getRankingItem(String item, int k) {
-		this.removeDuplicates();
+		//this.removeDuplicates();
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
 		Collections.sort(sorted_av, new ItemAverageScoreComparator());
-		//System.out.println("Top 10:");
 		for (Item<String> currItem: sorted_av) {
-			if (counter <10)
-				System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
+			//if (counter <10)
+			//	System.out.println("Data: "+currItem.getComputedScore()+" "+currItem.getCompletion()+" "+currItem.getItemId());
 			if (item.equals(currItem.getItemId())) {
 				return counter;
 			}
@@ -237,6 +236,7 @@ public class ItemList implements Cloneable{
 	}
 	
 	public void cleanForNewWord(ArrayList<String> query, RadixTreeImpl tag_idf, RadixTreeImpl trie, int approx) {
+		this.removeDuplicates();
 		String previousWord = query.get(query.size()-2);
 		PriorityQueue<Item<String>> filtered_items = new PriorityQueue<Item<String>>(sorted_items);
 		this.setContribs(query, trie);

@@ -150,16 +150,7 @@ public class TopKAlgorithm{
 
 	protected boolean terminationCondition;
 
-	protected long time_heapinit;
-	protected long time_preinit;
 	protected long time_loop;
-	protected long time_queries;
-	protected long time_clist;
-	protected long time_term;
-	protected long time_heap;
-	protected long time_dji;
-	protected long time_dat;
-	protected long time_rel;
 
 	protected int total_documents_social;
 	protected int total_documents_asocial;
@@ -291,13 +282,8 @@ public class TopKAlgorithm{
 	public int executeQuery(String seeker, ArrayList<String> query, int k, int t, boolean newQuery) throws SQLException{
 		//if (query.size() != 1)
 		//	System.out.println("Query: "+query.toString());
+		System.out.println(query.toString()+", "+seeker);
 		this.premiere=true;
-		this.time_dji = 0;
-		this.time_term = 0;
-		this.time_clist = 0;
-		this.time_queries = 0;
-		this.time_heap = 0;
-		this.time_dat = 0;
 		this.max_pos_val = 1.0f;
 		this.d_distr = null;
 		this.d_hist = null;
@@ -344,19 +330,6 @@ public class TopKAlgorithm{
 
 		proximities = new ArrayList<Double>();
 		proximities.add((double)userWeight);
-
-		//getting the userviews
-		//String sqlGetViews = sqlGetViewsTemplate;
-		//int idx=0;
-		/*for(String tag:query){
-			if(idx<query.size()-1){
-				sqlGetViews+=String.format("\'%s\',", tag);
-			}
-			else{
-				sqlGetViews+=String.format("\'%s\')", tag);
-			}
-			idx++;
-		}*/
 
 		if((this.approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
 			String sqlGetDistribution = String.format(sqlGetDistributionTemplate, this.networkTable);
@@ -560,8 +533,8 @@ public class TopKAlgorithm{
 				terminationCondition = true;
 			loops++;
 		}while(!terminationCondition&&!finished&&underTimeLimit);
-		//this.numloops=loops;
-		//System.out.println("There were "+loops+" loops ...");
+		this.numloops=loops;
+		System.out.println("There were "+loops+" loops ...");
 	}
 
 	/**
@@ -633,6 +606,8 @@ public class TopKAlgorithm{
 							Entry<String, HashSet<String>> currentEntry = iterator.next();
 							String completion = currentEntry.getKey();
 							for(String itemId: currentEntry.getValue()) {
+								if (itemId.equals("230449175236599808"))
+									System.out.println(currentUserId+" : "+completion);
 								found_docs = true;
 								Item<String> item = candidates.findItem(itemId, completion);
 								if (item==null) {
@@ -641,10 +616,15 @@ public class TopKAlgorithm{
 									if (item2!=null) {
 										item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
 									}
-									else
+									else {
+										if (itemId.equals("230449175236599808"))
+											System.out.println("ICI");
 										item = this.createNewCandidateItem(itemId, query,item, completion);
+									}
 								}
 								else {
+									if (itemId.equals("230449175236599808"))
+										System.out.println("ICI2");
 									candidates.removeItem(item);
 								}
 								float userW = 0;
@@ -705,7 +685,7 @@ public class TopKAlgorithm{
 		boolean found = true;
 		while (found) {
 			String completion;
-			String autre = completion_trie.searchPrefix(query.get(query.size()-1), false).getBestDescendant().getWord();;
+			String autre = completion_trie.searchPrefix(query.get(query.size()-1), false).getBestDescendant().getWord(); // gros doute
 			for(index=0;index<query.size();index++) {
 				found = false;
 				if (index == (query.size()-1)) //  prefix
@@ -716,7 +696,8 @@ public class TopKAlgorithm{
 				if(unknown_tf.get(query.get(index)).contains(next_docs.get(query.get(index))+"#"+completion)){
 					Item<String> item1 = candidates.findItem(next_docs.get(query.get(index)), autre);
 					if (item1==null) {
-						unknown_tf.get(query.get(index)).remove(next_docs.get(query.get(index))+"#"+completion); // DON4T UNDERSTAND
+						System.out.println("ICI PROBLEME");
+						unknown_tf.get(query.get(index)).remove(next_docs.get(query.get(index))+"#"+completion); // DON'T UNDERSTAND
 						continue;
 					}
 					candidates.removeItem(item1);
@@ -727,7 +708,6 @@ public class TopKAlgorithm{
 					else {
 						advanceTextualList(query.get(index),index,true);
 					}
-
 					candidates.addItem(item1);
 					found = true;
 				}
