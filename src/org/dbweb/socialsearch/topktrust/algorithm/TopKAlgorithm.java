@@ -157,11 +157,7 @@ public class TopKAlgorithm{
 	protected int total_users;
 	protected int total_rnd;
 	protected int total_topk_changes;
-	protected int total_conforming_lists;    
-	protected int total_memory_seeks;
-	protected int total_heap_adds;
-	protected int total_heap_rebuilds;
-	protected int total_heap_interchanges;
+	protected int total_conforming_lists;
 
 	protected int number_documents;
 	protected int number_users;
@@ -378,10 +374,6 @@ public class TopKAlgorithm{
 		total_documents_asocial = 0;
 		total_topk_changes = 0;
 		total_conforming_lists = 0;
-		total_memory_seeks = 0;
-		total_heap_interchanges = 0;
-		total_heap_adds = 0;
-		total_heap_rebuilds = 0;
 
 		//long time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query, t); /* MAIN ALGORITHM */
