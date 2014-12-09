@@ -8,6 +8,7 @@ package org.dbweb.socialsearch.topktrust.datastructure;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.socialsearch.shared.Methods;
@@ -23,39 +24,23 @@ import org.slf4j.LoggerFactory;
  */
 public class Item<E> implements Comparable<Item<E>>{
 
-	public static String outputFormat_head = "<p><link-stat><big><a href=\"%s\"><font color=\"%s\">%s</font></a></big><br>" +
-			"<i>Scores</i>: <b>minimal score</b> of <b>%.5f</b>, <b>maximal score</b> of <b>%.5f</b><br>";
-	public static String outputFormat_social_head = "<i>Social</i>: ";
-	public static String outputFormat_social="tagged with <b>'%s'</b> by <b>%d</b> taggers between <b>%.3f</b> and <b>%.3f</b>";
-	public static String outputFormat_textual_head	="<i>Textual</i>: ";
-	public static String outputFormat_textual = "tag <b>'%s'</b> of tf <b>%d</b>";
-	public static String outputFormat_foot = "</link-stat></p>";
-
-	private String color = "blue";
-
-	private static Logger log = LoggerFactory.getLogger(Item.class);
-
 	private String itemId = "";
-	private boolean computedScoreUpdated = false;
-
+	private String completion;
+	
 	private Score score;
 
-	private HashMap<E,Integer> tags = new HashMap<E,Integer>();
-	private HashMap<E,Float> idf = new HashMap<E,Float>();
-	private String completion;
+	private Map<E,Integer> tags = new HashMap<E,Integer>();
+	private Map<E,Float> idf = new HashMap<E,Float>();
+	
+	private Map<E,Float> uf = new HashMap<E,Float>();
+	public Map<E,Integer> tdf = new HashMap<E,Integer>();
 
-	private HashMap<E,Float> uf = new HashMap<E,Float>();
-	public HashMap<E,Integer> tdf = new HashMap<E,Integer>();
+	private Map<E,Integer> r = new HashMap<E,Integer>();
 
-	private HashMap<E,Integer> r = new HashMap<E,Integer>(); //
+	private Map<E,Float> firstval = new HashMap<E,Float>();
 
-	private HashMap<E,Float> lastval = new HashMap<E,Float>();
-	private HashMap<E,Float> firstval = new HashMap<E,Float>();
-	private HashMap<E,Integer> firstpos = new HashMap<E,Integer>();   
-	private HashMap<E,Integer> lastpos = new HashMap<E,Integer>();
-
-	private HashMap<E,Double> normcontrib = new HashMap<E,Double>();
-	private HashMap<E,Double> soccontrib = new HashMap<E,Double>();
+	private Map<E,Double> normcontrib = new HashMap<E,Double>();
+	private Map<E,Double> soccontrib = new HashMap<E,Double>();
 
 	private DataDistribution d_distr;
 	private DataHistogram d_hist;
@@ -64,24 +49,19 @@ public class Item<E> implements Comparable<Item<E>>{
 
 	private int totalTags = 0;  
 	private float alpha = 0;
-	private int k1 = 2;
 
 	private double worstscore = 0.0f;
 	private double bestscore = Double.POSITIVE_INFINITY;
 
-	private int num_users = 0;
-
 	private boolean candidate = false;
 	private boolean pruned = false;
-
 
 	private double minscorefromviews = 0;
 	private double maxscorefromviews = Double.POSITIVE_INFINITY;
 
-	public Item(String itemId, float alpha, int num_users, Score score, DataDistribution d_dist, DataHistogram d_hist, double error, String completion){
+	public Item(String itemId, float alpha, Score score, DataDistribution d_dist, DataHistogram d_hist, double error, String completion){
 		this.itemId = itemId;
 		this.alpha = alpha;
-		this.num_users = num_users;
 		this.d_distr = d_dist;
 		this.d_hist = d_hist;
 		this.error = error;
@@ -97,15 +77,15 @@ public class Item<E> implements Comparable<Item<E>>{
 		return this.completion;
 	}
 	
-	public HashMap<E,Float> getUf() {
+	public Map<E,Float> getUf() {
 		return this.uf;
 	}
 	
-	public HashMap<E,Integer> getR() {
+	public Map<E,Integer> getR() {
 		return this.r;
 	}
 	
-	public HashMap<E,Integer> getTdf() {
+	public Map<E,Integer> getTdf() {
 		return this.tdf;
 	}
 
@@ -200,7 +180,7 @@ public class Item<E> implements Comparable<Item<E>>{
 		if(this.r.containsKey(tag))
 			prevR = r.get(tag);
 		r.put(tag, prevR + 1);
-		computedScoreUpdated = false;
+		//computedScoreUpdated = false;
 		computeWorstScore(approx);
 		return 0;
 	}
@@ -208,7 +188,7 @@ public class Item<E> implements Comparable<Item<E>>{
 	public int updateScoreDocs(E tag, int tdf, int approx){
 		if(!this.tdf.containsKey(tag))    		
 			this.tdf.put(tag, tdf);    	
-		computedScoreUpdated = false;
+		//computedScoreUpdated = false;
 		computeWorstScore(approx);
 		return 0;
 	}
@@ -222,15 +202,15 @@ public class Item<E> implements Comparable<Item<E>>{
 		return (this.bestscore>this.maxscorefromviews)?this.maxscorefromviews:this.bestscore;
 	}
 
-	public HashMap<E,Double> getNormalContrib(){
+	public Map<E,Double> getNormalContrib(){
 		return this.normcontrib;
 	}
 
-	public HashMap<E,Double> getSocialContrib(){
+	public Map<E,Double> getSocialContrib(){
 		return this.soccontrib;
 	}
 
-	public double computeBestScore(HashMap<String, Integer> high, HashMap<String, Float> user_weights, HashMap<String, Integer> positions, int approx){
+	public double computeBestScore(Map<String, Integer> high, Map<String, Float> user_weights, Map<String, Integer> positions, int approx){
 		bestscore = 0;
 		for(E tag : this.tags.keySet()){
 			double uw = 0;
@@ -292,7 +272,7 @@ public class Item<E> implements Comparable<Item<E>>{
 		return this.itemId;
 	}
 
-	public HashMap<E,Integer> returnTags(){
+	public Map<E,Integer> returnTags(){
 		return this.tags;
 	}
 
@@ -440,46 +420,6 @@ public class Item<E> implements Comparable<Item<E>>{
 
 	}
 
-	public String getOutput(){
-		String output = "";
-		output += String.format(Locale.US, outputFormat_head, itemId, color, itemId, getComputedScore(), getBestscore());    	
-		String output_social = "";
-		String output_textual = "";
-
-
-		if(this.uf.size()!=0){
-			output_social += outputFormat_social_head;
-			int n = this.uf.size();
-			int index = 0;
-			for(E tag:this.uf.keySet()){
-				String tag_s = tag.toString();
-				output_social += String.format(Locale.US, outputFormat_social, tag_s, this.r.get(tag), this.firstval.get(tag), this.lastval.get(tag));
-				if(index==n-1)
-					output_social +=".</br>";
-				else
-					output_social +=", ";
-				index++;
-			}
-		}
-		if(this.tdf.size()!=0){
-			output_social += outputFormat_textual_head;
-			int n = this.tdf.size();
-			int index = 0;
-			for(E tag:this.tdf.keySet()){
-				String tag_s = tag.toString();
-				output_textual += String.format(Locale.US,outputFormat_textual, tag_s, this.tdf.get(tag));
-				if(index==n-1)
-					output_textual +=".<br>";
-				else
-					output_textual +=", ";
-				index++;
-			}
-		}
-		output += output_social + output_textual + outputFormat_foot;
-
-		return output;
-	}
-
 	public void setMinScorefromviews(double scorefromviews) {
 		this.minscorefromviews = (minscorefromviews<scorefromviews)?scorefromviews:minscorefromviews;
 	}
@@ -494,14 +434,6 @@ public class Item<E> implements Comparable<Item<E>>{
 
 	public double getMaxScorefromviews() {
 		return maxscorefromviews;
-	}
-
-	public String getColor() {
-		return color;
-	}
-
-	public void setColor(String color) {
-		this.color = color;
 	}
 
 	public boolean isPruned() {

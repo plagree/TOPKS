@@ -9,6 +9,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.datastructure.UserLink;
@@ -16,19 +18,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Network {
-	private static Logger log=LoggerFactory.getLogger(Network.class);
+	private static Logger log = LoggerFactory.getLogger(Network.class);
 	private static Network  _instance = null;
 	private static String net_tab = null;
-	private static HashMap<String,HashMap<Integer,ArrayList<UserLink<Integer,Float>>>> networks;
+	private static Map<String,Map<Integer,List<UserLink<Integer,Float>>>> networks;
 	protected static String sqlGetNetworkLinksTemplate = "select user1, user2, weight from %s order by user1 asc, weight desc";
 
 	private Network(Connection connection) {
-		Network.networks = new HashMap<String,HashMap<Integer,ArrayList<UserLink<Integer,Float>>>>();
+		Network.networks = new HashMap<String,Map<Integer,List<UserLink<Integer,Float>>>>();
 		PreparedStatement ps;
 		ResultSet result;
 		try{
 			for(int i=0;i<Params.network.length;i++){
-				networks.put(Params.network[i], new HashMap<Integer,ArrayList<UserLink<Integer,Float>>>());
+				networks.put(Params.network[i], new HashMap<Integer,List<UserLink<Integer,Float>>>());
 				String sqlQuery = String.format(sqlGetNetworkLinksTemplate, Params.network[i]);
 				ps = connection.prepareStatement(sqlQuery);
 				ps.setFetchSize(1000);
@@ -38,7 +40,7 @@ public class Network {
 					int user2 = result.getInt(2);
 					float weight = result.getFloat(3);
 					UserLink<Integer,Float> link = new UserLink<Integer,Float>(user1, user2, weight);
-					ArrayList<UserLink<Integer,Float>> nlist;
+					List<UserLink<Integer,Float>> nlist;
 					if(networks.get(Params.network[i]).containsKey(user1))
 						nlist = networks.get(Params.network[i]).get(user1);
 					else{
@@ -66,7 +68,7 @@ public class Network {
 	}
 
 	private Network() throws NumberFormatException, IOException {
-		Network.networks = new HashMap<String,HashMap<Integer,ArrayList<UserLink<Integer,Float>>>>();
+		Network.networks = new HashMap<String,Map<Integer,List<UserLink<Integer,Float>>>>();
 		// Network processing
 		String line;
 		String[] data;
@@ -74,7 +76,7 @@ public class Network {
 		float weight;
 		Params.numberOfNeighbours = new HashMap<String, Integer>();
 		for(int i=0;i<Params.network.length;i++){
-			networks.put(Params.network[i], new HashMap<Integer,ArrayList<UserLink<Integer,Float>>>());
+			networks.put(Params.network[i], new HashMap<Integer,List<UserLink<Integer,Float>>>());
 			BufferedReader br = new BufferedReader(new FileReader(Params.dir+Params.networkFile));
 			while ((line = br.readLine()) != null) {
 				data = line.split("\t");
@@ -93,7 +95,7 @@ public class Network {
 					continue;
 				Params.numberLinks++;
 				UserLink<Integer,Float> link = new UserLink<Integer,Float>(user1, user2, weight);
-				ArrayList<UserLink<Integer,Float>> nlist;
+				List<UserLink<Integer,Float>> nlist;
 				if(networks.get(Params.network[i]).containsKey(user1))
 					nlist = networks.get(Params.network[i]).get(user1);
 				else{
@@ -135,7 +137,7 @@ public class Network {
 		return _instance;
 	}
 
-	public HashMap<Integer,ArrayList<UserLink<Integer,Float>>> getNetwork(String net){
+	public Map<Integer,List<UserLink<Integer,Float>>> getNetwork(String net){
 		return networks.get(net);
 	}
 

@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Properties;
-
+import java.util.Set;
 
 import org.dbweb.Arcomem.datastructures.*;
 import org.dbweb.socialsearch.general.connection.DBConnection;
@@ -290,7 +290,7 @@ public class Socialsearch implements SocialsearchInterface {
 										log.info("\t\t\tseeker {} alpha {} - exact",seekers.get(index_s),alpha.get(index_a));
 										topk_alg = new TopKAlgorithm(dbConn, taggers, network, met.get(index_mt), scores[score.get(index_sc)], alpha.get(index_a).floatValue(), func_obj[func.get(index_f)], optpaths, error);
 										topk_alg.executeQuery(String.valueOf(seekers.get(index_s)), query, k.get(index_k), Integer.MAX_VALUE,true);
-										HashSet<String> exact = topk_alg.getTopKSet();
+										Set<String> exact = topk_alg.getTopKSet();
 										precisions[index_q][0]=1.0f;
 										int idx = 1;
 										BufferedReader file = new BufferedReader(new FileReader(String.format("distr_gen/dist_%s_%s_%s.csv", seekers.get(index_s), network, func_obj[func.get(index_f)].toString())));

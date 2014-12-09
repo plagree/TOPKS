@@ -3,8 +3,6 @@ package org.dbweb.socialsearch.topktrust.datastructure;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import com.teradata.jdbc.jdbc_4.logging.Log;
-
 public class DataHistogram {
 	
 	private int num_users;

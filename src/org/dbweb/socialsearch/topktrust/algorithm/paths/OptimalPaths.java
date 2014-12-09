@@ -3,19 +3,18 @@ package org.dbweb.socialsearch.topktrust.algorithm.paths;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ListIterator;
+import java.util.List;
 import java.util.Locale;
-import java.util.PriorityQueue;
+
+import java.util.Map;
+import java.util.Set;
 
 import org.dbweb.Arcomem.Integration.LoadIntoMemory;
 import org.dbweb.socialsearch.general.connection.DBConnection;
-import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathCompositionFunction;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMinimum;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
@@ -34,11 +33,11 @@ public class OptimalPaths {
 	
 	private static Logger log = LoggerFactory.getLogger(OptimalPaths.class); 
 	
-	private HashMap<Integer,ArrayList<UserLink<Integer,Float>>> network;
-	private ArrayList<UserEntry<Float>> friends;
-	private ArrayList<Float> values;
-	private HashSet<Integer> done;
-	private HashMap<Integer,FibonacciHeapNode<Integer>> nodes;
+	private Map<Integer,List<UserLink<Integer,Float>>> network;
+	private List<UserEntry<Float>> friends;
+	private List<Float> values;
+	private Set<Integer> done;
+	private Map<Integer,FibonacciHeapNode<Integer>> nodes;
 	private FibonacciHeap<Integer> prioQueue;
 	private float max_pos_val;
 	private Connection connection;
@@ -50,8 +49,6 @@ public class OptimalPaths {
 	int total_sum = 0;
 	int total_users = 0;
 	private boolean heap = true;
-
-	
 	
 	public OptimalPaths(String networkTable, DBConnection connection, boolean heap, ArrayList<Float> values, double coeff){
 		this.networkTable = networkTable;
@@ -65,7 +62,7 @@ public class OptimalPaths {
 		LoadIntoMemory.loadData(this.connection); //DEBUG PURPOSE
 	}
 	
-	public void setValues(ArrayList<Float> values){
+	public void setValues(List<Float> values){
 		this.values = values;
 	}
 	
@@ -78,8 +75,7 @@ public class OptimalPaths {
 			for(PathCompositionFunction fnc:func){
 				this.distFunc = fnc;
 				calculateOptimalPaths(seeker);
-			}
-				
+			}	
 	}
 	
 	public UserEntry<Float> initiateHeapCalculation(int seeker, ArrayList<String> query) throws SQLException {
@@ -153,7 +149,6 @@ public class OptimalPaths {
     			done.add(currentUser.getData());
     			userWeight = currentUser.getKey();
     			this.total_sum += userWeight;
-    			//log.info("\t\t\t node {} value {}",currentUser.getData(), max_pos_val*currentUser.getKey());
     			friends.add(new UserEntry<Float>(currentUser.getData(),(float)(1.0f/currentUser.getKey())));
     		}
     		else
@@ -164,14 +159,11 @@ public class OptimalPaths {
 	
 	private void calculateHeap(FibonacciHeapNode<Integer> currentUser){
     	boolean foundFirst = false;
-    	ArrayList<UserLink<Integer,Float>> neighbl = getNeighbList(currentUser.getData());
+    	List<UserLink<Integer,Float>> neighbl = getNeighbList(currentUser.getData());
     	if(neighbl!=null){
     		for(UserLink<Integer,Float> neighb:neighbl){
     			int neighbourId = neighb.getRecipient();
     			float weight = neighb.getWeight();
-//    			if(max_pos_val==1.0f) max_pos_val=weight;
-//    			else neighb.setWeight(weight/max_pos_val);
-//    			neighb.setWeight(weight/max_pos_val);
     			FibonacciHeapNode<Integer> neighbour = new FibonacciHeapNode<Integer>(neighbourId,Float.POSITIVE_INFINITY);
     			if(!done.contains(neighbourId)){
         			if(!nodes.containsKey(neighbourId)){
@@ -180,7 +172,6 @@ public class OptimalPaths {
         			}
         			else{        				        			
         				neighbour = nodes.get(neighbourId);
-//        				log.info("\t\t\t node old {} value {}",neighbour.getData(), 1.0f/neighbour.getKey());
         			}
         			relax(currentUser, neighbour, new Float(weight)); 
     			}
@@ -191,11 +182,8 @@ public class OptimalPaths {
 	private void relaxMax(UserEntry<Float> u, UserEntry<Float> v, Float w){
         Comparable result = this.distFunc.compute(max_pos_val*u.getDist(), w);
         if(result.compareTo(max_pos_val*v.getDist())>0){
-//        	if(max_pos_val==1.0f) max_pos_val = (Float)result;
             v.setDist((Float)result/(Float)max_pos_val);
             v.setPred(u);
-            //prioQueue.remove(v);
-            //prioQueue.add(v);
         }
     }
 	
@@ -206,37 +194,11 @@ public class OptimalPaths {
 		val_v = (val_v==Float.POSITIVE_INFINITY)?0:max_pos_val/(val_v);
         Comparable result = this.distFunc.compute(val_u, w);
         if(result.compareTo(val_v)>0){
-//        	if(max_pos_val==1.0f) max_pos_val = (Float)result;
-        	//log.info("\t\t\t node old {} value {}",v.getData(), val_v);
         	prioQueue.decreaseKey(v, (Float)max_pos_val/(Float)result);
-        	//log.info("\t\t\t node new {} value {}",v.getData(), 1.0f/v.getKey());
         }
     }
-	
-//	private void loadNetwork() throws SQLException{
-//		this.network = new HashMap<String,ArrayList<UserLink<String,Float>>>();
-//		PreparedStatement ps;
-//		ResultSet result;
-//		String sqlQuery = String.format(sqlGetNetworkLinksTemplate, this.networkTable);
-//		ps = connection.prepareStatement(sqlQuery);
-//		result = ps.executeQuery();
-//		while(result.next()){
-//			String user1 = result.getString(1);
-//			String user2 = result.getString(2);
-//			float weight = result.getFloat(3);
-//			UserLink<String,Float> link = new UserLink<String,Float>(user1, user2, weight);
-//			ArrayList<UserLink<String,Float>> nlist;
-//			if(this.network.containsKey(user1))
-//				nlist = this.network.get(user1);
-//			else{
-//				nlist = new ArrayList<UserLink<String,Float>>();
-//				this.network.put(user1, nlist);
-//			}
-//			nlist.add(link);
-//		}    
-//	}
-	
-	private ArrayList<UserLink<Integer,Float>> getNeighbList(int user){
+
+	private List<UserLink<Integer,Float>> getNeighbList(int user){
 
 		if(heap){
 			Network net = Network.getInstance(connection);
@@ -247,25 +209,6 @@ public class OptimalPaths {
 				return null;
 		}
 		return null;
-//		else{
-//			String sqlGetNeighbours = String.format("select user2,weight from %s where user1=?",this.networkTable);
-//			PreparedStatement ps;
-//			try {
-//				ArrayList<UserLink<String,Float>> nList = new ArrayList<UserLink<String,Float>>();
-//				ps = connection.prepareStatement(sqlGetNeighbours);
-//				ps.setInt(1, Integer.parseInt(user));
-//				ResultSet result = ps.executeQuery();
-//				while(result.next()){
-//					String neighbourId = result.getString(1);
-//					float weight = result.getFloat(2);
-//					UserLink<String,Float> ulink = new UserLink<String,Float>(user,neighbourId,weight);
-//					nList.add(ulink);
-//				}
-//				return nList;
-//			} catch (SQLException e) {
-//				return null;
-//			}
-//		}
 	}
 
 	private void writeStatistics(String seeker){

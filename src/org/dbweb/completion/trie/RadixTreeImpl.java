@@ -28,7 +28,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 			public void visit(String key, RadixTreeNode parent,
 					RadixTreeNode node) {
 				//if (node.isReal()) 
-					result = node.getValue();
+				result = node.getValue();
 			}
 		};
 
@@ -65,7 +65,7 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 						// if parent is not real node and has only one child
 						// then they need to be merged.
 						if (parent.getChildren().size() == 1
-						&& parent.isReal() == false) {
+								&& parent.isReal() == false) {
 							mergeNodes(parent, parent.getChildren().get(0));
 						}
 					} else if (node.getChildren().size() == 1) {
@@ -440,14 +440,14 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 
 		return "";
 	}
-	
+
 	public String greatestCommonPrefix(String a, String b) {
-	    int minLength = Math.min(a.length(), b.length());
-	    for (int i = 0; i < minLength; i++) {
-	        if (a.charAt(i) != b.charAt(i)) {
-	            return a.substring(0, i);
-	        }
-	    }
-	    return a.substring(0, minLength);
+		int minLength = Math.min(a.length(), b.length());
+		for (int i = 0; i < minLength; i++) {
+			if (a.charAt(i) != b.charAt(i)) {
+				return a.substring(0, i);
+			}
+		}
+		return a.substring(0, minLength);
 	}
 }
