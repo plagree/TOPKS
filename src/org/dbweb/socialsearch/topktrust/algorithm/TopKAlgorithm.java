@@ -62,10 +62,10 @@ public class TopKAlgorithm{
 	//debug purpose
 	public ArrayList<Integer> visitedNodes;
 
-	public static Logger log = LoggerFactory.getLogger(TopKAlgorithm.class);
+	//public static Logger log = LoggerFactory.getLogger(TopKAlgorithm.class);
 
-	protected String pathToQueries = System.getProperty("user.dir")+"/queries/normal/";
-	protected String pathToDistributions = System.getProperty("user.dir")+"/distr/";
+	//protected String pathToQueries = System.getProperty("user.dir")+"/queries/normal/";
+	//protected String pathToDistributions = System.getProperty("user.dir")+"/distr/";
 
 	protected static double viewDistanceThreshold = 0.5;
 
@@ -79,7 +79,7 @@ public class TopKAlgorithm{
 
 	protected String sqlGetAllDocuments;
 
-	protected int k1 = 0;
+	//protected int k1 = 0;
 
 	protected String networkTable;
 	protected String tagTable;
@@ -95,15 +95,11 @@ public class TopKAlgorithm{
 	protected Map<Integer, PatriciaTrie<HashSet<String>>> docs_users;
 
 	protected RadixTreeImpl tag_idf;
-	//protected Map<String, ListIterator<UserEntry<Float>>> friends_list;
-	//protected List<UserEntry<Float>> friends;
 	protected List<Float> values;
-	//protected PriorityQueue<UserEntry<Float>> prioQueue;
 	protected Map<String,Integer> topValueQuery;
 	protected Map<String, Integer> positions;
 	protected Map<String,Float> userWeights;
 	protected Map<String,Integer> tagFreqs;
-	//protected Map<String,Float> maxval;
 	protected Map<String,ArrayList<UserView>> userviews;
 	protected Map<String,HashSet<String>> unknown_tf;
 	protected List<Integer> vst;
@@ -188,7 +184,6 @@ public class TopKAlgorithm{
 	private List<Integer> queryNbNeighbour;
 
 	private int numloops=0; //amine
-	private boolean premiere = true;
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error) throws SQLException{
 		this.distFunc = distFunc;
@@ -245,14 +240,12 @@ public class TopKAlgorithm{
 		//if (query.size() != 1)
 		//	System.out.println("Query: "+query.toString());
 		System.out.println(query.toString()+", "+seeker);
-		this.premiere=true;
 		this.max_pos_val = 1.0f;
 		this.d_distr = null;
 		this.d_hist = null;
 		this.total_users = 0;
 		this.total_rnd = 0;
 		this.seeker = Integer.parseInt(seeker);
-		//vst = new ArrayList<Integer>();
 
 		values = new ArrayList<Float>();
 		unknown_tf = new HashMap<String,HashSet<String>>();
@@ -389,7 +382,6 @@ public class TopKAlgorithm{
 	public int executeQueryPlusLetter(String seeker, ArrayList<String> query, int k, int t) throws SQLException{
 		//if (query.size() != 1)
 		//	System.out.println("Query+l: "+query.toString());
-		this.premiere=true;
 		String newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
