@@ -62,11 +62,6 @@ public class TopKAlgorithm{
 	//debug purpose
 	public ArrayList<Integer> visitedNodes;
 
-	//public static Logger log = LoggerFactory.getLogger(TopKAlgorithm.class);
-
-	//protected String pathToQueries = System.getProperty("user.dir")+"/queries/normal/";
-	//protected String pathToDistributions = System.getProperty("user.dir")+"/distr/";
-
 	protected static double viewDistanceThreshold = 0.5;
 
 	protected static String sqlGetDistributionTemplate = "select mean, var from stats_%s where \"user\"=? and func=?";
@@ -78,12 +73,8 @@ public class TopKAlgorithm{
 	protected static String sqlGetDifferentTags = "SELECT distinct tag FROM %s";
 
 	protected String sqlGetAllDocuments;
-
-	//protected int k1 = 0;
-
 	protected String networkTable;
 	protected String tagTable;
-
 	protected Connection connection;
 
 	protected ItemList candidates;
@@ -92,8 +83,7 @@ public class TopKAlgorithm{
 		return this.candidates;
 	}
 
-	protected Map<Integer, PatriciaTrie<HashSet<String>>> docs_users;
-
+	protected Map<Integer, PatriciaTrie<Set<String>>> userSpaces;
 	protected RadixTreeImpl tag_idf;
 	protected List<Float> values;
 	protected Map<String,Integer> topValueQuery;
@@ -547,13 +537,13 @@ public class TopKAlgorithm{
 
 				currentUserId = currentUser.getEntryId();
 				boolean TESTING = false;
-				if(this.docs_users.containsKey(currentUserId) && !(currentUserId==seeker)){
-					SortedMap<String, HashSet<String>> completions = docs_users.get(currentUserId).prefixMap(tag);
+				if(this.userSpaces.containsKey(currentUserId) && !(currentUserId==seeker)){
+					SortedMap<String, Set<String>> completions = userSpaces.get(currentUserId).prefixMap(tag);
 					if (completions.size()>0) {
-						Iterator<Entry<String, HashSet<String>>> iterator = completions.entrySet().iterator();
+						Iterator<Entry<String, Set<String>>> iterator = completions.entrySet().iterator();
 
 						while(iterator.hasNext()){
-							Entry<String, HashSet<String>> currentEntry = iterator.next();
+							Entry<String, Set<String>> currentEntry = iterator.next();
 							String completion = currentEntry.getKey();
 							for(String itemId: currentEntry.getValue()) {
 								if (itemId.equals("230449175236599808"))
@@ -1061,7 +1051,7 @@ public class TopKAlgorithm{
 		this.tagFreqs = new HashMap<String,Integer>(16, 0.85f); //DONE BUT NOT USED
 		this.tag_idf = new RadixTreeImpl(); //DONE
 		this.invertedLists = new HashMap<String, List<DocumentNumTag>>(16, 0.85f); //DONE
-		this.docs_users = new HashMap<Integer, PatriciaTrie<HashSet<String>>>(16, 0.85f);
+		this.userSpaces = new HashMap<Integer, PatriciaTrie<Set<String>>>(16, 0.85f);
 		this.dictionaryTrie = new PatriciaTrie<String>(); // trie on the dictionary of words
 		userWeight = 1.0f;
 
@@ -1123,12 +1113,12 @@ public class TopKAlgorithm{
 			tag = data[2];
 			if (!dictionaryTrie.containsKey(tag))
 				dictionaryTrie.put(tag, "");
-			if(!this.docs_users.containsKey(userId)){
-				this.docs_users.put(userId, new PatriciaTrie<HashSet<String>>());
+			if(!this.userSpaces.containsKey(userId)){
+				this.userSpaces.put(userId, new PatriciaTrie<Set<String>>());
 			}
-			if(!this.docs_users.get(userId).containsKey(tag))
-				this.docs_users.get(userId).put(tag, new HashSet<String>());
-			this.docs_users.get(userId).get(tag).add(itemId);
+			if(!this.userSpaces.get(userId).containsKey(tag))
+				this.userSpaces.get(userId).put(tag, new HashSet<String>());
+			this.userSpaces.get(userId).get(tag).add(itemId);
 			counter++;
 			if ((counter%1000000)==0)
 				System.out.println("\t"+counter+" triples loaded");
@@ -1137,7 +1127,7 @@ public class TopKAlgorithm{
 		final long size2 = ( getUsedMemory() - start2) / 1024 / 1024;
 		System.out.println("User spaces file = " + size2 + "M");
 		
-		Params.number_users = this.docs_users.size();
+		Params.number_users = this.userSpaces.size();
 
 		// Tag Freq processing
 		
@@ -1259,7 +1249,7 @@ public class TopKAlgorithm{
 			idx++;
 		}
 
-		this.docs_users = new HashMap<Integer, PatriciaTrie<HashSet<String>>>();
+		this.userSpaces = new HashMap<Integer, PatriciaTrie<Set<String>>>();
 		connection.setAutoCommit(false);
 		Statement stmt = connection.createStatement();
 		stmt.setFetchSize(1000);
@@ -1268,11 +1258,11 @@ public class TopKAlgorithm{
 			int d_usr = result.getInt(1);
 			String d_itm = result.getString(2);
 			String d_tag = result.getString(3);
-			if(!this.docs_users.containsKey(d_usr)){
-				this.docs_users.put(d_usr, new PatriciaTrie<HashSet<String>>());
+			if(!this.userSpaces.containsKey(d_usr)){
+				this.userSpaces.put(d_usr, new PatriciaTrie<Set<String>>());
 			}
-			this.docs_users.get(d_usr).put(d_tag, new HashSet<String>());
-			this.docs_users.get(d_usr).get(d_tag).add(d_itm);
+			this.userSpaces.get(d_usr).put(d_tag, new HashSet<String>());
+			this.userSpaces.get(d_usr).get(d_tag).add(d_itm);
 		}
 		System.out.println("Users spaces loaded");
 	}
