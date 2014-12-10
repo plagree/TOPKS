@@ -14,7 +14,6 @@ import org.dbweb.socialsearch.topktrust.algorithm.functions.PathCompositionFunct
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
 import org.dbweb.socialsearch.topktrust.algorithm.score.BM25Score;
-import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
 
 public class Experiments {
 
@@ -24,7 +23,7 @@ public class Experiments {
 	public static final String taggers = "soc_tag_80";
 	private static final int k = 20;
 	private static final int method = 1;
-	private static final int[] times = {3, /*10, 50,*/ 200/*, 1000*/};
+	private static final int[] times = {3, /*10, 50, 200, 1000*/};
 	private static final int lengthPrefixMinimum = 1;
 	private static double coeff = 2.0f;
 

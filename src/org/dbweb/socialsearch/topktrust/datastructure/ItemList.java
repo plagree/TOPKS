@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.Math;
@@ -104,8 +103,9 @@ public class ItemList implements Cloneable{
 	public int getRankingItem(String item, int k) {
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
-		Collections.sort(sorted_av, new ItemAverageScoreComparator());
+		Collections.sort(sorted_av);//, new ItemAverageScoreComparator());
 		for (Item<String> currItem: sorted_av) {
+			System.out.println(currItem.getItemId()+", "+currItem.getCompletion()+", "+currItem.getComputedScore()+" < "+currItem.getBestscore());
 			if (item.equals(currItem.getItemId())) {
 				return counter;
 			}
@@ -374,7 +374,6 @@ public class ItemList implements Cloneable{
 	private void processBoundary(List<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, Map<String,Integer> high, Map<String,Float> user_weights, Map<String, Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, Set<String> guaranteed, Set<String> possible) throws IOException{
 		HashMap<String, String> newtopk = new HashMap<String, String>();
 		int number = 0;
-		//int position = 0;
 		double scoremin = 0.0f;
 		double scoremax = 0.0f;
 		thritem = null;

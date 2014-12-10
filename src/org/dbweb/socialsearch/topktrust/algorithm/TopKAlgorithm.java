@@ -26,6 +26,10 @@ import org.dbweb.socialsearch.topktrust.datastructure.views.ViewScore;
 import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.completion.trie.RadixTreeNode;
 
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.set.hash.THashSet;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -83,7 +87,7 @@ public class TopKAlgorithm{
 		return this.candidates;
 	}
 
-	protected Map<Integer, PatriciaTrie<Set<String>>> userSpaces;
+	protected TIntObjectMap<PatriciaTrie<Set<Long>>> userSpaces;
 	protected RadixTreeImpl tag_idf;
 	protected List<Float> values;
 	protected Map<String,Integer> topValueQuery;
@@ -510,14 +514,13 @@ public class TopKAlgorithm{
 	protected void processSocial(ArrayList<String> query) throws SQLException{
 		int currentUserId;
 		int index = 0;
-		//if(currentUser!=null) vst.add(currentUser.getEntryId());
 		String tag;
 		int nbNeighbourTag = 0;
 		// for all tags in the query Q, triples Tagged(u,i,t_j)
 		for(int i=0; i<query.size(); i++) {
 			tag = query.get(i);
 			nbNeighbourTag = this.queryNbNeighbour.get(i);
-			if (nbNeighbourTag > this.nbNeighbour) {
+			if (nbNeighbourTag > this.nbNeighbour){
 				continue; // We don't need to analyse this word because it was already done previously
 			}
 			this.queryNbNeighbour.set(i, this.nbNeighbour+1);
@@ -536,35 +539,30 @@ public class TopKAlgorithm{
 				}
 
 				currentUserId = currentUser.getEntryId();
-				boolean TESTING = false;
 				if(this.userSpaces.containsKey(currentUserId) && !(currentUserId==seeker)){
-					SortedMap<String, Set<String>> completions = userSpaces.get(currentUserId).prefixMap(tag);
+					// HERE WE CHECK
+					System.out.println("User visited : "+currentUserId+", weight : "+userWeight);
+					SortedMap<String, Set<Long>> completions = userSpaces.get(currentUserId).prefixMap(tag);
 					if (completions.size()>0) {
-						Iterator<Entry<String, Set<String>>> iterator = completions.entrySet().iterator();
-
+						Iterator<Entry<String, Set<Long>>> iterator = completions.entrySet().iterator();
 						while(iterator.hasNext()){
-							Entry<String, Set<String>> currentEntry = iterator.next();
+							Entry<String, Set<Long>> currentEntry = iterator.next();
 							String completion = currentEntry.getKey();
-							for(String itemId: currentEntry.getValue()) {
-								if (itemId.equals("230449175236599808"))
-									System.out.println(currentUserId+" : "+completion);
+							for(Long itemId: currentEntry.getValue()) {
+								System.out.println("\t Item :  "+itemId+"\t "+completion);
 								found_docs = true;
-								Item<String> item = candidates.findItem(itemId, completion);
+								Item<String> item = candidates.findItem(itemId.toString(), completion);
 								if (item==null) {
-									Item<String> item2 = candidates.findItem(itemId, "");
+									Item<String> item2 = candidates.findItem(itemId.toString(), "");
 									
 									if (item2!=null) {
-										item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
+										item = this.createCopyCandidateItem(item2, itemId.toString(), query, item, completion);
 									}
 									else {
-										if (itemId.equals("230449175236599808"))
-											System.out.println("ICI");
-										item = this.createNewCandidateItem(itemId, query,item, completion);
+										item = this.createNewCandidateItem(itemId.toString(), query,item, completion);
 									}
 								}
 								else {
-									if (itemId.equals("230449175236599808"))
-										System.out.println("ICI2");
 									candidates.removeItem(item);
 								}
 								float userW = 0;
@@ -1051,7 +1049,7 @@ public class TopKAlgorithm{
 		this.tagFreqs = new HashMap<String,Integer>(16, 0.85f); //DONE BUT NOT USED
 		this.tag_idf = new RadixTreeImpl(); //DONE
 		this.invertedLists = new HashMap<String, List<DocumentNumTag>>(16, 0.85f); //DONE
-		this.userSpaces = new HashMap<Integer, PatriciaTrie<Set<String>>>(16, 0.85f);
+		this.userSpaces = new TIntObjectHashMap<PatriciaTrie<Set<Long>>>(16, 0.85f);
 		this.dictionaryTrie = new PatriciaTrie<String>(); // trie on the dictionary of words
 		userWeight = 1.0f;
 
@@ -1097,7 +1095,7 @@ public class TopKAlgorithm{
 
 		// Triples processing
 		int userId;
-		String itemId;
+		long itemId;
 		String tag;
 		final long start2 = getUsedMemory();
 		br = new BufferedReader(new FileReader(Params.dir+Params.triplesFiles));
@@ -1109,15 +1107,15 @@ public class TopKAlgorithm{
 			if (data.length != 3)
 				continue;
 			userId = Integer.parseInt(data[0]);
-			itemId = data[1];
+			itemId = Long.parseLong(data[1]);
 			tag = data[2];
 			if (!dictionaryTrie.containsKey(tag))
 				dictionaryTrie.put(tag, "");
 			if(!this.userSpaces.containsKey(userId)){
-				this.userSpaces.put(userId, new PatriciaTrie<Set<String>>());
+				this.userSpaces.put(userId, new PatriciaTrie<Set<Long>>());
 			}
 			if(!this.userSpaces.get(userId).containsKey(tag))
-				this.userSpaces.get(userId).put(tag, new HashSet<String>());
+				this.userSpaces.get(userId).put(tag, new HashSet<Long>());
 			this.userSpaces.get(userId).get(tag).add(itemId);
 			counter++;
 			if ((counter%1000000)==0)
@@ -1249,19 +1247,19 @@ public class TopKAlgorithm{
 			idx++;
 		}
 
-		this.userSpaces = new HashMap<Integer, PatriciaTrie<Set<String>>>();
+		this.userSpaces = new TIntObjectHashMap<PatriciaTrie<Set<Long>>>();
 		connection.setAutoCommit(false);
 		Statement stmt = connection.createStatement();
 		stmt.setFetchSize(1000);
 		result = stmt.executeQuery(sqlGetAllDocuments); //DEBUG PURPOSE, SMALL DATA SET
 		while(result.next()){
 			int d_usr = result.getInt(1);
-			String d_itm = result.getString(2);
+			long d_itm = Long.parseLong(result.getString(2));
 			String d_tag = result.getString(3);
 			if(!this.userSpaces.containsKey(d_usr)){
-				this.userSpaces.put(d_usr, new PatriciaTrie<Set<String>>());
+				this.userSpaces.put(d_usr, new PatriciaTrie<Set<Long>>());
 			}
-			this.userSpaces.get(d_usr).put(d_tag, new HashSet<String>());
+			this.userSpaces.get(d_usr).put(d_tag, new HashSet<Long>());
 			this.userSpaces.get(d_usr).get(d_tag).add(d_itm);
 		}
 		System.out.println("Users spaces loaded");
