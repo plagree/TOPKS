@@ -7,7 +7,6 @@ package org.dbweb.socialsearch.topktrust.datastructure;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import org.dbweb.completion.trie.RadixTreeImpl;
@@ -15,8 +14,6 @@ import org.dbweb.socialsearch.shared.Methods;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 import org.dbweb.socialsearch.topktrust.datastructure.DataDistribution;
 import org.dbweb.socialsearch.topktrust.datastructure.DataHistogram;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
