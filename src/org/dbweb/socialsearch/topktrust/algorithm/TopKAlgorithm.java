@@ -101,7 +101,7 @@ public class TopKAlgorithm{
 	protected Map<String,HashSet<String>> unknown_tf;
 	protected List<Integer> vst;
 	protected Set<Integer> skr;
-	protected Map<String, String> topItemQuery;
+	protected Map<String, Long> topItemQuery;
 	protected List<String> dictionary;
 	protected PatriciaTrie<String> dictionaryTrie;
 	protected RadixTreeImpl completionTrie; // Completion trie
@@ -170,7 +170,6 @@ public class TopKAlgorithm{
 	private boolean docs_inserted;
 	private boolean finished;
 
-	private boolean firstPossible = true;
 	private boolean needUnseen = true;
 	private Set<String> guaranteed;
 	private Set<String> possible;
@@ -265,7 +264,7 @@ public class TopKAlgorithm{
 		ResultSet result;
 		if (newQuery) {
 			topValueQuery = new HashMap<String, Integer>();
-			topItemQuery = new HashMap<String, String>();
+			topItemQuery = new HashMap<String, Long>();
 			userWeights = new HashMap<String, Float>();
 		}
 		pos = new int[query.size()];
@@ -313,7 +312,7 @@ public class TopKAlgorithm{
 		if (newQuery) {
 			this.queryNbNeighbour = new ArrayList<Integer>();
 			Comparator comparator = new MinScoreItemComparator();   
-			virtualItem = createNewCandidateItem("<rest_of_the_items>",query,virtualItem,"");
+			virtualItem = createNewCandidateItem(-1,query,virtualItem,"");
 			candidates = new ItemList(comparator, this.score, this.virtualItem, this.d_distr, this.d_hist, this.error);
 			candidates.setContribs(query, completionTrie);
 		}
@@ -393,7 +392,7 @@ public class TopKAlgorithm{
 		}
 		else {
 			topValueQuery.put(newPrefix, 0);
-			topItemQuery.put(newPrefix, "");
+			topItemQuery.put(newPrefix, -1l);
 		}
 		topValueQuery.remove(previousPrefix);
 		topItemQuery.remove(previousPrefix);
@@ -418,7 +417,7 @@ public class TopKAlgorithm{
 		int skipped_tests = 10000; // Number of loops before testing the exit condition
 		int steps = 1;
 		boolean underTimeLimit = true;
-		firstPossible = true;
+		//firstPossible = true;
 		needUnseen = true;
 		guaranteed = new HashSet<String>();
 		possible = new HashSet<String>();
@@ -430,13 +429,13 @@ public class TopKAlgorithm{
 			boolean socialBranch = chooseBranch(query);
 			if(socialBranch){
 				processSocial(query);
-				if(((this.approxMethod&Methods.MET_VIEW)==Methods.MET_VIEW)&&userviews.containsKey(currentUser.getEntryId())){
+				/*if(((this.approxMethod&Methods.MET_VIEW)==Methods.MET_VIEW)&&userviews.containsKey(currentUser.getEntryId())){
 					boolean exist = viewTransformer.computeUsingViews(userWeight, userviews.get(currentUser.getEntryId()));
 					candidates.setViews(true);
 					if(exist){
 						processView(query);        				         				            			
 					}
-				}
+				}*/
 				social=true;
 				if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS) {
 					lookIntoList(query);   //the "peek at list" procedure
@@ -542,10 +541,10 @@ public class TopKAlgorithm{
 				}
 
 				currentUserId = currentUser.getEntryId();
-				String itemId = "";
+				long itemId = 0;
 				if(this.userSpaces.containsKey(currentUserId) && !(currentUserId==seeker)){
 					// HERE WE CHECK
-					System.out.println("User visited : "+currentUserId+", weight : "+userWeight);
+					//System.out.println("User visited : "+currentUserId+", weight : "+userWeight);
 					SortedMap<String, TLongSet> completions = userSpaces.get(currentUserId).prefixMap(tag);
 					if (completions.size()>0) {
 						Iterator<Entry<String, TLongSet>> iterator = completions.entrySet().iterator();
@@ -554,21 +553,22 @@ public class TopKAlgorithm{
 							String completion = currentEntry.getKey();
 							
 							for(TLongIterator it = currentEntry.getValue().iterator(); it.hasNext(); ){
-								itemId = String.valueOf(it.next());
-								System.out.println("\t Item :  "+itemId+"\t "+completion);
+								itemId = it.next();
+								//System.out.println("\t Item :  "+itemId+"\t "+completion);
 								found_docs = true;
-								Item<String> item = candidates.findItem(itemId.toString(), completion);
+								Item<String> item = candidates.findItem(itemId, completion);
 								if (item==null) {
-									Item<String> item2 = candidates.findItem(itemId.toString(), "");
+									Item<String> item2 = candidates.findItem(itemId, "");
 									
 									if (item2!=null) {
-										item = this.createCopyCandidateItem(item2, itemId.toString(), query, item, completion);
+										item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
 									}
 									else {
-										item = this.createNewCandidateItem(itemId.toString(), query,item, completion);
+										item = this.createNewCandidateItem(itemId, query,item, completion);
 									}
 								}
 								else {
+									
 									candidates.removeItem(item);
 								}
 								float userW = 0;
@@ -640,7 +640,6 @@ public class TopKAlgorithm{
 				if(unknown_tf.get(query.get(index)).contains(topItemQuery.get(query.get(index))+"#"+completion)){
 					Item<String> item1 = candidates.findItem(topItemQuery.get(query.get(index)), autre);
 					if (item1==null) {
-						System.out.println("ICI PROBLEME");
 						unknown_tf.get(query.get(index)).remove(topItemQuery.get(query.get(index))+"#"+completion); // DON'T UNDERSTAND
 						continue;
 					}
@@ -706,7 +705,7 @@ public class TopKAlgorithm{
 	 * @param query
 	 * @throws SQLException
 	 */
-	protected void processView(ArrayList<String> query) throws SQLException{
+	/*protected void processView(List<String> query) throws SQLException{
 		HashMap<String,ViewScore> guar = viewTransformer.getGuaranteed();
 		HashMap<String,ViewScore> need = viewTransformer.getPossible();
 		boolean early = viewTransformer.isEarly();
@@ -744,7 +743,7 @@ public class TopKAlgorithm{
 		}
 		if(possible.size()>0)
 			firstPossible = false;
-	}
+	}*/
 
 	/**
 	 * Method to advance in inverted lists (using the trie)
@@ -767,7 +766,7 @@ public class TopKAlgorithm{
 		}
 		else{
 			topValueQuery.put(tag, 0);
-			topItemQuery.put(tag, "");
+			topItemQuery.put(tag, -1l);
 		}
 	}
 
@@ -778,12 +777,12 @@ public class TopKAlgorithm{
 	 * @param completion
 	 * @throws SQLException
 	 */
-	protected void getAllItemScores(String item, ArrayList<String> query, String completion) throws SQLException{
+	protected void getAllItemScores(long item, ArrayList<String> query, String completion) throws SQLException{
 		Item<String> itm = candidates.findItem(item, completion);
 		for(String tag:query)
 			if(!itm.tdf.containsKey(tag)){
 				PreparedStatement stmt = connection.prepareStatement(sqlGetDocumentTf);
-				stmt.setString(1, item);
+				stmt.setString(1, String.valueOf(item));
 				stmt.setString(2, tag);
 				ResultSet result = stmt.executeQuery();
 				int tf = 0;
@@ -807,7 +806,7 @@ public class TopKAlgorithm{
 	 * @return
 	 * @throws SQLException
 	 */
-	protected Item<String> createNewCandidateItem(String itemId, ArrayList<String> tagList, Item<String> item, String completion) throws SQLException{
+	protected Item<String> createNewCandidateItem(long itemId, ArrayList<String> tagList, Item<String> item, String completion) throws SQLException{
 		item = new Item<String>(itemId, this.alpha, this.score,  this.d_distr, this.d_hist, this.error, completion);        
 		int sizeOfQuery = tagList.size();
 		int index = 0;
@@ -833,7 +832,7 @@ public class TopKAlgorithm{
 	 * @return
 	 * @throws SQLException
 	 */
-	protected Item<String> createCopyCandidateItem(Item<String> itemToCopy, String itemId, ArrayList<String> tagList, Item<String> copy, String completion) throws SQLException{
+	protected Item<String> createCopyCandidateItem(Item<String> itemToCopy, long itemId, ArrayList<String> tagList, Item<String> copy, String completion) throws SQLException{
 		copy = new Item<String>(itemId, this.alpha, this.score,  this.d_distr, this.d_hist, this.error, completion);        
 		int sizeOfQuery = tagList.size();
 		int index = 0;
@@ -871,7 +870,7 @@ public class TopKAlgorithm{
 	/**
 	 * Not used in current version (used when exiting results in XML format)
 	 */
-	protected void setQueryResultsArrayList(ArrayList<String> query, String seeker, int k, int method, float alpha){
+	/*protected void setQueryResultsArrayList(ArrayList<String> query, String seeker, int k, int method, float alpha){
 		System.out.println(this.candidates.getNumberOfSortedItems());
 		System.out.println("this.candidates.get_topk().size()="+this.candidates.get_topk().size());
 		String str="";
@@ -919,7 +918,7 @@ public class TopKAlgorithm{
 			}
 		}
 		this.newXMLResults+="</TopkResults>\n";
-	}
+	}*/
 
 	/**
 	 * Gives the ranking of a given item in the ranked list of discovered items
@@ -927,7 +926,7 @@ public class TopKAlgorithm{
 	 * @param k
 	 * @return
 	 */
-	public int getRankingItem(String item, int k) {
+	public int getRankingItem(long item, int k) {
 		return this.candidates.getRankingItem(item, k);
 	}
 
@@ -988,7 +987,7 @@ public class TopKAlgorithm{
 	public TreeSet<Item<String>> getResults(){
 		TreeSet<Item<String>> results = new TreeSet<Item<String>>();
 		for(String itid:candidates.get_topk())
-			results.add(candidates.findItem(itid, ""));
+			results.add(candidates.findItem(Long.parseLong(itid), ""));
 		return results;
 	}
 
@@ -1081,7 +1080,7 @@ public class TopKAlgorithm{
 				String[] tuple = data[i].split(":");
 				if (tuple.length != 2)
 					continue;
-				currIL.add(new DocumentNumTag(tuple[0], Integer.parseInt(tuple[1])));
+				currIL.add(new DocumentNumTag(Long.parseLong(tuple[0]), Integer.parseInt(tuple[1])));
 			}
 			Collections.sort(currIL, Collections.reverseOrder());
 			DocumentNumTag firstDoc = currIL.get(0);

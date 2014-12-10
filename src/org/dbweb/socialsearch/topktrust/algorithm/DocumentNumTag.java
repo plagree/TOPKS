@@ -1,10 +1,10 @@
 package org.dbweb.socialsearch.topktrust.algorithm;
 
 public class DocumentNumTag implements Comparable<DocumentNumTag>{
-	private String docId;
+	private long docId;
 	private int num;
 	
-	public DocumentNumTag(String docId, int num) {
+	public DocumentNumTag(long docId, int num) {
 		this.docId = docId;
 		this.num = num;
 	}
@@ -13,7 +13,7 @@ public class DocumentNumTag implements Comparable<DocumentNumTag>{
 		return this.num;
 	}
 	
-	public String getDocId() {
+	public long getDocId() {
 		return this.docId;
 	}
 	

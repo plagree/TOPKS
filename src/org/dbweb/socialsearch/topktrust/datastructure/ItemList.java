@@ -55,7 +55,7 @@ public class ItemList implements Cloneable{
 	private Map<String,Double> normcontrib = new HashMap<String,Double>();
 	private Map<String,Double> soccontrib = new HashMap<String,Double>();
 	private double score_unseen;
-	private String thritem;
+	private long thritem;
 	private PriorityQueue<Item<String>> sorted_items; 
 	private boolean topk_changed = false;
 	private double sumconf;
@@ -84,6 +84,8 @@ public class ItemList implements Cloneable{
 	}
 
 	public void removeItem(Item<String> item){
+		//if (item.getItemId()==231109430161317888l)
+		//	System.out.println("AQUI");
 		this.items.remove(item.getItemId()+"#"+item.getCompletion());
 		removeSortItem(this.sorted_items, item);
 	}
@@ -92,7 +94,7 @@ public class ItemList implements Cloneable{
 		final Iterator<Item<String>> it = queue.iterator();
 		while(it.hasNext()) {
 			final Item<String> current = it.next();
-			if (current.getItemId().equals(item.getItemId()) 
+			if (current.getItemId()==item.getItemId() 
 					&& current.getCompletion().equals(item.getCompletion())) {
 				it.remove();
 				break;
@@ -100,13 +102,13 @@ public class ItemList implements Cloneable{
 		}
 	}
 	
-	public int getRankingItem(String item, int k) {
+	public int getRankingItem(long item, int k) {
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
-		Collections.sort(sorted_av);//, new ItemAverageScoreComparator());
+		Collections.sort(sorted_av);
 		for (Item<String> currItem: sorted_av) {
-			System.out.println(currItem.getItemId()+", "+currItem.getCompletion()+", "+currItem.getComputedScore()+" < "+currItem.getBestscore());
-			if (item.equals(currItem.getItemId())) {
+			//System.out.println(currItem.getItemId()+", "+currItem.getCompletion()+", "+currItem.getComputedScore()+" < "+currItem.getBestscore());
+			if (item == currItem.getItemId()) {
 				return counter;
 			}
 			counter++;
@@ -115,8 +117,8 @@ public class ItemList implements Cloneable{
 	}
 	
 	private void removeDuplicates() {
-		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
-		HashSet<String> uniqueItemIds = new HashSet<String>();
+		List<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
+		Set<Long> uniqueItemIds = new HashSet<Long>();
 		Collections.sort(sorted_av);
 		for (Item<String> item: sorted_av) {
 			if (uniqueItemIds.contains(item.getItemId())) {
@@ -144,7 +146,7 @@ public class ItemList implements Cloneable{
 		if(!item.isPruned()) this.sorted_items.add(item);
 	}
 
-	public Item<String> findItem(String itemId, String completion){
+	public Item<String> findItem(long itemId, String completion){
 		if(items.containsKey(itemId+"#"+completion))
 			return items.get(itemId+"#"+completion);
 		else
@@ -184,7 +186,7 @@ public class ItemList implements Cloneable{
 		return 0;
 	}
 
-	public String getContribItem(){
+	public long getContribItem(){
 		return thritem;
 	}
 
@@ -372,11 +374,11 @@ public class ItemList implements Cloneable{
 	}
 
 	private void processBoundary(List<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, Map<String,Integer> high, Map<String,Float> user_weights, Map<String, Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, Set<String> guaranteed, Set<String> possible) throws IOException{
-		HashMap<String, String> newtopk = new HashMap<String, String>();
+		Map<Long, String> newtopk = new HashMap<Long, String>();
 		int number = 0;
 		double scoremin = 0.0f;
 		double scoremax = 0.0f;
-		thritem = null;
+		thritem = 0;
 		topk_changed = false;
 		if(needUnseen){ //Upper bound on unseen items
 			for(String tag : query) {
@@ -407,7 +409,7 @@ public class ItemList implements Cloneable{
 		Item<String> curr_item=prioCopy.poll();
 		int k1 = k - guaranteed.size(); //guaranteed.size()==0 if we do not use views
 		sumconf = guaranteed.size();
-		for(String itm:guaranteed) newtopk.put(itm, ""); // NOT WORKING
+		//for(String itm:guaranteed) newtopk.put(itm, ""); // NOT WORKING
 		while(curr_item!=null){       
 			if(number<k1){
 				if((needUnseen||possible.contains(curr_item.getItemId()))&&(!guaranteed.contains(curr_item.getItemId()))){
@@ -415,7 +417,7 @@ public class ItemList implements Cloneable{
 						topk_changed = true;
 					}
 					curr_item.computeBestScore(high, user_weights, positions, approx);
-					String docId = curr_item.getItemId();
+					long docId = curr_item.getItemId();
 					if (!newtopk.containsKey(docId)) {
 						newtopk.put(docId, curr_item.getCompletion()); // newtopk String to obj <docId, completion>
 						scoremin = curr_item.getComputedScore();  
@@ -440,7 +442,7 @@ public class ItemList implements Cloneable{
 		}
 
 		if(views&&((approx&Methods.MET_ET)==Methods.MET_ET)){ //Using precomputed results -- calculating and estimation of the top-k
-			newtopk = new HashMap<String, String>();
+			newtopk = new HashMap<Long, String>();
 			HashSet<String> possible_s = new HashSet<String>();
 			if(possible.size()>0){
 				for(String itm:possible){
@@ -471,7 +473,7 @@ public class ItemList implements Cloneable{
 		this.min_from_topk=scoremin;
 		this.max_from_rest=scoremax;
 		this.current_topk = new HashSet<String>();
-		for (String key: newtopk.keySet())
+		for (long key: newtopk.keySet())
 			this.current_topk.add(key+"#"+newtopk.get(key));
 	}
 

@@ -68,7 +68,8 @@ public class Experiments {
 			System.out.println("Initialisation done...");
 			String line;
 			String[] data;
-			String user, item, tags;
+			long item;
+			String user, tags;
 			String words[];
 			String numberUsersWhoTaggedThisItem;
 			int lengthTag;
@@ -84,7 +85,7 @@ public class Experiments {
 					System.out.println("Wrong line in the input-file");
 					continue;
 				}
-				user = data[0]; item = data[1]; tags = data[2];
+				user = data[0]; item = Long.parseLong(data[1]); tags = data[2];
 				words = tags.split(",");
 				if(words.length < 1) {
 					System.out.println("No keyword in the query...");

@@ -11,7 +11,7 @@ public class ItemBestScoreComparator implements Comparator<Item<String>> {
         else if(a.getBestscore() < b.getBestscore())
             return 1;
         else 
-        	return a.getItemId().compareTo(b.getItemId());
+        	return (a.getItemId() > b.getItemId()) ? -1 : 1;
 	}
 	
 }

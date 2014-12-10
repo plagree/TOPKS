@@ -21,7 +21,7 @@ public class MaxScoreItemComparator implements Comparator<Item> {
         else if(o1.getBestscore()>o2.getBestscore())
             return 1;
         else
-        	return o1.getItemId().compareTo(o2.getItemId());
+        	return (o1.getItemId()<o2.getItemId()) ? -1 : 1;
     }
 
 }

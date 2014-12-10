@@ -66,7 +66,7 @@ public class ResultCacher {
 		ps = connection.prepareStatement(sqlInsViewItems);
 		for(Item it:results){
 			ps.setInt(1, view_num);
-			ps.setString(2, it.getItemId());
+			ps.setString(2, String.valueOf(it.getItemId()));
 			ps.setDouble(3, it.getComputedScore());
 			ps.setDouble(4, it.getBestscore());
 			ps.executeUpdate();
