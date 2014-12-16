@@ -464,7 +464,7 @@ public class TopKAlgorithm{
 				candidates.resetChange();
 				long time_1 = System.currentTimeMillis();
 				if ((time_1-before_main_loop)>t) {
-					this.candidates.extractProbableTopK(k, guaranteed, possible);
+					this.candidates.extractProbableTopK(k, guaranteed, possible, topValueQuery, userWeights, positions, approxMethod);
 					underTimeLimit = false;
 				}
 			}
@@ -813,6 +813,11 @@ public class TopKAlgorithm{
 		for(String tag:tagList){
 			index++;
 			if (index < sizeOfQuery) {
+				double stuff = tag_idf.searchPrefix(tag, true).getValue();
+				if (Double.isNaN(stuff)) {
+					System.out.println(tag_idf.searchPrefix(tag, true)==null);
+					System.exit(0);
+				}
 				item.addTag(tag, tag_idf.searchPrefix(tag, true).getValue());
 			}
 			else {

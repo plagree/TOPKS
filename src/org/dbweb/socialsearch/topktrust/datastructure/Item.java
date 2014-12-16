@@ -376,19 +376,11 @@ public class Item<E> implements Comparable<Item<E>>{
 		@SuppressWarnings("unchecked")
 		Item<E> rhs = (Item<E>)o;
 		return new EqualsBuilder().append(this.itemId, rhs.itemId).isEquals();
-		/*if(o!=null)
-			if(o instanceof Item)
-				if(((Item<E>) o).itemId == null ? this.itemId == null : ((Item<E>) o).itemId.equals(this.itemId))
-					return true;
-		return false;*/
 	}
 
 	@Override
 	public int hashCode(){
-		//int hash = 7;
-		return new HashCodeBuilder(17, 31).append(this.itemId)/*.append(this.completion)*/.toHashCode();
-		//hash = 67 * hash + (this.itemId != null ? this.itemId.hashCode() : 0);
-		//return hash;
+		return new HashCodeBuilder(17, 31).append(this.itemId).toHashCode();
 	}
 
 	@Override

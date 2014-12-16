@@ -23,7 +23,7 @@ public class Experiments {
 	public static final String taggers = "soc_tag_80";
 	private static final int k = 20;
 	private static final int method = 1;
-	private static final int[] times = {3, /*10, 50, 200, 1000*/};
+	private static final int[] times = {3, 10, 50,/* 200, 1000*/};
 	private static final int lengthPrefixMinimum = 1;
 	private static double coeff = 2.0f;
 

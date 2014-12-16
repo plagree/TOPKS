@@ -84,8 +84,6 @@ public class ItemList implements Cloneable{
 	}
 
 	public void removeItem(Item<String> item){
-		//if (item.getItemId()==231109430161317888l)
-		//	System.out.println("AQUI");
 		this.items.remove(item.getItemId()+"#"+item.getCompletion());
 		removeSortItem(this.sorted_items, item);
 	}
@@ -253,9 +251,15 @@ public class ItemList implements Cloneable{
 	 * @param guaranteed
 	 * @param possible
 	 */
-	public void extractProbableTopK(int k, Set<String> guaranteed, Set<String> possible) {
+	public void extractProbableTopK(int k, Set<String> guaranteed, Set<String> possible, Map<String,Integer> high, Map<String,Float> user_weights, Map<String, Integer> positions, int approx) {
 		int counter = 0;
 		double wsc_t = 0;
+		
+		int index = 0;
+		for (Item<String> curr_item: sorted_items) {
+			curr_item.computeBestScore(high, user_weights, positions, approx);
+		}
+		
 		ArrayList<Item<String>> sorted_ws = new ArrayList<Item<String>>(sorted_items);
 		Collections.sort(sorted_ws);
 		ArrayList<Item<String>> sorted_bs = new ArrayList<Item<String>>(sorted_items);
