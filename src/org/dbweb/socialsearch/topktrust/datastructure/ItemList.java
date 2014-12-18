@@ -104,14 +104,18 @@ public class ItemList implements Cloneable{
 		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
 		Collections.sort(sorted_av);
+		int res = 0;
+		boolean first = true;
 		for (Item<String> currItem: sorted_av) {
-			//System.out.println(currItem.getItemId()+", "+currItem.getCompletion()+", "+currItem.getComputedScore()+" < "+currItem.getBestscore());
-			if (item == currItem.getItemId()) {
-				return counter;
+			if (item == currItem.getItemId())
+				System.out.println(counter+", "+currItem.getItemId()+", "+currItem.getCompletion()+", "+currItem.getComputedScore()+" < "+currItem.getBestscore());
+			if (item == currItem.getItemId() && first) {
+				first = false;
+				res = counter;
 			}
 			counter++;
 		}
-		return 0;
+		return res;
 	}
 	
 	private void removeDuplicates() {

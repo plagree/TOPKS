@@ -414,7 +414,7 @@ public class TopKAlgorithm{
 	 */
 	protected void mainLoop(int k, String seeker, ArrayList<String> query, int t) throws SQLException{
 		int loops=0;
-		int skipped_tests = 10000; // Number of loops before testing the exit condition
+		int skipped_tests = 100000; // Number of loops before testing the exit condition
 		int steps = 1;
 		boolean underTimeLimit = true;
 		//firstPossible = true;
@@ -541,6 +541,12 @@ public class TopKAlgorithm{
 				}
 
 				currentUserId = currentUser.getEntryId();
+				if (currentUserId==101205l)
+					System.out.println(101205+", visited");
+				if (currentUserId==100925l)
+					System.out.println(100925+", visited");
+				if (currentUserId==100964l)
+					System.out.println(100964+", visited");
 				long itemId = 0;
 				if(this.userSpaces.containsKey(currentUserId) && !(currentUserId==seeker)){
 					// HERE WE CHECK

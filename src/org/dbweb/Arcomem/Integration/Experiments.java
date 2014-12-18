@@ -21,7 +21,7 @@ public class Experiments {
 	private static final PathCompositionFunction pathFunction = new PathMultiplication();
 	public static final String network = "soc_snet_dt";
 	public static final String taggers = "soc_tag_80";
-	private static final int k = 20;
+	private static final int k = 1000;
 	private static final int method = 1;
 	private static final int[] times = {20, 50, 100, 500, 2000};
 	private static final int lengthPrefixMinimum = 1;
@@ -54,12 +54,12 @@ public class Experiments {
 				0f,
 				//0.005f,
 				0.01f,
-				0.03f,
+				/*0.03f,
 				0.05f,
 				0.07f,
 				0.1f,
 				0.15f,
-				0.2f,
+				0.2f,*/
 				0.5f,
 				//0.1f,
 				1f
