@@ -417,7 +417,6 @@ public class TopKAlgorithm{
 		int skipped_tests = 100000; // Number of loops before testing the exit condition
 		int steps = 1;
 		boolean underTimeLimit = true;
-		//firstPossible = true;
 		needUnseen = true;
 		guaranteed = new HashSet<String>();
 		possible = new HashSet<String>();
@@ -429,13 +428,6 @@ public class TopKAlgorithm{
 			boolean socialBranch = chooseBranch(query);
 			if(socialBranch){
 				processSocial(query);
-				/*if(((this.approxMethod&Methods.MET_VIEW)==Methods.MET_VIEW)&&userviews.containsKey(currentUser.getEntryId())){
-					boolean exist = viewTransformer.computeUsingViews(userWeight, userviews.get(currentUser.getEntryId()));
-					candidates.setViews(true);
-					if(exist){
-						processView(query);        				         				            			
-					}
-				}*/
 				social=true;
 				if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS) {
 					lookIntoList(query);   //the "peek at list" procedure
@@ -622,7 +614,6 @@ public class TopKAlgorithm{
 			userWeight = currentUser.getDist().floatValue();
 		else
 			userWeight = 0.0f;
-		//proximities.add((double)userWeight);
 	}
 
 	/**
