@@ -107,11 +107,10 @@ public class ItemList implements Cloneable{
 		int res = 0;
 		boolean first = true;
 		for (Item<String> currItem: sorted_av) {
-			if (item == currItem.getItemId())
-				System.out.println(counter+", "+currItem.getItemId()+", "+currItem.getCompletion()+", "+currItem.getComputedScore()+" < "+currItem.getBestscore());
 			if (item == currItem.getItemId() && first) {
 				first = false;
 				res = counter;
+				return res;
 			}
 			counter++;
 		}
