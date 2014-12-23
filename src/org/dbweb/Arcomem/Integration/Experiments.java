@@ -34,8 +34,8 @@ public class Experiments {
 		OptimalPaths optpath;
 		BM25Score score = new BM25Score();
 
-		if (args.length != 8) {
-			System.out.println("Usage: java -jar -Xmx13000m executable.jar /path/to/files.txt numberOfDocuments networkFile inputTestFile outputFileName numberLinesTest thresholdRef\nYou gave "+args.length+" parameters");
+		if (args.length != 9) {
+			System.out.println("Usage: java -jar -Xmx13000m executable.jar /path/to/files.txt numberOfDocuments networkFile triplesFile inputTestFile outputFileName numberLinesTest thresholdRef\nYou gave "+args.length+" parameters");
 			for (int i=0; i<args.length; i++) {
 				System.out.println("Argument "+(i+1)+": "+args[i]);
 			}
@@ -44,11 +44,12 @@ public class Experiments {
 		Params.dir = args[0];
 		Params.number_documents = Integer.parseInt(args[1]);
 		Params.networkFile = args[2];
-		Params.inputTestFile = args[3];
-		Params.outputTestFile = args[4];
-		int counterMax = Integer.parseInt(args[5]);
-		Params.threshold = Float.parseFloat(args[6]);
-		float threshold_ref = Float.parseFloat(args[7]);
+		Params.triplesFile = args[3];
+		Params.inputTestFile = args[4];
+		Params.outputTestFile = args[5];
+		int counterMax = Integer.parseInt(args[6]);
+		Params.threshold = Float.parseFloat(args[7]);
+		float threshold_ref = Float.parseFloat(args[8]);
 
 		float alphas[] = {
 				0f,

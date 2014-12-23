@@ -812,7 +812,7 @@ public class TopKAlgorithm{
 			if (index < sizeOfQuery) {
 				double stuff = tag_idf.searchPrefix(tag, true).getValue();
 				if (Double.isNaN(stuff)) {
-					System.out.println(tag_idf.searchPrefix(tag, true)==null);
+					System.out.println("BREAK POINT Double.isNaN: "+tag_idf.searchPrefix(tag, true)==null);
 					System.exit(0);
 				}
 				item.addTag(tag, tag_idf.searchPrefix(tag, true).getValue());
@@ -1104,7 +1104,7 @@ public class TopKAlgorithm{
 		long itemId;
 		String tag;
 		final long start2 = getUsedMemory();
-		br = new BufferedReader(new FileReader(Params.dir+Params.triplesFiles));
+		br = new BufferedReader(new FileReader(Params.dir+Params.triplesFile));
 		counter = 0;
 		System.out.println("Loading of triples");
 		while ((line = br.readLine()) != null) {

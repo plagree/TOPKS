@@ -10,7 +10,7 @@ public class Params {
 	public static String taggers = "soc_tag_80";
 	public static String networkFile = "user-to-user.txt";
 	public static String ILFile = "tag-inverted.txt";
-	public static String triplesFiles = "triples.txt";
+	public static String triplesFile = "triples.txt";
 	public static String tagFreqFile = "tag-freq.txt";
 	public static String inputTestFile = "test-file.txt";
 	public static String outputTestFile = "output-test-result.txt";
