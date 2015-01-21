@@ -6,16 +6,21 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import os
+import seaborn as sns
 
 
 # VARIABLES TO BE CHANGED
-precisions = [2, 5, 20, 75, 200, 500]
+precisions = [2, 5, 20]
 ALPHA=0.0
-TIME=50
-THRESHOLD=0.05
+TIME=200
+THRESHOLD=1
+N_ITEMS_FOR_USER_U=0
+N_USERS_FOR_ITEM_I=0
+
 
 # OTHER STUFF
-parameters = ['t', 'l', 'alpha', 'theta']
+parameters = ['t', 'l', 'alpha', 'theta', 'nItemsForUserU', 'nUsersForItemI']
 columns = parameters + ['ranking']
 
 
@@ -30,11 +35,11 @@ def plot_t(f, A, matrix, times, lengths):
         for t in times:
             res = []
             for l in lengths:
-                res.append(P[(t,l,alpha,theta)])
-            plt.plot(lengths, res, label="t="+str(t))
-        plt.xlabel('Prefix length l')
-        plt.ylabel('Precision '+str(k))
-        plt.legend()
+                res.append(P[(t,l,alpha,theta,N_ITEMS_FOR_USER_U,N_USERS_FOR_ITEM_I)])
+            plt.plot(lengths, res, label=r'$%d$' % t)
+        plt.xlabel(r'Prefix length $l$')
+        plt.ylabel(r'Precision $%d$' % k)
+        plt.legend(title=r'Time $t$ ($ms$)').draw_frame(True)
         plt.savefig('./plots/'+f.rstrip('.txt')+'-time-precision-'+str(k)+'.eps')
         plt.close(fig)
 
@@ -49,11 +54,11 @@ def plot_alpha(f, A, matrix, alphas, lengths):
         for alpha in alphas:
             res = []
             for l in lengths:
-                res.append(P[(t,l,alpha,theta)])
-            plt.plot(lengths, res, label="alpha="+str(alpha))
-        plt.xlabel('Prefix length l')
-        plt.ylabel('Precision '+str(k))
-        plt.legend()
+                res.append(P[(t,l,alpha,theta,N_ITEMS_FOR_USER_U,N_USERS_FOR_ITEM_I)])
+            plt.plot(lengths, res, label=alpha)
+        plt.xlabel(r'Prefix length $l$')
+        plt.ylabel(r'Precision $%d$' % k)
+        plt.legend(title=r'$\alpha$').draw_frame(True)
         plt.savefig('./plots/'+f.rstrip('.txt')+'-alpha-precision-'+str(k)+'.eps')
         plt.close(fig)
 
@@ -68,12 +73,37 @@ def plot_threshold(f, A, matrix, thresholds, lengths):
         for theta in thresholds:
             res = []
             for l in lengths:
-                res.append(P[(t,l,alpha,theta)])
-            plt.plot(lengths, res, label="theta="+str(theta))
-        plt.xlabel('Prefix length l')
-        plt.ylabel('Precision '+str(k))
-        plt.legend()
+                res.append(P[(t,l,alpha,theta,N_ITEMS_FOR_USER_U,N_USERS_FOR_ITEM_I)])
+            plt.plot(lengths, res, label=r"$%.3f$" % theta)
+        plt.xlabel(r'Prefix length $l$')
+        plt.ylabel(r'Precision $%d$' % k)
+        plt.legend(title=r'$\theta$').draw_frame(True)
         plt.savefig('./plots/'+f.rstrip('.txt')+'-theta-precision-'+str(k)+'-theta-'+str(k)+'.eps')
+        plt.close(fig)
+
+# PLOT TEST DATASET FILTERING EFFECTSS
+def plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI):
+    for k in precisions:
+        print 'p'
+        P = matrix[k]
+        # TIME EVOLUTIONS
+        t = TIME
+        alpha = ALPHA
+        fig = plt.figure()
+        for n1 in nItemsForUserU:
+            for n2 in nUsersForItemI:
+                res = []
+                for l in lengths:
+                    res.append(P[(t,l,alpha,THRESHOLD,n1,n2)])
+                print 'ok'
+                if n1 < 0:
+                    plt.plot(lengths, res, label=r'$N_{items} \leq %d$, $N_{users} \geq %d$' % (abs(n1), n2))#+', nUsersForItemI='+str(n2))
+                else:
+                    plt.plot(lengths, res, label=r'$N_{items} \geq %d$, $N_{users} \geq %d$' % (n1, n2))#+', nUsersForItemI='+str(n2))
+        plt.xlabel(r'Prefix length $l$')
+        plt.ylabel(r'Precision $%d$' % k)
+        plt.legend().draw_frame(True)
+        plt.savefig('./plots/'+f.rstrip('.txt')+'-filtering-precision-'+str(k)+'.eps')
         plt.close(fig)
 
 # Script to generate the test input file
@@ -86,9 +116,10 @@ def datafixed(f):
         for line in f:
             line = line.rstrip('\n')
             res = line.split('\t')
-            if len(res) != 10:
+            if len(res) != 12:
                 print 'ok'
                 continue
+            print res[5]
             if maximum < int(res[5]):
                 maximum = int(res[5])
     print str(maximum)
@@ -103,19 +134,18 @@ def datafixed(f):
             currAlpha = -1
             currThres = -1
             currRanking = -1
+            nItemsForUserU = -1
+            nUsersForItemsI = -1
             #currNbWords = -1
             for line in f:
                 line = line.rstrip('\n')
                 res = line.split('\t')
-                if len(res) != 10:
-                    print 'ok2'
+                if len(res) != 12:
+                    print 'ok'
                     continue
                 if ((currU!=res[0]) or currTime!=res[4] or currAlpha!=res[6]) and (currU!=-1):# and (currAlpha==str(ALPHA)):# and (currNbWords=='1'):
                     for i in range(int(currL)+1, maximum+1):
-                        newFile.write(currU+'\t'+currI+'\t'+currTag+'\t'+currFreq+'\t'+currTime+'\t'+str(i)+'\t'+currAlpha+'\t'+currThres+'\t'+currRanking+'\n')#'\t'+currNbWords+'\n')
-                if len(res)!=10:
-                    print "ok"
-                    continue
+                        newFile.write(currU+'\t'+currI+'\t'+currTag+'\t'+currFreq+'\t'+currTime+'\t'+str(i)+'\t'+currAlpha+'\t'+currThres+'\t'+currRanking+'\t'+nItemsForUserU+'\t'+nUsersForItemI+'\n')#'\t'+currNbWords+'\n')
                 currU = res[0]
                 currI = res[1]
                 currTag = res[2]
@@ -125,12 +155,14 @@ def datafixed(f):
                 currAlpha = res[6]
                 currThres = res[7]
                 currRanking = res[8]
+                nItemsForUserU = res[10]
+                nUsersForItemI = res[11]
                 #currNbWords = res[9]
                 #if (currAlpha==str(ALPHA)):# and (currNbWords=='1')):
-                newFile.write(currU+'\t'+currI+'\t'+currTag+'\t'+currFreq+'\t'+currTime+'\t'+currL+'\t'+currAlpha+'\t'+currThres+'\t'+currRanking+'\n')#'\t'+currNbWords+'\n')
+                newFile.write(currU+'\t'+currI+'\t'+currTag+'\t'+currFreq+'\t'+currTime+'\t'+currL+'\t'+currAlpha+'\t'+currThres+'\t'+currRanking+'\t'+nItemsForUserU+'\t'+nUsersForItemI+'\n')#'\t'+currNbWords+'\n')
             #if (currAlpha==str(ALPHA)):# and (currNbWords=='1'):
             for i in range(int(currL)+1, maximum+1):
-                newFile.write(currU+'\t'+currI+'\t'+currTag+'\t'+currFreq+'\t'+currTime+'\t'+str(i)+'\t'+currAlpha+'\t'+currThres+'\t'+currRanking+'\n')#'\t'+currNbWords+'\n')
+                newFile.write(currU+'\t'+currI+'\t'+currTag+'\t'+currFreq+'\t'+currTime+'\t'+str(i)+'\t'+currAlpha+'\t'+currThres+'\t'+currRanking+'\t'+nItemsForUserU+'\t'+nUsersForItemI+'\n')#'\t'+currNbWords+'\n')
     return name
 
 if __name__=='__main__':
@@ -139,12 +171,14 @@ if __name__=='__main__':
     files = [arg for arg in sys.argv[1:]]
     files_fixed = []
     for f in files:
-        A = pd.read_csv(f, sep='\t', names=['user', 'item', 'tag', 'freq', 't', 'l', 'alpha', 'theta', 'ranking', 'nbWords'])
+        A = pd.read_csv(f, sep='\t', names=['user', 'item', 'tag', 'freq', 't', 'l', 'alpha', 'theta', 'ranking', 'nbWords', 'nItemsForUserU', 'nUsersForItemI'])
         A = A.loc[A['nbWords']==1]
-        A.to_csv('fixed1.txt',sep='\t',header=False,index=False)
-        files_fixed.append(datafixed('fixed1.txt'))
+        A.to_csv('results.txt',sep='\t',header=False,index=False)
+        files_fixed.append(datafixed('results.txt'))
+        os.remove('results.txt')
+        A['theta'] = A['theta'].map(lambda x: round(x,4))
     for f in files_fixed:
-        A = pd.read_csv(f, sep='\t', names=['user', 'item', 'tag', 'freq', 't', 'l', 'alpha', 'theta', 'ranking'])
+        A = pd.read_csv(f, sep='\t', names=['user', 'item', 'tag', 'freq', 't', 'l', 'alpha', 'theta', 'ranking', 'nItemsForUserU', 'nUsersForItemI'])
         A = A.dropna()
         # Matrix generation
         g=A.groupby(parameters)
@@ -194,8 +228,26 @@ if __name__=='__main__':
                 continue
             lengths.append(int(l))
         lengths = sorted(lengths)
+        # N_ITEMS_FOR_USER_U
+        nItemsForUserU = []
+        g_nItemsForUserU = A.groupby('nItemsForUserU')
+        keys = g_nItemsForUserU.groups.viewkeys()
+        for k in keys:
+            nItemsForUserU.append(int(k))
+        nItemsForUserU = sorted(nItemsForUserU)
+        N_ITEMS_FOR_USER_U = max(nItemsForUserU)
+        # N_USERS_FOR_ITEM_I
+        nUsersForItemI = []
+        g_nusers = A.groupby('nUsersForItemI')
+        keys = g_nusers.groups.viewkeys()
+        for k in keys:
+            nUsersForItemI.append(int(k))
+        nUsersForItemI = sorted(nUsersForItemI)
+        N_USERS_FOR_ITEM_I = min(nUsersForItemI)
+        N_USERS_FOR_ITEM_I = 10
         
         # PLOTS HERE
+        plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI)
         plot_t(f, A, matrix, times, lengths)
         plot_alpha(f, A, matrix, alphas, lengths)
-        plot_threshold(f, A, matrix, thresholds, lengths)
+        #plot_threshold(f, A, matrix, thresholds, lengths)

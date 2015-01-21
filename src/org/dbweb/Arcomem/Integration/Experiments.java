@@ -34,8 +34,8 @@ public class Experiments {
 		OptimalPaths optpath;
 		BM25Score score = new BM25Score();
 
-		if (args.length != 9) {
-			System.out.println("Usage: java -jar -Xmx13000m executable.jar /path/to/files.txt numberOfDocuments networkFile triplesFile inputTestFile outputFileName numberLinesTest thresholdRef\nYou gave "+args.length+" parameters");
+		if (args.length != 11) {
+			System.out.println("Usage: java -jar -Xmx13000m executable.jar /path/to/files.txt numberOfDocuments networkFile triplesFile inputTestFile outputFileName numberLinesTest thresholdRef nItemsForUserU nUsersForItemI\nYou gave "+args.length+" parameters");
 			for (int i=0; i<args.length; i++) {
 				System.out.println("Argument "+(i+1)+": "+args[i]);
 			}
@@ -50,6 +50,8 @@ public class Experiments {
 		int counterMax = Integer.parseInt(args[6]);
 		Params.threshold = Float.parseFloat(args[7]);
 		float threshold_ref = Float.parseFloat(args[8]);
+		int nItemsForUserU = Integer.parseInt(args[9]);
+		int nUsersForItemI = Integer.parseInt(args[10]);
 
 		float alphas[] = {
 				0f,
@@ -113,7 +115,7 @@ public class Experiments {
 					System.out.println("New alpha: "+alpha+" ...");
 					topk_alg.setAlpha(alpha);
 					for (int t: times) {
-						if (((alpha!=0) && (t!=50)) || ((Params.threshold!=threshold_ref) && ((alpha!=0) || (t!=50))))
+						if (((alpha!=0) && (t!=200)) || ((Params.threshold!=threshold_ref) && ((alpha!=0) || (t!=200))))
 							continue;
 						nbSeenWords = 0;
 						query = new ArrayList<String>();
@@ -129,14 +131,14 @@ public class Experiments {
 									topk_alg.executeQuery(user, query, k, t, newQuery);
 									newQuery = false;
 									ranking = topk_alg.getRankingItem(item, k);
-									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+'\t'+ranking+"\t"+nbSeenWords+"\n");
+									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+'\t'+ranking+"\t"+nbSeenWords+'\t'+nItemsForUserU+'\t'+nUsersForItemI+"\n");
 									}
 								else {
 									query.remove(nbSeenWords-1);
 									query.add(word.substring(0, l));
 									topk_alg.executeQueryPlusLetter(user, query, l, t);
 									ranking = topk_alg.getRankingItem(item, k);
-									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\t"+nbSeenWords+"\n");
+									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\t"+nbSeenWords+'\t'+nItemsForUserU+'\t'+nUsersForItemI+"\n");
 								}
 							}
 							break; // Just one word so far

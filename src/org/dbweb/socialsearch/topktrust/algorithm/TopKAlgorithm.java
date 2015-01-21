@@ -510,6 +510,11 @@ public class TopKAlgorithm{
 		int index = 0;
 		String tag;
 		int nbNeighbourTag = 0;
+		try {
+		    Thread.sleep(3);                 //1000 milliseconds is one second.
+		} catch(InterruptedException ex) {
+		    Thread.currentThread().interrupt();
+		}
 		// for all tags in the query Q, triples Tagged(u,i,t_j)
 		for(int i=0; i<query.size(); i++) {
 			tag = query.get(i);
@@ -533,12 +538,6 @@ public class TopKAlgorithm{
 				}
 
 				currentUserId = currentUser.getEntryId();
-				if (currentUserId==101205l)
-					System.out.println(101205+", visited");
-				if (currentUserId==100925l)
-					System.out.println(100925+", visited");
-				if (currentUserId==100964l)
-					System.out.println(100964+", visited");
 				long itemId = 0;
 				if(this.userSpaces.containsKey(currentUserId) && !(currentUserId==seeker)){
 					// HERE WE CHECK
