@@ -510,11 +510,11 @@ public class TopKAlgorithm{
 		int index = 0;
 		String tag;
 		int nbNeighbourTag = 0;
-		try {
+		/*try {
 		    Thread.sleep(3);                 //1000 milliseconds is one second.
 		} catch(InterruptedException ex) {
 		    Thread.currentThread().interrupt();
-		}
+		}*/
 		// for all tags in the query Q, triples Tagged(u,i,t_j)
 		for(int i=0; i<query.size(); i++) {
 			tag = query.get(i);
