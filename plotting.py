@@ -97,9 +97,15 @@ def plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI):
                     res.append(P[(t,l,alpha,THRESHOLD,n1,n2)])
                 print 'ok'
                 if n1 < 0:
-                    plt.plot(lengths, res, label=r'$N_{items} \leq %d$, $N_{users} \geq %d$' % (abs(n1), n2))#+', nUsersForItemI='+str(n2))
+                    if n2 >= 0:
+                        plt.plot(lengths, res, label=r'$N_{items} \leq %d$, $N_{users} \geq %d$' % (abs(n1), n2))#+', nUsersForItemI='+str(n2))
+                    else:
+                        plt.plot(lengths, res, label=r'$N_{items} \leq %d$, $N_{users} \leq %d$' % (abs(n1), abs(n2)))#+', nUsersForItemI='+str(n2))
                 else:
-                    plt.plot(lengths, res, label=r'$N_{items} \geq %d$, $N_{users} \geq %d$' % (n1, n2))#+', nUsersForItemI='+str(n2))
+                    if n2 >= 0:
+                        plt.plot(lengths, res, label=r'$N_{items} \geq %d$, $N_{users} \geq %d$' % (n1, n2))#+', nUsersForItemI='+str(n2))
+                    else:
+                        plt.plot(lengths, res, label=r'$N_{items} \geq %d$, $N_{users} \leq %d$' % (n1, abs(n2)))#+', nUsersForItemI='+str(n2))
         plt.xlabel(r'Prefix length $l$')
         plt.ylabel(r'Precision $%d$' % k)
         plt.legend().draw_frame(True)
@@ -191,7 +197,7 @@ if __name__=='__main__':
                 DF = g.get_group(key)
                 DF = DF[["ranking"]]
                 DF = DF.replace(0, np.nan)
-                val = float(len(DF[(DF.ranking<k)]))/len(DF)
+                val = float(len(DF[(DF.ranking<=k)]))/len(DF)
                 matrix[k][key]=val
  
         # TIMES
