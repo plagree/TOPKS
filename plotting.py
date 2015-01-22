@@ -11,9 +11,9 @@ import seaborn as sns
 
 
 # VARIABLES TO BE CHANGED
-precisions = [2, 5, 20]
+precisions = [1, 5, 20]
 ALPHA=0.0
-TIME=200
+TIME=50
 THRESHOLD=1
 N_ITEMS_FOR_USER_U=0
 N_USERS_FOR_ITEM_I=0
@@ -250,4 +250,4 @@ if __name__=='__main__':
         plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI)
         plot_t(f, A, matrix, times, lengths)
         plot_alpha(f, A, matrix, alphas, lengths)
-        #plot_threshold(f, A, matrix, thresholds, lengths)
+        plot_threshold(f, A, matrix, thresholds, lengths)
