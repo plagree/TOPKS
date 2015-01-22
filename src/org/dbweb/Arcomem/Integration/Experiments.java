@@ -115,7 +115,7 @@ public class Experiments {
 					System.out.println("New alpha: "+alpha+" ...");
 					topk_alg.setAlpha(alpha);
 					for (int t: times) {
-						if (((alpha!=0) && (t!=200)) || ((Params.threshold!=threshold_ref) && ((alpha!=0) || (t!=200))))
+						if (((alpha!=0) && (t!=50)) || ((Params.threshold!=threshold_ref) && ((alpha!=0) || (t!=50))))
 							continue;
 						nbSeenWords = 0;
 						query = new ArrayList<String>();
