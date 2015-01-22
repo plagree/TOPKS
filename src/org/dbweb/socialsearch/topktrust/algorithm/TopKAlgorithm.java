@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Silviu & Paul
  */
-public class TopKAlgorithm{
+public class TopKAlgorithm {
 
 	//debug purpose
 	public ArrayList<Integer> visitedNodes;
@@ -181,7 +181,7 @@ public class TopKAlgorithm{
 
 	private int numloops=0; //amine
 
-	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error) throws SQLException{
+	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error) throws SQLException {
 		this.distFunc = distFunc;
 		this.dbConnection = dbConnection;
 		this.networkTable = networkTable;
@@ -199,7 +199,6 @@ public class TopKAlgorithm{
 			try {
 				this.fileLoadingInMemory();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -207,7 +206,7 @@ public class TopKAlgorithm{
 		System.out.println("File loading in "+(time_after_loading-time_before_loading)+" sec...");
 	}
 
-	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error, int number_documents, int number_users){
+	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error, int number_documents, int number_users) {
 		this.distFunc = distFunc;
 		this.dbConnection = dbConnection;
 		this.networkTable = networkTable;
@@ -232,9 +231,7 @@ public class TopKAlgorithm{
 	 * @return
 	 * @throws SQLException
 	 */
-	public int executeQuery(String seeker, ArrayList<String> query, int k, int t, boolean newQuery) throws SQLException{
-		//if (query.size() != 1)
-		//	System.out.println("Query: "+query.toString());
+	public int executeQuery(String seeker, ArrayList<String> query, int k, int t, boolean newQuery) throws SQLException {
 		System.out.println(query.toString()+", "+seeker);
 		this.max_pos_val = 1.0f;
 		this.d_distr = null;
@@ -273,14 +270,10 @@ public class TopKAlgorithm{
 		int index = 0;
 		boolean exact = false;
 		pos[index]=0;
-		//topItemQuery.put(tag, next_docs2.get(completion_trie.searchPrefix(tag, exact).getBestDescendant().getWord()));
-		topItemQuery.put(tag, this.invertedLists.get(completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord()).get(0).getDocId());//next_docs2.get(completion_trie.searchPrefix(tag, exact).getBestDescendant().getWord()));
+		topItemQuery.put(tag, this.invertedLists.get(completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord()).get(0).getDocId());
 		topValueQuery.put(tag, (int)completionTrie.searchPrefix(tag, false).getValue());
 		index++;
 		userWeights.put(tag, userWeight);
-
-		//proximities = new ArrayList<Double>();
-		//proximities.add((double)userWeight);
 
 		if((this.approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
 			String sqlGetDistribution = String.format(sqlGetDistributionTemplate, this.networkTable);
@@ -317,7 +310,6 @@ public class TopKAlgorithm{
 			candidates.setContribs(query, completionTrie);
 		}
 		else {
-			// clean results obtained so far
 			candidates.cleanForNewWord(query, this.tag_idf, completionTrie, this.approxMethod);
 		}
 		
@@ -357,10 +349,8 @@ public class TopKAlgorithm{
 				if (positions.get(completion) == 0) {
 					continue;
 				}
-				positions.put(completion, 0); // high_docs.put(completion, ); UPDATE EVERYTHING HERE
+				positions.put(completion, 0);
 				DocumentNumTag firstDoc = this.invertedLists.get(completion).get(0);
-				//high_docs.put(completion, firstDoc.getNum());
-				//next_docs2.put(completion, firstDoc.getDocId());
 				RadixTreeNode current_best_leaf = completionTrie.searchPrefix(completion, false).getBestDescendant();
 				current_best_leaf.updatePreviousBestValue(firstDoc.getNum());
 			}
@@ -510,11 +500,6 @@ public class TopKAlgorithm{
 		int index = 0;
 		String tag;
 		int nbNeighbourTag = 0;
-		/*try {
-		    Thread.sleep(3);                 //1000 milliseconds is one second.
-		} catch(InterruptedException ex) {
-		    Thread.currentThread().interrupt();
-		}*/
 		// for all tags in the query Q, triples Tagged(u,i,t_j)
 		for(int i=0; i<query.size(); i++) {
 			tag = query.get(i);
@@ -541,7 +526,6 @@ public class TopKAlgorithm{
 				long itemId = 0;
 				if(this.userSpaces.containsKey(currentUserId) && !(currentUserId==seeker)){
 					// HERE WE CHECK
-					//System.out.println("User visited : "+currentUserId+", weight : "+userWeight);
 					SortedMap<String, TLongSet> completions = userSpaces.get(currentUserId).prefixMap(tag);
 					if (completions.size()>0) {
 						Iterator<Entry<String, TLongSet>> iterator = completions.entrySet().iterator();
@@ -551,7 +535,6 @@ public class TopKAlgorithm{
 							
 							for(TLongIterator it = currentEntry.getValue().iterator(); it.hasNext(); ){
 								itemId = it.next();
-								//System.out.println("\t Item :  "+itemId+"\t "+completion);
 								found_docs = true;
 								Item<String> item = candidates.findItem(itemId, completion);
 								if (item==null) {
