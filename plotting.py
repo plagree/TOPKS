@@ -46,7 +46,7 @@ def plot_t(f, A, matrix, times, lengths):
         plt.xlabel(r'Prefix length $l$')
         plt.ylabel(r'Precision $%d$' % k)
         plt.legend(title=r'Time $t$ ($ms$)').draw_frame(True)
-        plt.savefig('./plots/'+f.rstrip('.txt')+'-time-precision-'+str(k)+'.eps')
+        plt.savefig('./plots/'+f.rstrip('.txt')+'-time-precision-'+str(k)+'.pdf')
         plt.close(fig)
 
 # PLOTS ALPHA EFFECTS
@@ -56,7 +56,7 @@ def plot_alpha(f, A, matrix, alphas, lengths):
         # TIME EVOLUTIONS
         t = TIME
         theta = THRESHOLD
-        fig = plt.figure(figsize=(7, 6))
+        fig = plt.figure(figsize=(9, 6))
         for alpha in alphas:
             res = []
             for l in lengths:
@@ -67,8 +67,8 @@ def plot_alpha(f, A, matrix, alphas, lengths):
         legend = plt.legend(title=r'$\alpha$', fontsize=15)
         plt.setp(legend.get_title(),fontsize=15)
         legend.draw_frame(True)
-        plt.title(r'Tumblr item-tag', fontsize=15)
-        plt.savefig('./plots/'+f.rstrip('.txt')+'-alpha-precision-'+str(k)+'.eps')
+        plt.title(r'Tumblr item-tag', fontsize=17)
+        plt.savefig('./plots/'+f.rstrip('.txt')+'-alpha-precision-'+str(k)+'.pdf', bbox_inches='tight')
         plt.close(fig)
 
 # PLOT THETA EFFECTS
@@ -87,7 +87,7 @@ def plot_threshold(f, A, matrix, thresholds, lengths):
         plt.xlabel(r'Prefix length $l$')
         plt.ylabel(r'Precision $%d$' % k)
         plt.legend(title=r'$\theta$').draw_frame(True)
-        plt.savefig('./plots/'+f.rstrip('.txt')+'-theta-precision-'+str(k)+'-theta-'+str(k)+'.eps')
+        plt.savefig('./plots/'+f.rstrip('.txt')+'-theta-precision-'+str(k)+'-theta-'+str(k)+'.pdf')
         plt.close(fig)
 
 # PLOT TEST DATASET FILTERING EFFECTSS
@@ -117,7 +117,7 @@ def plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI):
         plt.xlabel(r'Prefix length $l$')
         plt.ylabel(r'Precision $%d$' % k)
         plt.legend().draw_frame(True)
-        plt.savefig('./plots/'+f.rstrip('.txt')+'-filtering-precision-'+str(k)+'.eps')
+        plt.savefig('./plots/'+f.rstrip('.txt')+'-filtering-precision-'+str(k)+'.pdf')
         plt.close(fig)
 
 # Script to generate the test input file
