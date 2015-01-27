@@ -108,7 +108,7 @@ public class Test{
 										xmlFile.write("<tests>");
 										
 										long timeBefore = System.currentTimeMillis();
-										topk_alg.executeQuery(String.valueOf(seekers[index_n][index_s]), query, k, Integer.MAX_VALUE,true); // TOPKS IS RUN HERE
+										topk_alg.executeQuery(String.valueOf(seekers[index_n][index_s]), query, k, Integer.MAX_VALUE,true,0); // TOPKS IS RUN HERE
 										long timeAfter = System.currentTimeMillis();
 										System.out.println("The algorithm ran in "+(timeAfter-timeBefore)/1000+" seconds with seeker "+seekers[index_n][index_s]);
 										xmlFile.write(topk_alg.getResultsXML());

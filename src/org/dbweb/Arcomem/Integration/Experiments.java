@@ -23,7 +23,8 @@ public class Experiments {
 	public static final String taggers = "soc_tag_80";
 	private static final int k = 1000;
 	private static final int method = 1;
-	private static final int[] times = {/*20,*/ 50, 200, /*500,*/ 2000};
+	private static final int[] times = {/*20,*/ 500/*, 200, /*500, 2000*/};
+	private static final int[] nvisited = {1,5,10,15,20, 100, 500, 500000};
 	private static final int lengthPrefixMinimum = 1;
 	private static double coeff = 2.0f;
 
@@ -114,36 +115,38 @@ public class Experiments {
 				for (float alpha: alphas) {
 					System.out.println("New alpha: "+alpha+" ...");
 					topk_alg.setAlpha(alpha);
-					for (int t: times) {
-						if (((alpha!=0) && (t!=50)) || ((Params.threshold!=threshold_ref) && ((alpha!=0) || (t!=50))))
-							continue;
-						nbSeenWords = 0;
-						query = new ArrayList<String>();
-						System.out.println("New time "+t+"...");
-						newQuery = true; // new word in query
-						for (String word: words) {
-							lengthTag = word.length();
-							nbSeenWords++;
-							for (int l=lengthPrefixMinimum; l<=lengthTag; l++) {
-								System.out.println("New prefix");
-								if (l==lengthPrefixMinimum) {
-									query.add(word.substring(0, l));
-									topk_alg.executeQuery(user, query, k, t, newQuery);
-									newQuery = false;
-									ranking = topk_alg.getRankingItem(item, k);
-									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+'\t'+ranking+"\t"+nbSeenWords+'\t'+nItemsForUserU+'\t'+nUsersForItemI+"\n");
+					for (int nNeigh: nvisited) {
+						for (int t: times) {
+							if (((alpha!=0) && (t!=500)) || ((Params.threshold!=threshold_ref) && ((alpha!=0) || (t!=500))))
+								continue;
+							nbSeenWords = 0;
+							query = new ArrayList<String>();
+							System.out.println("New time "+t+"...");
+							newQuery = true; // new word in query
+							for (String word: words) {
+								lengthTag = word.length();
+								nbSeenWords++;
+								for (int l=lengthPrefixMinimum; l<=lengthTag; l++) {
+									System.out.println("New prefix");
+									if (l==lengthPrefixMinimum) {
+										query.add(word.substring(0, l));
+										topk_alg.executeQuery(user, query, k, t, newQuery, nNeigh);
+										newQuery = false;
+										ranking = topk_alg.getRankingItem(item, k);
+										bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+'\t'+ranking+"\t"+nbSeenWords+'\t'+nItemsForUserU+'\t'+nUsersForItemI+"\t"+nNeigh+"\n");
 									}
-								else {
-									query.remove(nbSeenWords-1);
-									query.add(word.substring(0, l));
-									topk_alg.executeQueryPlusLetter(user, query, l, t);
-									ranking = topk_alg.getRankingItem(item, k);
-									bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\t"+nbSeenWords+'\t'+nItemsForUserU+'\t'+nUsersForItemI+"\n");
+									else {
+										query.remove(nbSeenWords-1);
+										query.add(word.substring(0, l));
+										topk_alg.executeQueryPlusLetter(user, query, l, t);
+										ranking = topk_alg.getRankingItem(item, k);
+										bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+"\t"+ranking+"\t"+nbSeenWords+'\t'+nItemsForUserU+'\t'+nUsersForItemI+"\t"+nNeigh+"\n");
+									}
 								}
+								break; // Just one word so far
 							}
-							break; // Just one word so far
+							topk_alg.reinitialize(words, lengthPrefixMinimum);
 						}
-						topk_alg.reinitialize(words, lengthPrefixMinimum);
 					}
 				}
 				counter++;

@@ -9,6 +9,11 @@ import sys
 import os
 import seaborn as sns
 
+sns.set_style("whitegrid")
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+matplotlib.rc('xtick', labelsize=12) 
+matplotlib.rc('ytick', labelsize=12)
 
 # VARIABLES TO BE CHANGED
 precisions = [1, 5, 20]
@@ -17,6 +22,7 @@ TIME=50
 THRESHOLD=1
 N_ITEMS_FOR_USER_U=0
 N_USERS_FOR_ITEM_I=0
+MAX_LENGTH_PREFIX=8
 
 
 # OTHER STUFF
@@ -50,15 +56,18 @@ def plot_alpha(f, A, matrix, alphas, lengths):
         # TIME EVOLUTIONS
         t = TIME
         theta = THRESHOLD
-        fig = plt.figure()
+        fig = plt.figure(figsize=(7, 6))
         for alpha in alphas:
             res = []
             for l in lengths:
                 res.append(P[(t,l,alpha,theta,N_ITEMS_FOR_USER_U,N_USERS_FOR_ITEM_I)])
             plt.plot(lengths, res, label=alpha)
-        plt.xlabel(r'Prefix length $l$')
-        plt.ylabel(r'Precision $%d$' % k)
-        plt.legend(title=r'$\alpha$').draw_frame(True)
+        plt.xlabel(r'Prefix length $l$', fontsize=15)
+        plt.ylabel(r'Precision $%d$' % k, fontsize=15)
+        legend = plt.legend(title=r'$\alpha$', fontsize=15)
+        plt.setp(legend.get_title(),fontsize=15)
+        legend.draw_frame(True)
+        plt.title(r'Tumblr item-tag', fontsize=15)
         plt.savefig('./plots/'+f.rstrip('.txt')+'-alpha-precision-'+str(k)+'.eps')
         plt.close(fig)
 
@@ -84,7 +93,6 @@ def plot_threshold(f, A, matrix, thresholds, lengths):
 # PLOT TEST DATASET FILTERING EFFECTSS
 def plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI):
     for k in precisions:
-        print 'p'
         P = matrix[k]
         # TIME EVOLUTIONS
         t = TIME
@@ -95,7 +103,7 @@ def plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI):
                 res = []
                 for l in lengths:
                     res.append(P[(t,l,alpha,THRESHOLD,n1,n2)])
-                print 'ok'
+                #print 'ok'
                 if n1 < 0:
                     if n2 >= 0:
                         plt.plot(lengths, res, label=r'$N_{items} \leq %d$, $N_{users} \geq %d$' % (abs(n1), n2))#+', nUsersForItemI='+str(n2))
@@ -123,9 +131,8 @@ def datafixed(f):
             line = line.rstrip('\n')
             res = line.split('\t')
             if len(res) != 12:
-                print 'ok'
+                print 'Problem, too many columns'
                 continue
-            print res[5]
             if maximum < int(res[5]):
                 maximum = int(res[5])
     print str(maximum)
@@ -230,7 +237,7 @@ if __name__=='__main__':
         g_l = A.groupby('l')
         keys = g_l.groups.viewkeys()
         for l in keys:
-            if (int(l) > 12):
+            if (int(l) > MAX_LENGTH_PREFIX):
                 continue
             lengths.append(int(l))
         lengths = sorted(lengths)
@@ -251,9 +258,9 @@ if __name__=='__main__':
         nUsersForItemI = sorted(nUsersForItemI)
         N_USERS_FOR_ITEM_I = min(nUsersForItemI)
         N_USERS_FOR_ITEM_I = 10
-        
+ 
         # PLOTS HERE
-        plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI)
-        plot_t(f, A, matrix, times, lengths)
+        #plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI)
+        #plot_t(f, A, matrix, times, lengths)
         plot_alpha(f, A, matrix, alphas, lengths)
-        plot_threshold(f, A, matrix, thresholds, lengths)
+        #plot_threshold(f, A, matrix, thresholds, lengths)

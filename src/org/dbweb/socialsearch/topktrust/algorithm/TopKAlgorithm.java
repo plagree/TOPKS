@@ -180,6 +180,7 @@ public class TopKAlgorithm {
 	private List<Integer> queryNbNeighbour;
 
 	private int numloops=0; //amine
+	private int nVisited;
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error) throws SQLException {
 		this.distFunc = distFunc;
@@ -231,7 +232,8 @@ public class TopKAlgorithm {
 	 * @return
 	 * @throws SQLException
 	 */
-	public int executeQuery(String seeker, ArrayList<String> query, int k, int t, boolean newQuery) throws SQLException {
+	public int executeQuery(String seeker, ArrayList<String> query, int k, int t, boolean newQuery, int nVisited) throws SQLException {
+		this.nVisited = nVisited;
 		System.out.println(query.toString()+", "+seeker);
 		this.max_pos_val = 1.0f;
 		this.d_distr = null;
@@ -412,11 +414,13 @@ public class TopKAlgorithm {
 		possible = new HashSet<String>();
 		long before_main_loop = System.currentTimeMillis();
 		finished = false;
+		int currVisited = 0;
 		do{
 			docs_inserted = false;
 			boolean social = false;
 			boolean socialBranch = chooseBranch(query);
 			if(socialBranch){
+				currVisited += 1;
 				processSocial(query);
 				social=true;
 				if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS) {
@@ -460,6 +464,8 @@ public class TopKAlgorithm {
 			if (userWeight==0)
 				terminationCondition = true;
 			loops++;
+			if (currVisited >= (this.nVisited+1))
+				terminationCondition = true;
 		}while(!terminationCondition&&!finished&&underTimeLimit);
 		this.numloops=loops;
 		System.out.println("There were "+loops+" loops ...");
