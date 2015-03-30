@@ -9,11 +9,14 @@ import sys
 import os
 import seaborn as sns
 
-sns.set_style("whitegrid")
+#sns.set_style("whitegrid")
+sns.set_style("ticks")
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
-matplotlib.rc('xtick', labelsize=12) 
-matplotlib.rc('ytick', labelsize=12)
+plt.rc("lines", linewidth=3.5)
+matplotlib.rc('xtick', labelsize=14) 
+matplotlib.rc('ytick', labelsize=14)
+matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amsmath}"]
 
 # VARIABLES TO BE CHANGED
 precisions = [1, 5, 20]
@@ -24,30 +27,36 @@ N_ITEMS_FOR_USER_U=0
 N_USERS_FOR_ITEM_I=0
 MAX_LENGTH_PREFIX=8
 
+TITLE=r'\textbf{Tumblr social network}'
+FILENAME='tumblr-socialnet'
+
 
 # OTHER STUFF
 parameters = ['t', 'l', 'alpha', 'theta', 'nItemsForUserU', 'nUsersForItemI']
 columns = parameters + ['ranking']
 
+palette = sns.color_palette()
+palette[-1], palette[-2] = palette[-2], palette[-1]
+sns.palplot(palette)
 
 # PLOT TIME LIMIT EFFECTS
-def plot_t(f, A, matrix, times, lengths):
-    for k in precisions:
-        P = matrix[k]
-        # TIME EVOLUTIONS
-        alpha = ALPHA
-        theta = THRESHOLD
-        fig = plt.figure()
-        for t in times:
-            res = []
-            for l in lengths:
-                res.append(P[(t,l,alpha,theta,N_ITEMS_FOR_USER_U,N_USERS_FOR_ITEM_I)])
-            plt.plot(lengths, res, label=r'$%d$' % t)
-        plt.xlabel(r'Prefix length $l$')
-        plt.ylabel(r'Precision $%d$' % k)
-        plt.legend(title=r'Time $t$ ($ms$)').draw_frame(True)
-        plt.savefig('./plots/'+f.rstrip('.txt')+'-time-precision-'+str(k)+'.pdf')
-        plt.close(fig)
+#def plot_t(f, A, matrix, times, lengths):
+#    for k in precisions:
+#        P = matrix[k]
+#        # TIME EVOLUTIONS
+#        alpha = ALPHA
+#        theta = THRESHOLD
+#        fig = plt.figure()
+#        for t in times:
+#            res = []
+#            for l in lengths:
+#                res.append(P[(t,l,alpha,theta,N_ITEMS_FOR_USER_U,N_USERS_FOR_ITEM_I)])
+#            plt.plot(lengths, res, label=r'$%d$' % t)
+#        plt.xlabel(r'Prefix length $l$')
+#        plt.ylabel(r'Precision $%d$' % k)
+#        plt.legend(title=r'Time $t$ ($ms$)').draw_frame(True)
+#        plt.savefig('./plots/'+f.rstrip('.txt')+'-time-precision-'+str(k)+'.pdf')
+#        plt.close(fig)
 
 # PLOTS ALPHA EFFECTS
 def plot_alpha(f, A, matrix, alphas, lengths):
@@ -56,19 +65,19 @@ def plot_alpha(f, A, matrix, alphas, lengths):
         # TIME EVOLUTIONS
         t = TIME
         theta = THRESHOLD
-        fig = plt.figure(figsize=(9, 6))
+        fig = plt.figure(figsize=(7, 6))
         for alpha in alphas:
             res = []
             for l in lengths:
                 res.append(P[(t,l,alpha,theta,N_ITEMS_FOR_USER_U,N_USERS_FOR_ITEM_I)])
-            plt.plot(lengths, res, label=alpha)
-        plt.xlabel(r'Prefix length $l$', fontsize=15)
-        plt.ylabel(r'Precision $%d$' % k, fontsize=15)
-        legend = plt.legend(title=r'$\alpha$', fontsize=15)
-        plt.setp(legend.get_title(),fontsize=15)
+            plt.plot(lengths, res, label=r'$\boldsymbol{%g}$' % (alpha))
+        plt.xlabel(r'$\boldsymbol{l}$', fontsize=20)
+        plt.ylabel(r'\textbf{P@%d}' % k, fontsize=18)
+        legend = plt.legend(title=r'$\boldsymbol{\alpha}$', fontsize=18)
+        plt.setp(legend.get_title(),fontsize=22)
         legend.draw_frame(True)
-        plt.title(r'Tumblr item-tag', fontsize=17)
-        plt.savefig('./plots/'+f.rstrip('.txt')+'-alpha-precision-'+str(k)+'.pdf', bbox_inches='tight')
+        plt.title(TITLE, fontsize=19, y=1.03)
+        plt.savefig('./plots/'+FILENAME+'-alpha-p'+str(k)+'.pdf', bbox_inches='tight')
         plt.close(fig)
 
 # PLOT THETA EFFECTS
@@ -78,16 +87,19 @@ def plot_threshold(f, A, matrix, thresholds, lengths):
         # TIME EVOLUTIONS
         t = TIME
         alpha = ALPHA
-        fig = plt.figure()
+        fig = plt.figure(figsize=(7, 6))
         for theta in thresholds:
             res = []
             for l in lengths:
                 res.append(P[(t,l,alpha,theta,N_ITEMS_FOR_USER_U,N_USERS_FOR_ITEM_I)])
-            plt.plot(lengths, res, label=r"$%.3f$" % theta)
-        plt.xlabel(r'Prefix length $l$')
-        plt.ylabel(r'Precision $%d$' % k)
-        plt.legend(title=r'$\theta$').draw_frame(True)
-        plt.savefig('./plots/'+f.rstrip('.txt')+'-theta-precision-'+str(k)+'-theta-'+str(k)+'.pdf')
+            plt.plot(lengths, res, label=r"$\boldsymbol{%.3f}$" % theta)
+        plt.xlabel(r'$\boldsymbol{l}$', fontsize=20)
+        plt.ylabel(r'\textbf{P@%d}' % k, fontsize=18)
+        legend = plt.legend(title=r'$\boldsymbol{\theta}$', fontsize=18)
+        plt.setp(legend.get_title(),fontsize=22)
+        legend.draw_frame(True)
+        plt.title(TITLE, fontsize=19, y=1.03)
+        plt.savefig('./plots/'+FILENAME+'-theta-p'+str(k)+'.pdf', bbox_inches='tight')
         plt.close(fig)
 
 # PLOT TEST DATASET FILTERING EFFECTSS
@@ -97,7 +109,7 @@ def plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI):
         # TIME EVOLUTIONS
         t = TIME
         alpha = ALPHA
-        fig = plt.figure()
+        fig = plt.figure(figsize=(7, 6))
         for n1 in nItemsForUserU:
             for n2 in nUsersForItemI:
                 res = []
@@ -106,18 +118,21 @@ def plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI):
                 #print 'ok'
                 if n1 < 0:
                     if n2 >= 0:
-                        plt.plot(lengths, res, label=r'$N_{items} \leq %d$, $N_{users} \geq %d$' % (abs(n1), n2))#+', nUsersForItemI='+str(n2))
+                        plt.plot(lengths, res, label=r'$\boldsymbol{\eta_i \leq %d}$, $\boldsymbol{\eta_u \geq %d}$' % (abs(n1), n2))
                     else:
-                        plt.plot(lengths, res, label=r'$N_{items} \leq %d$, $N_{users} \leq %d$' % (abs(n1), abs(n2)))#+', nUsersForItemI='+str(n2))
+                        plt.plot(lengths, res, label=r'$\boldsymbol{\eta_i \leq %d}$, $\boldsymbol{\eta_u \leq %d}$' % (abs(n1), abs(n2)))
                 else:
                     if n2 >= 0:
-                        plt.plot(lengths, res, label=r'$N_{items} \geq %d$, $N_{users} \geq %d$' % (n1, n2))#+', nUsersForItemI='+str(n2))
+                        plt.plot(lengths, res, label=r'$\boldsymbol{\eta_i \geq %d}$, $\boldsymbol{\eta_u \geq %d}$' % (n1, n2))
                     else:
-                        plt.plot(lengths, res, label=r'$N_{items} \geq %d$, $N_{users} \leq %d$' % (n1, abs(n2)))#+', nUsersForItemI='+str(n2))
-        plt.xlabel(r'Prefix length $l$')
-        plt.ylabel(r'Precision $%d$' % k)
-        plt.legend().draw_frame(True)
-        plt.savefig('./plots/'+f.rstrip('.txt')+'-filtering-precision-'+str(k)+'.pdf')
+                        plt.plot(lengths, res, label=r'$\boldsymbol{\eta_i \geq %d}$, $\boldsymbol{\eta_u \leq %d}$' % (n1, abs(n2)))
+        plt.xlabel(r'$\boldsymbol{l}$', fontsize=20)
+        plt.ylabel(r'\textbf{P@%d}' % k, fontsize=18)
+        legend = plt.legend(fontsize=18)
+        plt.setp(legend.get_title(),fontsize=22)
+        legend.draw_frame(True)
+        plt.title(TITLE, fontsize=19, y=1.03)
+        plt.savefig('./plots/'+FILENAME+'-filtering-p'+str(k)+'.pdf', bbox_inches='tight')
         plt.close(fig)
 
 # Script to generate the test input file
@@ -170,12 +185,9 @@ def datafixed(f):
                 currRanking = res[8]
                 nItemsForUserU = res[10]
                 nUsersForItemI = res[11]
-                #currNbWords = res[9]
-                #if (currAlpha==str(ALPHA)):# and (currNbWords=='1')):
-                newFile.write(currU+'\t'+currI+'\t'+currTag+'\t'+currFreq+'\t'+currTime+'\t'+currL+'\t'+currAlpha+'\t'+currThres+'\t'+currRanking+'\t'+nItemsForUserU+'\t'+nUsersForItemI+'\n')#'\t'+currNbWords+'\n')
-            #if (currAlpha==str(ALPHA)):# and (currNbWords=='1'):
+                newFile.write(currU+'\t'+currI+'\t'+currTag+'\t'+currFreq+'\t'+currTime+'\t'+currL+'\t'+currAlpha+'\t'+currThres+'\t'+currRanking+'\t'+nItemsForUserU+'\t'+nUsersForItemI+'\n')
             for i in range(int(currL)+1, maximum+1):
-                newFile.write(currU+'\t'+currI+'\t'+currTag+'\t'+currFreq+'\t'+currTime+'\t'+str(i)+'\t'+currAlpha+'\t'+currThres+'\t'+currRanking+'\t'+nItemsForUserU+'\t'+nUsersForItemI+'\n')#'\t'+currNbWords+'\n')
+                newFile.write(currU+'\t'+currI+'\t'+currTag+'\t'+currFreq+'\t'+currTime+'\t'+str(i)+'\t'+currAlpha+'\t'+currThres+'\t'+currRanking+'\t'+nItemsForUserU+'\t'+nUsersForItemI+'\n')
     return name
 
 if __name__=='__main__':
@@ -260,7 +272,7 @@ if __name__=='__main__':
         N_USERS_FOR_ITEM_I = 10
  
         # PLOTS HERE
-        #plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI)
+        plot_test_filtering(f, A, matrix, nItemsForUserU, nUsersForItemI)
         #plot_t(f, A, matrix, times, lengths)
         plot_alpha(f, A, matrix, alphas, lengths)
-        #plot_threshold(f, A, matrix, thresholds, lengths)
+        plot_threshold(f, A, matrix, thresholds, lengths)
