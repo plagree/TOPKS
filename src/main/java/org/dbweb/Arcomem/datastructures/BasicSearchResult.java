@@ -7,9 +7,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import com.google.common.collect.Multiset.Entry;
-import com.google.common.primitives.Doubles;
-
 /**
  * 
  * @author aminebaazizi
