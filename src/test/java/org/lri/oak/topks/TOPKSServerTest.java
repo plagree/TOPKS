@@ -63,13 +63,17 @@ public class  TOPKSServerTest {
 		    JsonArray results = rootobj.get("results").getAsJsonArray();
 		    System.out.println(results.toString());
 		    
-		    // First item for q=style: item 6, socialScore 0.9
+		    // First item for q="style": item 6, socialScore log(2) * 0.9 ( idf(q) = log(6 / 2) )
+		    // textualScore = log(2) * 1 ( only user 2 tagged item 6 with tag "style" )
 		    Assert.assertEquals(results.get(0).getAsJsonObject().get("id").getAsLong(), 6l);
-		    Assert.assertEquals(results.get(0).getAsJsonObject().get("socialScore").getAsFloat(), 0.9, DELTA);
+		    Assert.assertEquals(results.get(0).getAsJsonObject().get("socialScore").getAsFloat(), (float)(Math.log(2) * 0.9), DELTA);
+		    Assert.assertEquals(results.get(0).getAsJsonObject().get("textualScore").getAsFloat(), (float)(Math.log(2) * 1), DELTA);
 		    
-		    // Second item for q=style: item 4, socialScore 0.7782
+		    // Second item for q="style": item 4, socialScore log(2) * 0.7782
+		    // textualScore = log(2) * 3 ( 3 users tagged item 4 with tag "style" )
 		    Assert.assertEquals(results.get(1).getAsJsonObject().get("id").getAsLong(), 4l);
-		    Assert.assertEquals(results.get(1).getAsJsonObject().get("socialScore").getAsFloat(), 0.7782, DELTA);
+		    Assert.assertEquals(results.get(1).getAsJsonObject().get("socialScore").getAsFloat(), (float)(Math.log(2) * 0.7782), DELTA);
+		    Assert.assertEquals(results.get(1).getAsJsonObject().get("textualScore").getAsFloat(), (float)(Math.log(2) * 3), DELTA);
 		    
 		} catch (MalformedURLException e) {
 			e.printStackTrace();

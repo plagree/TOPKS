@@ -1272,8 +1272,8 @@ public class TopKAlgorithm {
 			//item.debugging();
 			currItem = new JsonObject();
 			currItem.add("id", new JsonPrimitive(item.getItemId()));
-			currItem.add("textualScore", new JsonPrimitive(this.tag_idf.searchPrefix("style", true).getValue())); // TODO item.getTextualScore()
-			currItem.add("socialScore", new JsonPrimitive(item.getSocialScore())); 
+			currItem.add("textualScore", new JsonPrimitive( item.getTextualScore() )); // TODO item.getTextualScore()
+			currItem.add("socialScore", new JsonPrimitive( item.getSocialScore() )); 
 			arrayResults.add(currItem);
 			n++;
 		}

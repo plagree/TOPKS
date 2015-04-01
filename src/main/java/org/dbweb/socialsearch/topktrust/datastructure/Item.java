@@ -34,7 +34,7 @@ public class Item<E> implements Comparable<Item<E>>{
 	private Map<E,Float> uf = new HashMap<E,Float>();
 	public Map<E,Integer> tdf = new HashMap<E,Integer>();
 
-	private Map<E,Integer> nbUnseenUsers = new HashMap<E,Integer>();
+	private Map<E,Integer> nbUsersSeen = new HashMap<E,Integer>();
 
 	private Map<E,Double> normcontrib = new HashMap<E,Double>();
 	private Map<E,Double> soccontrib = new HashMap<E,Double>();
@@ -78,7 +78,7 @@ public class Item<E> implements Comparable<Item<E>>{
 	}
 	
 	public Map<E,Integer> getR() {
-		return this.nbUnseenUsers;
+		return this.nbUsersSeen;
 	}
 	
 	public Map<E,Integer> getTdf() {
@@ -131,7 +131,7 @@ public class Item<E> implements Comparable<Item<E>>{
 				this.uf.put(tag, itemToCopy.getUf().get(tag));
 			}
 			if (itemToCopy.getR().containsKey(tag)) {
-				nbUnseenUsers.put(tag, itemToCopy.getR().get(tag));
+				this.nbUsersSeen.put(tag, itemToCopy.getR().get(tag));
 			}
 		}
 	}
@@ -161,9 +161,9 @@ public class Item<E> implements Comparable<Item<E>>{
 			this.uf.put(newPrefix, this.uf.get(oldPrefix));
 			this.uf.remove(oldPrefix);
 		}
-		if (nbUnseenUsers.containsKey(oldPrefix)) {
-			nbUnseenUsers.put(newPrefix, nbUnseenUsers.get(oldPrefix));
-			nbUnseenUsers.remove(oldPrefix);
+		if (nbUsersSeen.containsKey(oldPrefix)) {
+			nbUsersSeen.put(newPrefix, nbUsersSeen.get(oldPrefix));
+			nbUsersSeen.remove(oldPrefix);
 		}
 	}
 
@@ -173,9 +173,9 @@ public class Item<E> implements Comparable<Item<E>>{
 			prevUFVal = uf.get(tag);
 		uf.put(tag, prevUFVal + value);
 		int prevR = 0;
-		if(this.nbUnseenUsers.containsKey(tag))
-			prevR = nbUnseenUsers.get(tag);
-		nbUnseenUsers.put(tag, prevR + 1);
+		if(this.nbUsersSeen.containsKey(tag))
+			prevR = nbUsersSeen.get(tag);
+		nbUsersSeen.put(tag, prevR + 1);
 		computeWorstScore(approx);
 		return 0;
 	}
@@ -227,7 +227,7 @@ public class Item<E> implements Comparable<Item<E>>{
 			}
 			if(uf.containsKey(tag)) bsocial=uf.get(tag); // score so far
 			float stf_known = 0;
-			if(nbUnseenUsers.containsKey(tag)) stf_known = nbUnseenUsers.get(tag); // users found who tagged so far
+			if(nbUsersSeen.containsKey(tag)) stf_known = nbUsersSeen.get(tag); // users found who tagged so far
 			this.soccontrib.put(tag, stf - stf_known);
 			if((approx&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
 				if(tdf.containsKey(tag)){
@@ -271,7 +271,7 @@ public class Item<E> implements Comparable<Item<E>>{
 	}
 	
 	public void debugging() {
-		System.out.println("Number of users seen: "+this.nbUnseenUsers.toString());	  // number of users seen
+		System.out.println("Number of users seen: "+this.nbUsersSeen.toString());	  // number of users seen
 		System.out.println("Tag in: "+this.tags.toString()); // 1 for tag in
 		System.out.println("Sum of weights of users found: "+this.uf.toString());  // sum of weights of users found
 		System.out.println("IDF of tag: "+this.idf.toString()); // IDF of tag
@@ -290,8 +290,8 @@ public class Item<E> implements Comparable<Item<E>>{
 				wnormal=tdf.get(tag);
 			}
 			else if((approx&Methods.MET_TOPKS)==Methods.MET_TOPKS){
-				if(nbUnseenUsers.containsKey(tag))
-					wnormal=nbUnseenUsers.get(tag);
+				if(nbUsersSeen.containsKey(tag))
+					wnormal=nbUsersSeen.get(tag);
 			}
 			if(uf.containsKey(tag)){
 				wsocial=uf.get(tag);
@@ -306,8 +306,8 @@ public class Item<E> implements Comparable<Item<E>>{
 		double contrib = 0;
 		if(tdf.containsKey(tag)){
 			contrib += tdf.get(tag);
-			if(nbUnseenUsers.containsKey(tag))
-				contrib -= nbUnseenUsers.get(tag);
+			if(nbUsersSeen.containsKey(tag))
+				contrib -= nbUsersSeen.get(tag);
 		}
 		return contrib;
 	}
@@ -323,7 +323,7 @@ public class Item<E> implements Comparable<Item<E>>{
 			double wpart_est = 0;    		
 			if(uf.containsKey(tag)){
 				wsocial=uf.get(tag);
-				uv = nbUnseenUsers.get(tag);
+				uv = nbUsersSeen.get(tag);
 			}
 			if(tdf.containsKey(tag)){
 				wnormal=tdf.get(tag);
@@ -341,8 +341,8 @@ public class Item<E> implements Comparable<Item<E>>{
 				wpart_est = alpha*wnormal + (1-alpha)*wsocial + (1-alpha)*uw*(stdf-uv);
 			}
 			else if((approx&Methods.MET_TOPKS)==Methods.MET_TOPKS){
-				if(nbUnseenUsers.containsKey(tag))
-					wnormal=nbUnseenUsers.get(tag);
+				if(nbUsersSeen.containsKey(tag))
+					wnormal=nbUsersSeen.get(tag);
 			}    		
 			wpartial = alpha*wnormal + (1-alpha)*wsocial;
 			wpartial = (wpartial>wpart_est)?wpartial:wpart_est;
@@ -415,12 +415,15 @@ public class Item<E> implements Comparable<Item<E>>{
 	public float getSocialScore() {
 		float socialScore = 0;
 		for (E word: this.uf.keySet())
-			socialScore += this.uf.get(word);
+			socialScore += this.score.getScore( this.idf.get(word), this.uf.get(word) );
 		return socialScore;
 	}
 	
 	public float getTextualScore() {
-		return 0f;
+		float textualScore = 0;
+		for (E word: this.nbUsersSeen.keySet())
+			textualScore += this.score.getScore(this.idf.get(word), this.nbUsersSeen.get(word) );
+		return textualScore;
 	}
 
 }
