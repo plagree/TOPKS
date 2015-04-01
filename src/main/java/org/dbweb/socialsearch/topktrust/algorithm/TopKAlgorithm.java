@@ -60,6 +60,10 @@ import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+
 /**
  *
  * @author Silviu & Paul
@@ -204,7 +208,7 @@ public class TopKAlgorithm {
 			}
 		}
 		long time_after_loading = System.currentTimeMillis();
-		System.out.println("File loading in "+(time_after_loading-time_before_loading)+" sec...");
+		System.out.println("File loading in "+(float)(time_after_loading-time_before_loading) / 1000 +" sec...");
 	}
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error, int number_documents, int number_users) {
@@ -232,7 +236,7 @@ public class TopKAlgorithm {
 	 * @return
 	 * @throws SQLException
 	 */
-	public int executeQuery(String seeker, ArrayList<String> query, int k, int t, boolean newQuery, int nVisited) throws SQLException {
+	public int executeQuery(String seeker, List<String> query, int k, int t, boolean newQuery, int nVisited) throws SQLException {
 		this.nVisited = nVisited;
 		System.out.println(query.toString()+", "+seeker);
 		this.max_pos_val = 1.0f;
@@ -367,7 +371,7 @@ public class TopKAlgorithm {
 	 * @return
 	 * @throws SQLException
 	 */
-	public int executeQueryPlusLetter(String seeker, ArrayList<String> query, int k, int t) throws SQLException{
+	public int executeQueryPlusLetter(String seeker, List<String> query, int k, int t) throws SQLException{
 		//if (query.size() != 1)
 		//	System.out.println("Query+l: "+query.toString());
 		String newPrefix = query.get(query.size()-1);
@@ -404,7 +408,7 @@ public class TopKAlgorithm {
 	 * @param t
 	 * @throws SQLException
 	 */
-	protected void mainLoop(int k, String seeker, ArrayList<String> query, int t) throws SQLException{
+	protected void mainLoop(int k, String seeker, List<String> query, int t) throws SQLException{
 		int loops=0;
 		int skipped_tests = 100000; // Number of loops before testing the exit condition
 		int steps = 1;
@@ -477,7 +481,7 @@ public class TopKAlgorithm {
 	 * @param query
 	 * @return true (social) , false (textual)
 	 */
-	protected boolean chooseBranch(ArrayList<String> query){
+	protected boolean chooseBranch(List<String> query){
 		double upper_social_score;
 		double upper_docs_score;
 		boolean textual = false;
@@ -501,7 +505,7 @@ public class TopKAlgorithm {
 	/**
 	 * Social process of the TOPKS algorithm
 	 */
-	protected void processSocial(ArrayList<String> query) throws SQLException{
+	protected void processSocial(List<String> query) throws SQLException{
 		int currentUserId;
 		int index = 0;
 		String tag;
@@ -609,7 +613,7 @@ public class TopKAlgorithm {
 	 * Given the new discovered items in User Spaces, do top-items can be updated?
 	 * @param query ArrayList<String>
 	 */
-	private void lookIntoList(ArrayList<String> query){
+	private void lookIntoList(List<String> query){
 		int index=0;
 		boolean found = true;
 		while (found) {
@@ -648,7 +652,7 @@ public class TopKAlgorithm {
 	 * @param query
 	 * @throws SQLException
 	 */
-	protected void processTextual(ArrayList<String> query) throws SQLException{
+	protected void processTextual(List<String> query) throws SQLException{
 		int index = 0;
 		RadixTreeNode currNode = null;
 		String currCompletion;
@@ -791,7 +795,7 @@ public class TopKAlgorithm {
 	 * @return
 	 * @throws SQLException
 	 */
-	protected Item<String> createNewCandidateItem(long itemId, ArrayList<String> tagList, Item<String> item, String completion) throws SQLException{
+	protected Item<String> createNewCandidateItem(long itemId, List<String> tagList, Item<String> item, String completion) throws SQLException{
 		item = new Item<String>(itemId, this.alpha, this.score,  this.d_distr, this.d_hist, this.error, completion);        
 		int sizeOfQuery = tagList.size();
 		int index = 0;
@@ -822,7 +826,7 @@ public class TopKAlgorithm {
 	 * @return
 	 * @throws SQLException
 	 */
-	protected Item<String> createCopyCandidateItem(Item<String> itemToCopy, long itemId, ArrayList<String> tagList, Item<String> copy, String completion) throws SQLException{
+	protected Item<String> createCopyCandidateItem(Item<String> itemToCopy, long itemId, List<String> tagList, Item<String> copy, String completion) throws SQLException{
 		copy = new Item<String>(itemId, this.alpha, this.score,  this.d_distr, this.d_hist, this.error, completion);        
 		int sizeOfQuery = tagList.size();
 		int index = 0;
@@ -1112,7 +1116,7 @@ public class TopKAlgorithm {
 				this.userSpaces.get(userId).put(tag, new TLongHashSet());
 			this.userSpaces.get(userId).get(tag).add(itemId);
 			counter++;
-			if ((counter%1000000)==0)
+			if ( (counter%1000000) == 0)
 				System.out.println("\t"+counter+" triples loaded");
 		}
 		br.close();
@@ -1122,7 +1126,6 @@ public class TopKAlgorithm {
 		Params.number_users = this.userSpaces.size();
 
 		// Tag Freq processing
-		
 		final long start3 = getUsedMemory();
 		br = new BufferedReader(new FileReader(Params.dir+Params.tagFreqFile));
 		int tagfreq;
@@ -1132,7 +1135,8 @@ public class TopKAlgorithm {
 				continue;
 			tag = data[0];
 			tagfreq = Integer.parseInt(data[1]);
-			float tagidf = (float) Math.log(((float)Params.number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
+			//float tagidf = (float) Math.log(((float)Params.number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
+			float tagidf = (float) Math.log((float)Params.number_documents / ((float) tagfreq) ); // Old tf-idf
 			tag_idf.insert(tag, tagidf);
 		}
 		br.close();
@@ -1161,7 +1165,6 @@ public class TopKAlgorithm {
 				dictionaryTrie.put(rs.getString(1), "");
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		System.out.println("Dictionary loaded, "+dictionary.size()+"tags...");
@@ -1209,7 +1212,7 @@ public class TopKAlgorithm {
 			docs3.put(tag, ps.executeQuery()); // INVERTED LIST
 			if(docs3.get(tag).next()){
 				int getInt2 = docs3.get(tag).getInt(2);
-				String getString1 = docs3.get(tag).getString(1);
+				//String getString1 = docs3.get(tag).getString(1);
 				tagFreqDoc = getInt2;
 				completionTrie.insert(tag, getInt2);
 			}
@@ -1257,6 +1260,29 @@ public class TopKAlgorithm {
 			this.userSpaces.get(d_usr).get(d_tag).add(d_itm);
 		}
 		System.out.println("Users spaces loaded");
+	}
+
+	public JsonObject getJsonAnswer(int k) {
+		JsonObject jsonResult = new JsonObject();
+		JsonArray arrayResults = new JsonArray();
+		JsonObject currItem;
+		int n = 0;
+		
+		for (Item<String> item: this.candidates.getTopK(k)) {
+			//item.debugging();
+			currItem = new JsonObject();
+			currItem.add("id", new JsonPrimitive(item.getItemId()));
+			currItem.add("textualScore", new JsonPrimitive(this.tag_idf.searchPrefix("style", true).getValue())); // TODO item.getTextualScore()
+			currItem.add("socialScore", new JsonPrimitive(item.getSocialScore())); 
+			arrayResults.add(currItem);
+			n++;
+		}
+		
+		jsonResult.add("status", new JsonPrimitive(1));
+		jsonResult.add("n", new JsonPrimitive(n));
+		jsonResult.add("results", arrayResults);
+		
+		return jsonResult;
 	}
 
 }

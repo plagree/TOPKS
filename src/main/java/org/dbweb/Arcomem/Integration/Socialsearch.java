@@ -43,8 +43,6 @@ import com.ibm.icu.util.StringTokenizer;
 public class Socialsearch implements SocialsearchInterface {
 	private static Logger log = LoggerFactory.getLogger(Socialsearch.class);        
 
-
-
 	private static String url;
 	private static String login;
 	private static String password;
@@ -539,8 +537,8 @@ public class Socialsearch implements SocialsearchInterface {
 			 * network resp. taggers indicate which table in the database should be read
 			 * Default: soc_snet_d for network, soc_tag_80
 			 */
-			String network = Test.network[0];	//"soc_snet_d";
-			String taggers = Test.taggers;	//"soc_tag_80";
+			String network = "soc_snet_d";
+			String taggers = "soc_tag_80";
 			int method = Methods.MET_TOPKS;
 			float coeff = 1.1f;
 			TopKAlgorithm topk_alg;

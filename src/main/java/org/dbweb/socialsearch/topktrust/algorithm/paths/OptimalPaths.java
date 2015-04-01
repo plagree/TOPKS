@@ -78,7 +78,7 @@ public class OptimalPaths {
 			}	
 	}
 	
-	public UserEntry<Float> initiateHeapCalculation(int seeker, ArrayList<String> query) throws SQLException {
+	public UserEntry<Float> initiateHeapCalculation(int seeker, List<String> query) throws SQLException {
     	
     	total_users = 0;
     	this.max_pos_val = 1.0f;

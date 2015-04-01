@@ -1,11 +1,7 @@
 package org.dbweb.Arcomem.Integration;
 
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 import org.rosuda.JRI.Rengine;
@@ -48,7 +44,6 @@ public class JavarTest {
 	          rengine.eval("x");
 	          REXP result = rengine.eval("x");
 	          
-	         double[][]  mat = result.asMatrix();
 	         int str= result.rtype;
 	         System.out.println(str);
 //	         System.out.println("res: "+mat.length);

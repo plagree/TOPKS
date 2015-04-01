@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
@@ -85,7 +86,7 @@ public class Experiments {
 			String words[];
 			String numberUsersWhoTaggedThisItem;
 			int lengthTag;
-			ArrayList<String> query;
+			List<String> query;
 			int ranking;
 			int counter = 0;
 			int nbSeenWords = 0;
@@ -161,11 +162,10 @@ public class Experiments {
 			System.out.println(counter+" lines have been processed...");
 			br.close();
 			bw.close();
+			
 		} catch (SQLException ex) {
-			// TODO Auto-generated catch block
 			ex.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

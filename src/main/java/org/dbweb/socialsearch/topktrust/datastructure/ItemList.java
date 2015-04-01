@@ -101,7 +101,7 @@ public class ItemList implements Cloneable{
 	}
 	
 	public int getRankingItem(long item, int k) {
-		ArrayList<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
+		List<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		int counter = 1;
 		Collections.sort(sorted_av);
 		int res = 0;
@@ -166,7 +166,7 @@ public class ItemList implements Cloneable{
 		return contrib;
 	}
 
-	public void setContribs(ArrayList<String> query, RadixTreeImpl trie){
+	public void setContribs(List<String> query, RadixTreeImpl trie){
 		boolean exact = false;
 		for(int i=0; i<query.size(); i++){
 			exact = !((i+1)==query.size()); // exact if not the last word (not a prefix)
@@ -191,7 +191,7 @@ public class ItemList implements Cloneable{
 		return thritem;
 	}
 
-	public void filterTopk(ArrayList<String> query) {
+	public void filterTopk(List<String> query) {
 		PriorityQueue<Item<String>> filtered_items = new PriorityQueue<Item<String>>(sorted_items);
 		String newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
@@ -230,7 +230,7 @@ public class ItemList implements Cloneable{
 		}
 	}
 	
-	public void cleanForNewWord(ArrayList<String> query, RadixTreeImpl tag_idf, RadixTreeImpl trie, int approx) {
+	public void cleanForNewWord(List<String> query, RadixTreeImpl tag_idf, RadixTreeImpl trie, int approx) {
 		this.removeDuplicates();
 		String previousWord = query.get(query.size()-2);
 		PriorityQueue<Item<String>> filtered_items = new PriorityQueue<Item<String>>(sorted_items);
@@ -511,5 +511,29 @@ public class ItemList implements Cloneable{
 
 	public void setViews(boolean views) {
 		this.views = views;
+	}
+	
+	public List<Item<String>> getTopK(int k) {
+		
+		List<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
+		List<Item<String>> res = new ArrayList<Item<String>>();
+		Set<Long> itemAlreadySeen = new HashSet<Long>();
+		int counter = 0;
+		Collections.sort(sorted_av);
+
+		for (Item<String> currItem: sorted_av) {
+			
+			if (itemAlreadySeen.contains(currItem.getItemId())) {
+				continue;
+			}
+			res.add(currItem);
+			itemAlreadySeen.add(currItem.getItemId());
+			counter++;
+			
+			// We found the k best items
+			if (counter >= k)
+				break;
+		}
+		return res;
 	}
 }

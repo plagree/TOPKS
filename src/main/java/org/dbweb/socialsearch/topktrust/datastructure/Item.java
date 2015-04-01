@@ -5,8 +5,8 @@
 
 package org.dbweb.socialsearch.topktrust.datastructure;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -107,7 +107,7 @@ public class Item<E> implements Comparable<Item<E>>{
 		this.idf.put(tag, idf);
 	}
 	
-	public void updateNewWord(ArrayList<E> query, RadixTreeImpl tag_idf, int approx) {
+	public void updateNewWord(List<E> query, RadixTreeImpl tag_idf, int approx) {
 		for (int i=0; i<query.size()-1; i++) {
 			this.idf.put(query.get(i), tag_idf.searchPrefix((String)query.get(i), true).getValue());
 		}
@@ -115,7 +115,7 @@ public class Item<E> implements Comparable<Item<E>>{
 		this.computeWorstScore(approx);
 	}
 	
-	public void copyValuesFirstWords(ArrayList<E >tagList, Item<E> itemToCopy) {
+	public void copyValuesFirstWords(List<E >tagList, Item<E> itemToCopy) {
 		for (int i=0; i<tagList.size()-1;i++) {
 			E tag = tagList.get(i);
 			if (itemToCopy.getSocialContrib().containsKey(tag)) {
@@ -271,13 +271,13 @@ public class Item<E> implements Comparable<Item<E>>{
 	}
 	
 	public void debugging() {
-		System.out.println(this.nbUnseenUsers.toString());	  // number of users seen
-		System.out.println(this.tags.toString()); // 1 for tag in
-		System.out.println(this.uf.toString());  // sum of weights of users found
-		System.out.println(this.idf.toString()); // IDF of tag
-		System.out.println(this.tdf.toString());  // real tdf in ILs
-		System.out.println(this.alpha);
-		System.out.println(this.score.toString());
+		System.out.println("Number of users seen: "+this.nbUnseenUsers.toString());	  // number of users seen
+		System.out.println("Tag in: "+this.tags.toString()); // 1 for tag in
+		System.out.println("Sum of weights of users found: "+this.uf.toString());  // sum of weights of users found
+		System.out.println("IDF of tag: "+this.idf.toString()); // IDF of tag
+		System.out.println("Real TDF in IL: "+this.tdf.toString());  // real tdf in ILs
+		System.out.println("alpha: "+this.alpha);
+		System.out.println("score: "+this.score.toString());
 	}
 	
 	public void computeWorstScore(int approx){
@@ -410,6 +410,17 @@ public class Item<E> implements Comparable<Item<E>>{
 
 	public void setPruned(boolean pruned) {
 		this.pruned = pruned;
+	}
+	
+	public float getSocialScore() {
+		float socialScore = 0;
+		for (E word: this.uf.keySet())
+			socialScore += this.uf.get(word);
+		return socialScore;
+	}
+	
+	public float getTextualScore() {
+		return 0f;
 	}
 
 }
