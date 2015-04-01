@@ -51,4 +51,8 @@ public class TOPKSSearcher {
 		JsonObject jsonResult = topk_alg.getJsonAnswer(k);
 		return jsonResult;
 	}
+
+	public void setSkippedTests(int skippedTests) {
+		this.topk_alg.setSkippedTests(skippedTests);
+	}
 }

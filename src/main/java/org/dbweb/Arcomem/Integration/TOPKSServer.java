@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.sun.net.httpserver.Headers;
@@ -60,6 +62,7 @@ public class TOPKSServer {
 			StringBuilder responseBuffer = new StringBuilder(); // put the response text in this buffer to be sent out at the end
 			String response;
 			JsonObject jsonResponse = new JsonObject();
+			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 			// If we didn't receive a request in the right format
 			if (!params.containsKey("q") && !params.containsKey("seeker")) {
@@ -73,7 +76,7 @@ public class TOPKSServer {
 				
 				// Create the query List of words
 				List<String> query = new ArrayList<String>();
-				/*for (String word : params.get("q").split("+"))
+				/*for (String word : params.get("q").split("+")) //TODO multiple words
 					query.add(word);*/
 				query.add(params.get("q"));
 
@@ -94,7 +97,8 @@ public class TOPKSServer {
 					
 					// Create JSON response
 					jsonResponse.add("n", jsonAnswer.get("n"));
-					jsonResponse.add("status", new JsonPrimitive(1));
+					jsonResponse.add("status", jsonAnswer.get("status"));
+					jsonResponse.add("nLoops", jsonAnswer.get("nLoops"));
 					jsonResponse.add("results", jsonAnswer.get("results"));
 
 				} catch (NumberFormatException e) {
@@ -103,7 +107,7 @@ public class TOPKSServer {
 					e.printStackTrace();
 				}
 
-				responseBuffer.append(jsonResponse.toString());
+				responseBuffer.append(gson.toJson(jsonResponse).toString());
 				response = responseBuffer.toString();
 				t.sendResponseHeaders(200, response.length());
 			}

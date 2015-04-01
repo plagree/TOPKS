@@ -24,8 +24,8 @@ public class  TOPKSServerTest {
     private static final int PORT = 8000;
     
     @Test
-    public void testServerReceiveJSON() {
-    	// Launch a server
+    public void testServerReceiveJSON() {    	
+    	// Parameters dataset
     	Params.dir = System.getProperty("user.dir")+"/test/";
 		Params.number_documents = 6;
 		Params.networkFile = "network.txt";
@@ -34,7 +34,8 @@ public class  TOPKSServerTest {
 		Params.tagFreqFile = "tag-freq.txt";
 		Params.threshold = 0f;
 		
-    	TOPKSServer server = new TOPKSServer(new TOPKSSearcher());
+		TOPKSSearcher searcher = new TOPKSSearcher();
+    	TOPKSServer server = new TOPKSServer(searcher);
     	server.run();
     	
     	// Prepare arguments for query

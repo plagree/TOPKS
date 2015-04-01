@@ -183,7 +183,8 @@ public class TopKAlgorithm {
 	private int nbNeighbour;
 	private List<Integer> queryNbNeighbour;
 
-	private int numloops=0; //amine
+	private int numloops = 0;
+	private int skippedTests; // Number of loops before testing the exit condition
 	private int nVisited;
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error) throws SQLException {
@@ -196,6 +197,7 @@ public class TopKAlgorithm {
 		this.optpath = optPathClass;
 		this.error = error;
 		this.score = itemScore;
+		this.skippedTests = 10000;
 
 		long time_before_loading = System.currentTimeMillis();
 		if (dbConnection != null)
@@ -409,8 +411,8 @@ public class TopKAlgorithm {
 	 * @throws SQLException
 	 */
 	protected void mainLoop(int k, String seeker, List<String> query, int t) throws SQLException{
+		
 		int loops=0;
-		int skipped_tests = 100000; // Number of loops before testing the exit condition
 		int steps = 1;
 		boolean underTimeLimit = true;
 		needUnseen = true;
@@ -419,6 +421,7 @@ public class TopKAlgorithm {
 		long before_main_loop = System.currentTimeMillis();
 		finished = false;
 		int currVisited = 0;
+		
 		do{
 			docs_inserted = false;
 			boolean social = false;
@@ -426,8 +429,8 @@ public class TopKAlgorithm {
 			if(socialBranch){
 				currVisited += 1;
 				processSocial(query);
-				social=true;
-				if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS) {
+				social = true;
+				if( (approxMethod&Methods.MET_TOPKS) == Methods.MET_TOPKS ) {
 					lookIntoList(query);   //the "peek at list" procedure
 				}
 			}
@@ -436,8 +439,8 @@ public class TopKAlgorithm {
 			}
 			if(social) this.total_lists_social++;
 
-			steps = (steps+1)%skipped_tests;
-			if((steps==0)||(!needUnseen&&((approxMethod&Methods.MET_ET)==Methods.MET_ET))){
+			steps = (steps+1) % skippedTests;
+			if( (steps == 0) || (!needUnseen && ( (approxMethod&Methods.MET_ET) == Methods.MET_ET) ) ) {
 				try {
 					/*
 					 * During the terminationCondition method, look up at top_items of different ILs, we add
@@ -453,7 +456,7 @@ public class TopKAlgorithm {
 				}
 				candidates.resetChange();
 				long time_1 = System.currentTimeMillis();
-				if ((time_1-before_main_loop)>t) {
+				if ( (time_1 - before_main_loop) > t) {
 					this.candidates.extractProbableTopK(k, guaranteed, possible, topValueQuery, userWeights, positions, approxMethod);
 					underTimeLimit = false;
 				}
@@ -462,7 +465,7 @@ public class TopKAlgorithm {
 				terminationCondition=false;
 			}
 			long time_1 = System.currentTimeMillis();
-			if ((time_1-before_main_loop)>Math.max(t+25, t)) {
+			if ( (time_1-before_main_loop) > Math.max(t+25, t)) {
 				underTimeLimit = false;
 			}
 			if (userWeight==0)
@@ -470,7 +473,9 @@ public class TopKAlgorithm {
 			loops++;
 			if (currVisited >= (this.nVisited+1))
 				terminationCondition = true;
-		}while(!terminationCondition&&!finished&&underTimeLimit);
+			
+		} while(!terminationCondition && !finished && underTimeLimit);
+		
 		this.numloops=loops;
 		System.out.println("There were "+loops+" loops ...");
 	}
@@ -486,16 +491,16 @@ public class TopKAlgorithm {
 		double upper_docs_score;
 		boolean textual = false;
 		for(String tag:query){
-			if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS) {
+			if( (approxMethod&Methods.MET_TOPKS) == Methods.MET_TOPKS) {
 				upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getSocialContrib(tag);
 			}
 			else
 				upper_social_score = (1-alpha)*userWeights.get(tag)*tagFreqs.get(tag);
-			if((approxMethod&Methods.MET_TOPKS)==Methods.MET_TOPKS)
+			if( (approxMethod&Methods.MET_TOPKS) == Methods.MET_TOPKS)
 				upper_docs_score = alpha*candidates.getNormalContrib(tag);
 			else
 				upper_docs_score = alpha*topValueQuery.get(tag);
-			if(!((upper_social_score==0)&&(upper_docs_score==0))) finished = false;
+			if( !( (upper_social_score == 0) && (upper_docs_score == 0) ) ) finished = false;
 			if((upper_social_score!=0)||(upper_docs_score!=0)) textual = textual || (upper_social_score<=upper_docs_score);
 		}
 		return !textual;
@@ -506,10 +511,12 @@ public class TopKAlgorithm {
 	 * Social process of the TOPKS algorithm
 	 */
 	protected void processSocial(List<String> query) throws SQLException{
+		
 		int currentUserId;
 		int index = 0;
 		String tag;
 		int nbNeighbourTag = 0;
+		
 		// for all tags in the query Q, triples Tagged(u,i,t_j)
 		for(int i=0; i<query.size(); i++) {
 			tag = query.get(i);
@@ -534,6 +541,7 @@ public class TopKAlgorithm {
 
 				currentUserId = currentUser.getEntryId();
 				long itemId = 0;
+				
 				if(this.userSpaces.containsKey(currentUserId) && !(currentUserId==seeker)){
 					// HERE WE CHECK
 					SortedMap<String, TLongSet> completions = userSpaces.get(currentUserId).prefixMap(tag);
@@ -611,7 +619,7 @@ public class TopKAlgorithm {
 	/**
 	 * We advance on Inverted Lists here (method for social branch)
 	 * Given the new discovered items in User Spaces, do top-items can be updated?
-	 * @param query ArrayList<String>
+	 * @param query List<String>
 	 */
 	private void lookIntoList(List<String> query){
 		int index=0;
@@ -648,7 +656,7 @@ public class TopKAlgorithm {
 	}
 
 	/**
-	 * We chose the textual branch (alpha>0), we advance in lists
+	 * We chose the textual branch (alpha > 0), we advance in lists
 	 * @param query
 	 * @throws SQLException
 	 */
@@ -690,51 +698,6 @@ public class TopKAlgorithm {
 	}
 
 	/**
-	 * Process with views, not used in the current project
-	 * @param query
-	 * @throws SQLException
-	 */
-	/*protected void processView(List<String> query) throws SQLException{
-		HashMap<String,ViewScore> guar = viewTransformer.getGuaranteed();
-		HashMap<String,ViewScore> need = viewTransformer.getPossible();
-		boolean early = viewTransformer.isEarly();
-		needUnseen = needUnseen && !early;
-		for(String itm:guar.keySet()){
-			Item<String> itm_c = candidates.findItem(itm, "");
-			if(itm_c==null){
-				itm_c = createNewCandidateItem(itm, query, itm_c,"");
-			}
-			else
-				candidates.removeItem(itm_c);
-			itm_c.setMinScorefromviews(guar.get(itm).getWscore());
-			itm_c.setMaxScorefromviews(guar.get(itm).getBscore());    		
-			candidates.addItem(itm_c);
-			guaranteed.add(itm);
-		}
-		if(early){
-			HashSet<String> new_need = new HashSet<String>();
-			for(String itm:need.keySet()){
-				Item<String> itm_c = candidates.findItem(itm, "");
-				if(itm_c==null){
-					itm_c = createNewCandidateItem(itm, query, itm_c,"");
-				}
-				else
-					candidates.removeItem(itm_c);
-				itm_c.setMinScorefromviews(need.get(itm).getWscore());
-				itm_c.setMaxScorefromviews(need.get(itm).getBscore());    		
-				candidates.addItem(itm_c);
-				boolean add = firstPossible || possible.contains(itm);
-				if(add)
-					new_need.add(itm);
-			}
-
-			possible = new_need;
-		}
-		if(possible.size()>0)
-			firstPossible = false;
-	}*/
-
-	/**
 	 * Method to advance in inverted lists (using the trie)
 	 * Used both in Social and Textual branches
 	 * @param tag
@@ -766,7 +729,7 @@ public class TopKAlgorithm {
 	 * @param completion
 	 * @throws SQLException
 	 */
-	protected void getAllItemScores(long item, ArrayList<String> query, String completion) throws SQLException{
+	/*protected void getAllItemScores(long item, ArrayList<String> query, String completion) throws SQLException{
 		Item<String> itm = candidates.findItem(item, completion);
 		for(String tag:query)
 			if(!itm.tdf.containsKey(tag)){
@@ -784,7 +747,7 @@ public class TopKAlgorithm {
 			}
 		candidates.removeItem(itm);
 		candidates.addItem(itm);
-	}
+	}*/
 
 	/**
 	 * Creates a new candidate in the discovered items of the query.
@@ -796,9 +759,11 @@ public class TopKAlgorithm {
 	 * @throws SQLException
 	 */
 	protected Item<String> createNewCandidateItem(long itemId, List<String> tagList, Item<String> item, String completion) throws SQLException{
+		
 		item = new Item<String>(itemId, this.alpha, this.score,  this.d_distr, this.d_hist, this.error, completion);        
 		int sizeOfQuery = tagList.size();
 		int index = 0;
+		
 		for(String tag:tagList){
 			index++;
 			if (index < sizeOfQuery) {
@@ -862,63 +827,10 @@ public class TopKAlgorithm {
 	}
 
 	/**
-	 * Not used in current version (used when exiting results in XML format)
-	 */
-	/*protected void setQueryResultsArrayList(ArrayList<String> query, String seeker, int k, int method, float alpha){
-		System.out.println(this.candidates.getNumberOfSortedItems());
-		System.out.println("this.candidates.get_topk().size()="+this.candidates.get_topk().size());
-		String str="";
-		this.newXMLResults = "<TopkResults>\n";
-
-		if ((guaranteed.size()+possible.size())==0) {
-			for(String itid:this.candidates.get_topk()){
-				String[] split = itid.split("#");
-				Item<String> item = candidates.findItem(split[0], split[1]);
-				str=protectSpecialCharacters(item.getItemId());
-				this.resultList.addResult(str, item.getComputedScore(), item.getBestscore());
-				resultList.setNbLoops(this.numloops); //amine populate resultList object
-
-				this.newXMLResults+=String.format(Locale.US,"<result  minscore=\"%.5f\" maxscore=\"%.5f\">%s</result>",
-						item.getComputedScore(), item.getBestscore(), protectSpecialCharacters(item.getItemId()+"#"+item.getCompletion()));
-
-				this.newXMLResults+="\n";
-			}
-		}
-		else { // WE STOPPED BEFORE THE END OF THE ALGORITHM
-			for(String itid: guaranteed){
-				String[] split = itid.split("#");
-				Item<String> item = candidates.findItem(split[0], split[1]);
-
-				str=protectSpecialCharacters(item.getItemId());
-				this.resultList.addResult(str, item.getComputedScore(), item.getBestscore());
-				resultList.setNbLoops(this.numloops); //amine populate resultList object
-
-				this.newXMLResults+=String.format(Locale.US,"<result  minscore=\"%.5f\" maxscore=\"%.5f\">%s</result>",
-						item.getComputedScore(), item.getBestscore(), protectSpecialCharacters(item.getItemId()+"#"+item.getCompletion()));
-
-				this.newXMLResults+="\n";
-			}
-			for(String itid: possible){
-				String[] split = itid.split("#");
-				Item<String> item = candidates.findItem(split[0], split[1]);
-				str=protectSpecialCharacters(item.getItemId());
-				this.resultList.addResult(str, item.getComputedScore(), item.getBestscore());
-				resultList.setNbLoops(this.numloops); //amine populate resultList object
-
-				this.newXMLResults+=String.format(Locale.US,"<result  minscore=\"%.5f\" maxscore=\"%.5f\">%s</result>",
-						item.getComputedScore(), item.getBestscore(), protectSpecialCharacters(item.getItemId()+"#"+item.getCompletion()));
-
-				this.newXMLResults+="\n";
-			}
-		}
-		this.newXMLResults+="</TopkResults>\n";
-	}*/
-
-	/**
 	 * Gives the ranking of a given item in the ranked list of discovered items
 	 * @param item
 	 * @param k
-	 * @return
+	 * @return ranking (int)
 	 */
 	public int getRankingItem(long item, int k) {
 		return this.candidates.getRankingItem(item, k);
@@ -1269,20 +1181,27 @@ public class TopKAlgorithm {
 		int n = 0;
 		
 		for (Item<String> item: this.candidates.getTopK(k)) {
+			n++;
 			//item.debugging();
 			currItem = new JsonObject();
-			currItem.add("id", new JsonPrimitive(item.getItemId()));
-			currItem.add("textualScore", new JsonPrimitive( item.getTextualScore() )); // TODO item.getTextualScore()
-			currItem.add("socialScore", new JsonPrimitive( item.getSocialScore() )); 
+			currItem.add("id", new JsonPrimitive(item.getItemId()));					// id of the item
+			currItem.add("rank", new JsonPrimitive(n));									// position of item
+			currItem.add("completion", new JsonPrimitive(item.getCompletion()));	   	// completion of the term (term if already complete word)
+			currItem.add("textualScore", new JsonPrimitive( item.getTextualScore() )); 	// sum( idf(t) * tf(item | t ) for t in query)
+			currItem.add("socialScore", new JsonPrimitive( item.getSocialScore() ));   	// sum( idf(t) * sf(item | s, t ) for t in query)
 			arrayResults.add(currItem);
-			n++;
 		}
 		
 		jsonResult.add("status", new JsonPrimitive(1));
+		jsonResult.add("nLoops", new JsonPrimitive(this.numloops));
 		jsonResult.add("n", new JsonPrimitive(n));
 		jsonResult.add("results", arrayResults);
 		
 		return jsonResult;
+	}
+
+	public void setSkippedTests(int skippedTests) {
+		this.skippedTests = skippedTests;
 	}
 
 }

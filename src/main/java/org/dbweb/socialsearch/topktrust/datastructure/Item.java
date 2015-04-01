@@ -19,22 +19,19 @@ import org.dbweb.socialsearch.topktrust.datastructure.DataHistogram;
 
 /**
  *
- * @author Silviu Maniu
+ * @author Silviu Maniu & Paul Lagrée
  */
 public class Item<E> implements Comparable<Item<E>>{
 
 	private long itemId = 0;
 	private String completion;
-	
 	private Score score;
 
-	private Map<E,Integer> tags = new HashMap<E,Integer>();
-	private Map<E,Float> idf = new HashMap<E,Float>();
-	
-	private Map<E,Float> uf = new HashMap<E,Float>();
-	public Map<E,Integer> tdf = new HashMap<E,Integer>();
-
-	private Map<E,Integer> nbUsersSeen = new HashMap<E,Integer>();
+	private Map<E,Integer> tags = new HashMap<E,Integer>(); 		// tags of the query (useful?)
+	private Map<E,Float> idf = new HashMap<E,Float>(); 				// idf for each term of the query
+	private Map<E,Float> uf = new HashMap<E,Float>(); 				// number of users found for each term
+	private Map<E,Integer> tdf = new HashMap<E,Integer>(); 			// number of users who tagged this item for each term (found in IL)
+	private Map<E,Integer> nbUsersSeen = new HashMap<E,Integer>(); 	// number of users seen who tagged this item for each term
 
 	private Map<E,Double> normcontrib = new HashMap<E,Double>();
 	private Map<E,Double> soccontrib = new HashMap<E,Double>();
@@ -43,7 +40,6 @@ public class Item<E> implements Comparable<Item<E>>{
 	private DataHistogram d_hist;
 
 	private double error;
-
 	private float alpha = 0;
 
 	private double worstscore = 0.0f;
@@ -413,16 +409,23 @@ public class Item<E> implements Comparable<Item<E>>{
 	}
 	
 	public float getSocialScore() {
+		
 		float socialScore = 0;
+		
 		for (E word: this.uf.keySet())
 			socialScore += this.score.getScore( this.idf.get(word), this.uf.get(word) );
 		return socialScore;
 	}
 	
 	public float getTextualScore() {
+		
 		float textualScore = 0;
+		
 		for (E word: this.nbUsersSeen.keySet())
-			textualScore += this.score.getScore(this.idf.get(word), this.nbUsersSeen.get(word) );
+			if (this.tdf.containsKey(word)) // the item has been seen in IL
+				textualScore += this.score.getScore(this.idf.get(word), this.tdf.get(word) );
+			else // we haven't met this item in the IL of word yet
+				textualScore += this.score.getScore(this.idf.get(word), this.nbUsersSeen.get(word) );
 		return textualScore;
 	}
 
