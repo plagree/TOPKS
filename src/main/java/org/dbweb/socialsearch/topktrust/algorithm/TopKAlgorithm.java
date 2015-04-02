@@ -1206,7 +1206,7 @@ public class TopKAlgorithm {
 		jsonResult.add("nLoops", new JsonPrimitive(this.numloops));
 		jsonResult.add("n", new JsonPrimitive(n));
 		jsonResult.add("results", arrayResults);
-		
+
 		return jsonResult;
 	}
 
