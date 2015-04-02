@@ -72,6 +72,8 @@ public class TOPKSServer {
 				t.sendResponseHeaders(400, response.length());
 			}
 			else {
+				System.out.println(t.getRequestURI());
+				
 				jsonResponse.add("status", new JsonPrimitive(1));
 				
 				// Create the query List of words

@@ -24,6 +24,7 @@ public class Main {
 		
 		// Index files and load data in memory
 		TOPKSSearcher topksSearcher = new TOPKSSearcher();
+		topksSearcher.setSkippedTests(1);
 		// Start a server listening to queries
 		TOPKSServer topksServer = new TOPKSServer(topksSearcher);
 		topksServer.run();

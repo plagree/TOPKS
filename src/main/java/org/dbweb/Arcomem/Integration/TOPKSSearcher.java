@@ -48,6 +48,13 @@ public class TOPKSSearcher {
 	public JsonObject executeQuery(String user, List<String> query, int k, int t, boolean newQuery, int nNeigh, float alpha) throws SQLException {
 		topk_alg.setAlpha(alpha);
 		topk_alg.executeQuery(user, query, k, t, newQuery, nNeigh);
+		String[] words = new String[query.size()];
+		int i = 0;
+		for (String term: query) {
+			words[i] = term;
+			i++;
+		}
+		topk_alg.reinitialize(words,1);
 		JsonObject jsonResult = topk_alg.getJsonAnswer(k);
 		return jsonResult;
 	}

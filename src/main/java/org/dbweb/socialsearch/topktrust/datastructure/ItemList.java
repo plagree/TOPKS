@@ -70,7 +70,7 @@ public class ItemList implements Cloneable{
 		this.number_of_candidates = 0;
 	}
 
-	public ItemList(Comparator comparator, Score score, /*int num_users, int k,*/ Item<String> virtualItem, DataDistribution d_distr, DataHistogram d_hist, double error){
+	public ItemList(Comparator comparator, Score score, /*int num_users, int k, Item<String> virtualItem,*/ DataDistribution d_distr, DataHistogram d_hist, double error){
 		this.min_from_topk = 0;
 		this.max_from_rest = 0;
 		this.number_of_candidates = 0;
@@ -354,9 +354,14 @@ public class ItemList implements Cloneable{
 	}
 
 
-	public boolean terminationCondition(List<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, Map<String,Integer> high, Map<String,Float> user_weights, Map<String,Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, Set<String> guaranteed, Set<String> possible) throws IOException{
+	public boolean terminationCondition(List<String> query, float value, int k, int num_tags, float alpha, int num_users, 
+										RadixTreeImpl idf, Map<String,Integer> high, Map<String, Float> user_weights, 
+										Map<String,Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, 
+										Set<String> guaranteed, Set<String> possible) throws IOException {
 		//if(sortNeeded) Collections.sort(items,comparator);
-		this.processBoundary(query, value,k, num_tags, alpha, num_users, idf, high, user_weights, positions, approx, sortNeeded, needUnseen, guaranteed, possible);
+		this.processBoundary(query, value,k, num_tags, alpha, num_users, 
+							 idf, high, user_weights, positions, approx, sortNeeded, 
+							 needUnseen, guaranteed, possible);
 		if((this.max_from_rest<=this.min_from_topk)&&(number_of_candidates>=k)){
 			if(fil!=null){
 				try {
@@ -380,7 +385,10 @@ public class ItemList implements Cloneable{
 		return this.topk_changed;
 	}
 
-	private void processBoundary(List<String> query, float value, int k, int num_tags, float alpha, int num_users, RadixTreeImpl idf, Map<String,Integer> high, Map<String,Float> user_weights, Map<String, Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, Set<String> guaranteed, Set<String> possible) throws IOException{
+	private void processBoundary(List<String> query, float value, int k, int num_tags, float alpha, 
+								 int num_users, RadixTreeImpl idf, Map<String,Integer> high, Map<String,Float> user_weights, 
+								 Map<String, Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, 
+								 Set<String> guaranteed, Set<String> possible) throws IOException {
 		Map<Long, String> newtopk = new HashMap<Long, String>();
 		int number = 0;
 		double scoremin = 0.0f;

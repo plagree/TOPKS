@@ -421,7 +421,7 @@ public class Item<E> implements Comparable<Item<E>>{
 		
 		float textualScore = 0;
 		
-		for (E word: this.nbUsersSeen.keySet())
+		for (E word: this.tags.keySet())
 			if (this.tdf.containsKey(word)) // the item has been seen in IL
 				textualScore += this.score.getScore(this.idf.get(word), this.tdf.get(word) );
 			else // we haven't met this item in the IL of word yet

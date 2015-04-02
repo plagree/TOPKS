@@ -34,10 +34,8 @@ public class TOPKSSearcherTest {
 	public void testSearchQuery() {
 
 		searcher.setSkippedTests(20); // We test the termination condition of the TOPKS algorithm at each new visited user
-		
-		/**
-		 * Query q="style" by seeker s=1 with skippedTests=20 (visit the whole graph)
-		 */
+			
+		// Query q="style" by seeker s=1 with skippedTests=20 (visit the whole graph)
 		List<String> query = new ArrayList<String>();
 		query.add("style");
 		
@@ -73,9 +71,7 @@ public class TOPKSSearcherTest {
 
 		searcher.setSkippedTests(1); // We test the termination condition of the TOPKS algorithm at each new visited user
 		
-		/**
-		 * Query q="style" by seeker s=1 with skippedTests=1 (termination test at every iteration)
-		 */
+		// Query q="style" by seeker s=1 with skippedTests=1 (termination test at every iteration)
 		List<String> query = new ArrayList<String>();
 		query.add("style");
 		
@@ -111,9 +107,7 @@ public class TOPKSSearcherTest {
 
 		searcher.setSkippedTests(15);
 		
-		/**
-		 * Query q="g" by seeker s=1 with skippedTests=15 (no termination test)
-		 */
+		// Query q="g" by seeker s=1 with skippedTests=15 (no termination test)
 		List<String> query = new ArrayList<String>();
 		query.add("g");
 		String seeker = "1";
@@ -171,9 +165,39 @@ public class TOPKSSearcherTest {
 			e.printStackTrace();
 		}
 	}
-	
+
 	//TODO test on multiple words
 	
-	//TODO More tests with other seekers / other queries
+	@Test
+	public void testAlphaNonZero() {
+		
+		searcher.setSkippedTests(1); // We test the termination condition of the TOPKS algorithm at each new visited user
+		
+		//Query q="style" by seeker s=8 with skippedTests=1 (termination test at every iteration)
+		List<String> query = new ArrayList<String>();
+		query.add("style");
+		
+		try {
+			JsonObject jsonResults = searcher.executeQuery("8", query, 5, 100, true, 200, 0.44444444f);
+			System.out.println(jsonResults.toString());
+			Assert.assertEquals(jsonResults.get("status").getAsInt(), 1);
+		    Assert.assertEquals(jsonResults.get("n").getAsInt(), 3);
+		    //Assert.assertEquals(jsonResults.get("nLoops").getAsInt(), 4);
+		    JsonArray results = jsonResults.get("results").getAsJsonArray();
+		    
+		    Assert.assertEquals(results.get(0).getAsJsonObject().get("id").getAsLong(), 4l);
+		    Assert.assertEquals(results.get(0).getAsJsonObject().get("socialScore").getAsFloat(), (float)(Math.log(2) * 0.124), DELTA);
+		    Assert.assertEquals(results.get(0).getAsJsonObject().get("textualScore").getAsFloat(), (float)(Math.log(2) * 3), DELTA);
+		    
+		    Assert.assertEquals(results.get(1).getAsJsonObject().get("id").getAsLong(), 2l);
+		    Assert.assertEquals(results.get(1).getAsJsonObject().get("socialScore").getAsFloat(),
+		    					(float)(Math.log(2) * 0.02), DELTA); // only user 3 is visited
+		    Assert.assertEquals(results.get(1).getAsJsonObject().get("textualScore").getAsFloat(), (float)(Math.log(2) * 1), DELTA);
+			
+		} catch (SQLException e) {
+			Assert.fail();
+			e.printStackTrace();
+		}
+	}
 	
 }

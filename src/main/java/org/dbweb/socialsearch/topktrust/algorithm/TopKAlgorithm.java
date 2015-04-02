@@ -165,7 +165,6 @@ public class TopKAlgorithm {
 	private ViewTransformer viewTransformer;
 	private Score score;
 	private double error;
-	private Item<String> virtualItem;
 
 	private double bestScoreEstim = Double.POSITIVE_INFINITY; 
 	//debug purpose
@@ -240,7 +239,7 @@ public class TopKAlgorithm {
 	 */
 	public int executeQuery(String seeker, List<String> query, int k, int t, boolean newQuery, int nVisited) throws SQLException {
 		this.nVisited = nVisited;
-		System.out.println(query.toString()+", "+seeker);
+		//System.out.println(query.toString()+", "+seeker);
 		this.max_pos_val = 1.0f;
 		this.d_distr = null;
 		this.d_hist = null;
@@ -312,9 +311,8 @@ public class TopKAlgorithm {
 		this.nbNeighbour = 0;
 		if (newQuery) {
 			this.queryNbNeighbour = new ArrayList<Integer>();
-			Comparator comparator = new MinScoreItemComparator();   
-			virtualItem = createNewCandidateItem(-1,query,virtualItem,"");
-			candidates = new ItemList(comparator, this.score, this.virtualItem, this.d_distr, this.d_hist, this.error);
+			Comparator comparator = new MinScoreItemComparator();
+			candidates = new ItemList(comparator, this.score, this.d_distr, this.d_hist, this.error);
 			candidates.setContribs(query, completionTrie);
 		}
 		else {
@@ -446,7 +444,9 @@ public class TopKAlgorithm {
 					 * During the terminationCondition method, look up at top_items of different ILs, we add
 					 * them if necessary to the top-k answer of the algorithm.
 					 */
-					terminationCondition = candidates.terminationCondition(query, userWeight, k, query.size(), alpha, Params.number_users, tag_idf, topValueQuery, userWeights, positions, approxMethod, docs_inserted, needUnseen, guaranteed, possible);
+					terminationCondition = candidates.terminationCondition(query, userWeight, k, query.size(), alpha, Params.number_users, 
+																		   tag_idf, topValueQuery, userWeights, positions, approxMethod, 
+																		   docs_inserted, needUnseen, guaranteed, possible);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -486,23 +486,31 @@ public class TopKAlgorithm {
 	 * @param query
 	 * @return true (social) , false (textual)
 	 */
-	protected boolean chooseBranch(List<String> query){
+	protected boolean chooseBranch(List<String> query) {
+		
 		double upper_social_score;
 		double upper_docs_score;
 		boolean textual = false;
-		for(String tag:query){
+		
+		for(String tag: query) {
+			
 			if( (approxMethod&Methods.MET_TOPKS) == Methods.MET_TOPKS) {
-				upper_social_score = (1-alpha)*userWeights.get(tag)*candidates.getSocialContrib(tag);
+				upper_social_score = (1-alpha) * userWeights.get(tag) * candidates.getSocialContrib(tag); // OK but strange if skipped_tests != 0
 			}
 			else
-				upper_social_score = (1-alpha)*userWeights.get(tag)*tagFreqs.get(tag);
+				upper_social_score = (1-alpha) * userWeights.get(tag) * tagFreqs.get(tag);
+			
 			if( (approxMethod&Methods.MET_TOPKS) == Methods.MET_TOPKS)
-				upper_docs_score = alpha*candidates.getNormalContrib(tag);
+				upper_docs_score = alpha * candidates.getNormalContrib(tag);
 			else
-				upper_docs_score = alpha*topValueQuery.get(tag);
+				upper_docs_score = alpha * topValueQuery.get(tag);
+			
 			if( !( (upper_social_score == 0) && (upper_docs_score == 0) ) ) finished = false;
-			if((upper_social_score!=0)||(upper_docs_score!=0)) textual = textual || (upper_social_score<=upper_docs_score);
+			
+			if((upper_social_score!=0) || (upper_docs_score!=0)) textual = textual || (upper_social_score <= upper_docs_score);
+		
 		}
+		
 		return !textual;
 	}
 
@@ -664,22 +672,23 @@ public class TopKAlgorithm {
 		int index = 0;
 		RadixTreeNode currNode = null;
 		String currCompletion;
-		for(String tag:query){
-			if (this.queryNbNeighbour.get(index)>this.nbNeighbour) {
+		for(String tag: query){
+			if (this.queryNbNeighbour.get(index) > this.nbNeighbour) {
 				index++;
 				continue;
 			}
-			if(!topItemQuery.get(tag).equals("")){
+			if(!topItemQuery.get(tag).equals(-1l)){
 				currNode = completionTrie.searchPrefix(tag, false);
 				currCompletion = currNode.getBestDescendant().getWord();
 				Item<String> item = candidates.findItem(topItemQuery.get(tag), currCompletion);
-				if(item==null) {
+				if(item == null) {
 					Item<String> item2 = candidates.findItem(topItemQuery.get(tag), "");
-					if (item2!=null) {
+					if (item2 != null) {
 						item = this.createCopyCandidateItem(item2, topItemQuery.get(tag), query, item, currCompletion);
 					}
-					else
+					else {
 						item = this.createNewCandidateItem(topItemQuery.get(tag), query,item, currCompletion);
+					}
 				}
 				else
 					candidates.removeItem(item);
@@ -709,6 +718,7 @@ public class TopKAlgorithm {
 		List<DocumentNumTag> invertedList = this.invertedLists.get(word);
 		positions.put(word, positions.get(word)+1);
 		int position = positions.get(word);
+		
 
 		if(position < invertedList.size()){
 			total_documents_asocial++;
@@ -764,7 +774,7 @@ public class TopKAlgorithm {
 		int sizeOfQuery = tagList.size();
 		int index = 0;
 		
-		for(String tag:tagList){
+		for(String tag: tagList){
 			index++;
 			if (index < sizeOfQuery) {
 				double stuff = tag_idf.searchPrefix(tag, true).getValue();
