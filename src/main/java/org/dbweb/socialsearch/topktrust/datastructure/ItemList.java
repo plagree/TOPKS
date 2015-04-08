@@ -70,7 +70,7 @@ public class ItemList implements Cloneable{
 		this.number_of_candidates = 0;
 	}
 
-	public ItemList(Comparator comparator, Score score, /*int num_users, int k, Item<String> virtualItem,*/ DataDistribution d_distr, DataHistogram d_hist, double error){
+	public ItemList(Comparator comparator, Score score, DataDistribution d_distr, DataHistogram d_hist, double error) {
 		this.min_from_topk = 0;
 		this.max_from_rest = 0;
 		this.number_of_candidates = 0;
@@ -362,12 +362,14 @@ public class ItemList implements Cloneable{
 		this.processBoundary(query, value,k, num_tags, alpha, num_users, 
 							 idf, high, user_weights, positions, approx, sortNeeded, 
 							 needUnseen, guaranteed, possible);
-		if((this.max_from_rest<=this.min_from_topk)&&(number_of_candidates>=k)){
-			if(fil!=null){
+		//System.out.println("Max from rest: "+this.max_from_rest);
+		//System.out.println("Max from unseen: "+this.score_unseen);
+		//System.out.println("Min from top k: "+this.min_from_topk);
+		if ( (this.max_from_rest <= this.min_from_topk) && (number_of_candidates >= k) ) {
+			if (fil != null) {
 				try {
 					fil.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -377,7 +379,7 @@ public class ItemList implements Cloneable{
 			return false;        
 	}
 
-	public void resetChange(){
+	public void resetChange() {
 		topk_changed = false;
 	}
 
@@ -386,52 +388,44 @@ public class ItemList implements Cloneable{
 	}
 
 	private void processBoundary(List<String> query, float value, int k, int num_tags, float alpha, 
-								 int num_users, RadixTreeImpl idf, Map<String,Integer> high, Map<String,Float> user_weights, 
+								 int num_users, RadixTreeImpl idf, Map<String,Integer> high_value, Map<String,Float> user_weights, 
 								 Map<String, Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, 
 								 Set<String> guaranteed, Set<String> possible) throws IOException {
+		
 		Map<Long, String> newtopk = new HashMap<Long, String>();
 		int number = 0;
-		double scoremin = 0.0f;
+		//double scoremin = 0.0f;
 		double scoremax = 0.0f;
 		thritem = 0;
 		topk_changed = false;
-		if(needUnseen){ //Upper bound on unseen items
+		
+		if (needUnseen) { //Upper bound on unseen items
 			for(String tag : query) {
-				double contribution = 0;
 				double uw = user_weights.get(tag);
-				if((approx&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
-					double euw = d_distr.getMean((String)tag)+Math.sqrt(d_distr.getVar((String)tag)/(float)(1.0f-Math.pow(1.0f-this.error,1.0f/(float)high.size())));
-					uw = (uw>euw)?euw:uw;
-				}
-				else if((approx&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST){
-					double euw = d_hist.getMaxEst((String)tag, (float)(1.0f-Math.pow(1.0f-this.error,1.0f/(float)(high.size()*high.get(tag)))));
-					uw = (uw>euw)?euw:uw;
-				}
-				contribution = high.get(tag) * uw;
-				double normalpart = alpha * high.get(tag);
-				double socialpart = (1 - alpha) * contribution;
+				double normalpart = alpha * high_value.get(tag);
+				double socialpart = (1 - alpha) * high_value.get(tag) * uw; //contribution;
 				double scorepart = normalpart + socialpart;
 				scoremax += score.getScore(scorepart, idf.searchPrefix(tag, false).getValue());
-				this.soccontrib.put(tag, (double)high.get(tag));
-				this.normcontrib.put(tag, (double)high.get(tag));
+				this.soccontrib.put(tag, (double)high_value.get(tag));
+				this.normcontrib.put(tag, (double)high_value.get(tag));
 			}
 		}
-		score_unseen = scoremax;
+		this.score_unseen = scoremax; // value of the upper bound estimation of unseen items
 
-		scoremin = Double.POSITIVE_INFINITY;
+		double scoremin = Double.POSITIVE_INFINITY;
 
 		PriorityQueue<Item<String>> prioCopy = new PriorityQueue<Item<String>>(sorted_items);
-		Item<String> curr_item=prioCopy.poll();
+		Item<String> curr_item = prioCopy.poll();
 		int k1 = k - guaranteed.size(); //guaranteed.size()==0 if we do not use views
 		sumconf = guaranteed.size();
 		//for(String itm:guaranteed) newtopk.put(itm, ""); // NOT WORKING
-		while(curr_item!=null){       
-			if(number<k1){
-				if((needUnseen||possible.contains(curr_item.getItemId()))&&(!guaranteed.contains(curr_item.getItemId()))){
+		while (curr_item != null) {       
+			if (number < k1) {
+				if ( (needUnseen||possible.contains(curr_item.getItemId())) && (!guaranteed.contains(curr_item.getItemId())) ) {
 					if(!current_topk.contains(curr_item.getItemId())){
 						topk_changed = true;
 					}
-					curr_item.computeBestScore(high, user_weights, positions, approx);
+					curr_item.computeBestScore(high_value, user_weights, positions, approx);
 					long docId = curr_item.getItemId();
 					if (!newtopk.containsKey(docId)) {
 						newtopk.put(docId, curr_item.getCompletion()); // newtopk String to obj <docId, completion>
@@ -441,11 +435,11 @@ public class ItemList implements Cloneable{
 				}
 			}
 			else{
-				if((needUnseen||possible.contains(curr_item.getItemId()))&&(!guaranteed.contains(curr_item.getItemId()))){
-					curr_item.computeBestScore(high, user_weights, positions, approx);
+				if((needUnseen||possible.contains(curr_item.getItemId())) && (!guaranteed.contains(curr_item.getItemId()))){
+					curr_item.computeBestScore(high_value, user_weights, positions, approx);
 					double curr_candidate = curr_item.getBestscore();
 					//if(curr_candidate<=scoremin) curr_item.setPruned(true);
-					if(scoremax<curr_candidate){
+					if(scoremax < curr_candidate) {
 						scoremax = curr_candidate;
 						this.normcontrib = curr_item.getNormalContrib();
 						this.soccontrib = curr_item.getSocialContrib();
@@ -453,16 +447,16 @@ public class ItemList implements Cloneable{
 					}
 				}
 			}
-			curr_item=prioCopy.poll();
+			curr_item = prioCopy.poll();
 		}
 
-		if(views&&((approx&Methods.MET_ET)==Methods.MET_ET)){ //Using precomputed results -- calculating and estimation of the top-k
+		if (views && ((approx&Methods.MET_ET)==Methods.MET_ET)) { //Using precomputed results -- calculating and estimation of the top-k
 			newtopk = new HashMap<Long, String>();
 			HashSet<String> possible_s = new HashSet<String>();
 			if(possible.size()>0){
 				for(String itm:possible){
 					curr_item = items.get(itm);
-					curr_item.computeBestScore(high, user_weights, positions, approx);
+					curr_item.computeBestScore(high_value, user_weights, positions, approx);
 					if((curr_item.getBestscore()>scoremin)||(newtopk.containsKey(itm))){      			
 						possible_s.add(itm);
 					}
@@ -471,7 +465,7 @@ public class ItemList implements Cloneable{
 			else{
 				for(String itm:items.keySet()){
 					curr_item = items.get(itm);
-					curr_item.computeBestScore(high, user_weights, positions, approx);        			
+					curr_item.computeBestScore(high_value, user_weights, positions, approx);        			
 					if((curr_item.getBestscore()>scoremin)||(newtopk.containsKey(itm))){    			
 						possible_s.add(itm);
 					}
@@ -484,9 +478,9 @@ public class ItemList implements Cloneable{
 			scoremax = 0;
 			log.info(String.format("expected precision %.5f", sumconf/(double)k));
 		}
-		this.number_of_candidates=number + guaranteed.size();
-		this.min_from_topk=scoremin;
-		this.max_from_rest=scoremax;
+		this.number_of_candidates = number + guaranteed.size();
+		this.min_from_topk = scoremin;
+		this.max_from_rest = scoremax;
 		this.current_topk = new HashSet<String>();
 		for (long key: newtopk.keySet())
 			this.current_topk.add(key+"#"+newtopk.get(key));

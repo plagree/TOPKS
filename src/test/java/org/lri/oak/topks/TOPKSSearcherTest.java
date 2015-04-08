@@ -19,7 +19,7 @@ public class TOPKSSearcherTest {
 	
 	public TOPKSSearcherTest() {
 		// Parameters test dataset
-    	Params.dir = System.getProperty("user.dir")+"/test/";
+    	Params.dir = System.getProperty("user.dir")+"/test/test/";
 		Params.number_documents = 6;
 		Params.networkFile = "network.txt";
 		Params.triplesFile = "triples.txt";

@@ -733,33 +733,6 @@ public class TopKAlgorithm {
 	}
 
 	/**
-	 * Not used in current version
-	 * @param item
-	 * @param query
-	 * @param completion
-	 * @throws SQLException
-	 */
-	/*protected void getAllItemScores(long item, ArrayList<String> query, String completion) throws SQLException{
-		Item<String> itm = candidates.findItem(item, completion);
-		for(String tag:query)
-			if(!itm.tdf.containsKey(tag)){
-				PreparedStatement stmt = connection.prepareStatement(sqlGetDocumentTf);
-				stmt.setString(1, String.valueOf(item));
-				stmt.setString(2, tag);
-				ResultSet result = stmt.executeQuery();
-				int tf = 0;
-				if(result.next())
-					tf = result.getInt(1);
-				result.close();
-				stmt.close();
-				itm.updateScoreDocs(tag, tf, approxMethod);
-				this.total_rnd++;
-			}
-		candidates.removeItem(itm);
-		candidates.addItem(itm);
-	}*/
-
-	/**
 	 * Creates a new candidate in the discovered items of the query.
 	 * @param itemId
 	 * @param tagList (tags of query)
@@ -1192,7 +1165,7 @@ public class TopKAlgorithm {
 		
 		for (Item<String> item: this.candidates.getTopK(k)) {
 			n++;
-			//item.debugging();
+			item.debugging();
 			currItem = new JsonObject();
 			currItem.add("id", new JsonPrimitive(item.getItemId()));					// id of the item
 			currItem.add("rank", new JsonPrimitive(n));									// position of item

@@ -26,7 +26,7 @@ public class  TOPKSServerTest {
     @Test
     public void testServerReceiveJSON() {    	
     	// Parameters dataset
-    	Params.dir = System.getProperty("user.dir")+"/test/";
+    	Params.dir = System.getProperty("user.dir")+"/test/test/";
 		Params.number_documents = 6;
 		Params.networkFile = "network.txt";
 		Params.triplesFile = "triples.txt";
