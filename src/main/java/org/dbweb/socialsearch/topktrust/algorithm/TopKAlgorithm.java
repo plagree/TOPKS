@@ -1165,7 +1165,7 @@ public class TopKAlgorithm {
 		
 		for (Item<String> item: this.candidates.getTopK(k)) {
 			n++;
-			item.debugging();
+			//item.debugging();
 			currItem = new JsonObject();
 			currItem.add("id", new JsonPrimitive(item.getItemId()));					// id of the item
 			currItem.add("rank", new JsonPrimitive(n));									// position of item
