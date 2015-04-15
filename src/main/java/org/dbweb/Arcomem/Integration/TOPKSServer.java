@@ -95,7 +95,7 @@ public class TOPKSServer {
 							Float.parseFloat(params.get("alpha"))
 							);
 
-					System.out.println(jsonAnswer.toString());
+					//System.out.println(jsonAnswer.toString());
 					
 					// Create JSON response
 					jsonResponse.add("n", jsonAnswer.get("n"));

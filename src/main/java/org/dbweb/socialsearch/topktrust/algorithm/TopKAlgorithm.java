@@ -5,7 +5,7 @@
 
 package org.dbweb.socialsearch.topktrust.algorithm;
 
-
+import java.util.Random;
 import org.apache.commons.collections4.trie.PatriciaTrie;
 import org.dbweb.Arcomem.datastructures.BasicSearchResult;
 import org.dbweb.socialsearch.general.connection.DBConnection;
@@ -185,6 +185,7 @@ public class TopKAlgorithm {
 	private int numloops = 0;
 	private int skippedTests; // Number of loops before testing the exit condition
 	private int nVisited;
+    private Random random;
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error) throws SQLException {
 		this.distFunc = distFunc;
@@ -197,6 +198,7 @@ public class TopKAlgorithm {
 		this.error = error;
 		this.score = itemScore;
 		this.skippedTests = 10000;
+        this.random = new Random();
 
 		long time_before_loading = System.currentTimeMillis();
 		if (dbConnection != null)
@@ -511,7 +513,8 @@ public class TopKAlgorithm {
 		
 		}
 		
-		return !textual;
+        //return !textual;
+        return random.nextBoolean();
 	}
 
 
