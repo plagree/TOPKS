@@ -1033,8 +1033,8 @@ public class TopKAlgorithm {
 				continue;
 			tag = data[0];
 			tagfreq = Integer.parseInt(data[1]);
-			float tagidf = (float) Math.log(((float)Params.number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
-			//float tagidf = (float) Math.log((float)Params.number_documents / ((float) tagfreq) ); // Old tf-idf
+			//float tagidf = (float) Math.log(((float)Params.number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
+			float tagidf = (float) Math.log((float)Params.number_documents / ((float) tagfreq) ); // Old tf-idf
 			tag_idf.insert(tag, tagidf);
 		}
 		br.close();
