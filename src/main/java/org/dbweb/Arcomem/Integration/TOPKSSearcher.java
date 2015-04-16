@@ -21,11 +21,13 @@ public class TOPKSSearcher {
 	public static final String taggers = "soc_tag_80";
 	private static final int method = 1;
 	private TopKAlgorithm topk_alg;
+	private boolean exact; // we search for exact matches (no prefixes)
 
 	public TOPKSSearcher() {
 		
 		OptimalPaths optpath;
 		TfIdfScore score = new TfIdfScore();
+		this.exact = true;
 		try {
 			optpath = new OptimalPaths(network, null, heap, null, coeff);
 			topk_alg = new TopKAlgorithm(null, taggers, network, method, score, 0f, pathFunction, optpath, 1);
@@ -55,7 +57,7 @@ public class TOPKSSearcher {
 			i++;
 		}
 		topk_alg.reinitialize(words,1);
-		JsonObject jsonResult = topk_alg.getJsonAnswer(k);
+		JsonObject jsonResult = topk_alg.getJsonAnswer(k, query.get(0), this.exact);
 		return jsonResult;
 	}
 

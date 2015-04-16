@@ -515,7 +515,7 @@ public class ItemList implements Cloneable{
 		this.views = views;
 	}
 	
-	public List<Item<String>> getTopK(int k) {
+	public List<Item<String>> getTopK(int k, String query, boolean exact) {
 		
 		List<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
 		List<Item<String>> res = new ArrayList<Item<String>>();
@@ -525,7 +525,7 @@ public class ItemList implements Cloneable{
 
 		for (Item<String> currItem: sorted_av) {
 			
-			if (itemAlreadySeen.contains(currItem.getItemId())) {
+			if (itemAlreadySeen.contains(currItem.getItemId()) || (!currItem.getCompletion().equals(query) && exact)) {
 				continue;
 			}
 			res.add(currItem);

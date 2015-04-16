@@ -1160,13 +1160,13 @@ public class TopKAlgorithm {
 		System.out.println("Users spaces loaded");
 	}
 
-	public JsonObject getJsonAnswer(int k) {
+	public JsonObject getJsonAnswer(int k, String query, boolean exact) {
 		JsonObject jsonResult = new JsonObject();
 		JsonArray arrayResults = new JsonArray();
 		JsonObject currItem;
 		int n = 0;
 		
-		for (Item<String> item: this.candidates.getTopK(k)) {
+		for (Item<String> item: this.candidates.getTopK(k, query, exact)) {
 			n++;
 			//item.debugging();
 			currItem = new JsonObject();
