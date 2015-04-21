@@ -140,10 +140,12 @@ public class TopKAlgorithm {
 	protected float alpha = 0;
 
 	protected int total_lists_social;
-	
+
 	protected int nbPSpacesAccesses;		// Accesses of p-spaces
 	protected int nbILSocialAccesses; 		// Accesses on non-leaf inverted lists from social branch
+	protected int nbILSocialFastAccesses; 	// Accesses on leaf inverted lists from social branch (sequential disk read)
 	protected int nbILTextualAccesses; 		// Accesses on non-leaf inverted lists from textual branch
+	protected int nbILTextualFastAccesses; 	// Accesses on leaf inverted lists from textual branch (sequential disk read)
 
 	//amine
 	protected String newXMLResults="", newBucketResults="", newXMLStats="";
@@ -184,6 +186,8 @@ public class TopKAlgorithm {
 	private int numloops = 0;
 	private int skippedTests; // Number of loops before testing the exit condition
 	private int nVisited;
+	
+	private static Logger logger = LoggerFactory.getLogger(TopKAlgorithm.class);
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error) throws SQLException {
 		this.distFunc = distFunc;
@@ -306,7 +310,7 @@ public class TopKAlgorithm {
 			}
 			this.d_hist = new DataHistogram(Params.number_users, hist);
 		}
-		
+
 		this.nbNeighbour = 0;
 		if (newQuery) {
 			this.queryNbNeighbour = new ArrayList<Integer>();
@@ -317,7 +321,7 @@ public class TopKAlgorithm {
 		else {
 			candidates.cleanForNewWord(query, this.tag_idf, completionTrie, this.approxMethod);
 		}
-		
+
 		this.queryNbNeighbour.add(0);
 
 		total_users = 0;        
@@ -351,6 +355,9 @@ public class TopKAlgorithm {
 			while(iterator.hasNext()){
 				currentEntry = iterator.next();
 				String completion = currentEntry.getKey();
+				if (!positions.containsKey(completion)) {
+					logger.debug("keyword not valid: "+completion);
+				}
 				if (positions.get(completion) == 0) {
 					continue;
 				}
@@ -373,10 +380,7 @@ public class TopKAlgorithm {
 	public int executeQueryPlusLetter(String seeker, List<String> query, int k, int t) throws SQLException{
 		//if (query.size() != 1)
 		//	System.out.println("Query+l: "+query.toString());
-		
-		this.nbILSocialAccesses = 0; 		// Accesses on non-leaf inverted lists
-		this.nbILTextualAccesses = 0; 		// Accesses on non-leaf inverted lists
-		
+
 		String newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
@@ -412,8 +416,8 @@ public class TopKAlgorithm {
 	 * @throws SQLException
 	 */
 	protected void mainLoop(int k, String seeker, List<String> query, int t) throws SQLException{
-		
-		int loops=0;
+
+		int loops = 0;
 		int steps = 1;
 		boolean underTimeLimit = true;
 		needUnseen = true;
@@ -422,12 +426,14 @@ public class TopKAlgorithm {
 		long before_main_loop = System.currentTimeMillis();
 		finished = false;
 		int currVisited = 0;
-		
+
 		// Reset counter of IL accesses and p-spaces accesses
 		this.nbILSocialAccesses = 0;
+		this.nbILSocialFastAccesses = 0;
 		this.nbILTextualAccesses = 0;
+		this.nbILTextualFastAccesses = 0;
 		this.nbPSpacesAccesses = 0;
-		
+
 		do{
 			docs_inserted = false;
 			boolean social = false;
@@ -453,8 +459,10 @@ public class TopKAlgorithm {
 					 * them if necessary to the top-k answer of the algorithm.
 					 */
 					terminationCondition = candidates.terminationCondition(query, userWeight, k, query.size(), alpha, Params.number_users, 
-																		   tag_idf, topValueQuery, userWeights, positions, approxMethod, 
-																		   docs_inserted, needUnseen, guaranteed, possible);
+							tag_idf, topValueQuery, userWeights, positions, approxMethod, 
+							docs_inserted, needUnseen, guaranteed, possible);
+					if (terminationCondition)
+						logger.debug("termination condition positive");
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -466,6 +474,7 @@ public class TopKAlgorithm {
 				long time_1 = System.currentTimeMillis();
 				if ( (time_1 - before_main_loop) > t) {
 					this.candidates.extractProbableTopK(k, guaranteed, possible, topValueQuery, userWeights, positions, approxMethod);
+					logger.debug("time under limit");
 					underTimeLimit = false;
 				}
 			}
@@ -474,21 +483,28 @@ public class TopKAlgorithm {
 			}
 			long time_1 = System.currentTimeMillis();
 			if ( (time_1-before_main_loop) > Math.max(t+25, t)) {
+				logger.debug("time not under limit");
 				underTimeLimit = false;
 			}
-			if (userWeight==0)
+			if (userWeight==0) {
+				logger.debug("userWeight == 0");
 				terminationCondition = true;
+			}
 			loops++;
-			if (currVisited >= (this.nVisited+1))
+			if (currVisited >= (this.nVisited+1)) {
+				logger.debug("currVisited >= nVisited");
 				terminationCondition = true;
-			
+			}
+
 			// We check if we did not use the whole budget yet
-			else if ((this.nbILSocialAccesses + this.nbILTextualAccesses + this.nbPSpacesAccesses) >= Params.DISK_BUDGET)
+			else if ((this.nbILSocialAccesses + this.nbILTextualAccesses + this.nbPSpacesAccesses) >= Params.DISK_BUDGET) {
 				terminationCondition = true;
-			
+				logger.debug("Budget consumed...");
+			}
+
 		} while(!terminationCondition && !finished && underTimeLimit);
-		
-		this.numloops=loops;
+
+		this.numloops = loops;
 		System.out.println("There were "+loops+" loops ...");
 	}
 
@@ -499,30 +515,30 @@ public class TopKAlgorithm {
 	 * @return true (social) , false (textual)
 	 */
 	protected boolean chooseBranch(List<String> query) {
-		
+
 		double upper_social_score;
 		double upper_docs_score;
 		boolean textual = false;
-		
+
 		for(String tag: query) {
-			
+
 			if( (approxMethod&Methods.MET_TOPKS) == Methods.MET_TOPKS) {
 				upper_social_score = (1-alpha) * userWeights.get(tag) * candidates.getSocialContrib(tag); // OK but strange if skipped_tests != 0
 			}
 			else
 				upper_social_score = (1-alpha) * userWeights.get(tag) * tagFreqs.get(tag);
-			
+
 			if( (approxMethod&Methods.MET_TOPKS) == Methods.MET_TOPKS)
 				upper_docs_score = alpha * candidates.getNormalContrib(tag);
 			else
 				upper_docs_score = alpha * topValueQuery.get(tag);
-			
+
 			if( !( (upper_social_score == 0) && (upper_docs_score == 0) ) ) finished = false;
-			
+
 			if((upper_social_score!=0) || (upper_docs_score!=0)) textual = textual || (upper_social_score <= upper_docs_score);
-		
+
 		}
-		
+
 		return !textual;
 	}
 
@@ -531,12 +547,12 @@ public class TopKAlgorithm {
 	 * Social process of the TOPKS algorithm
 	 */
 	protected void processSocial(List<String> query) throws SQLException{
-		
+
 		int currentUserId;
 		int index = 0;
 		String tag;
 		int nbNeighbourTag = 0;
-		
+
 		// for all tags in the query Q, triples Tagged(u,i,t_j)
 		for(int i=0; i<query.size(); i++) {
 			tag = query.get(i);
@@ -562,6 +578,9 @@ public class TopKAlgorithm {
 				currentUserId = currentUser.getEntryId();
 				long itemId = 0;
 				
+				if (!this.userSpaces.containsKey(currentUserId))
+					logger.debug("User with empty p-space");
+				
 				if(this.userSpaces.containsKey(currentUserId) && !(currentUserId==seeker)){
 					// HERE WE CHECK
 					// User space access
@@ -572,14 +591,14 @@ public class TopKAlgorithm {
 						while(iterator.hasNext()){
 							Entry<String, TLongSet> currentEntry = iterator.next();
 							String completion = currentEntry.getKey();
-							
+
 							for(TLongIterator it = currentEntry.getValue().iterator(); it.hasNext(); ){
 								itemId = it.next();
 								found_docs = true;
 								Item<String> item = candidates.findItem(itemId, completion);
 								if (item==null) {
 									Item<String> item2 = candidates.findItem(itemId, "");
-									
+
 									if (item2!=null) {
 										item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
 									}
@@ -588,11 +607,11 @@ public class TopKAlgorithm {
 									}
 								}
 								else {
-									
+
 									candidates.removeItem(item);
 								}
 								float userW = 0;
-								
+
 								userW = userWeight;
 								item.updateScore(tag, userW, pos[index], approxMethod);
 								candidates.addItem(item);								
@@ -630,7 +649,7 @@ public class TopKAlgorithm {
 			long time_loading_after = System.currentTimeMillis();
 			long tl = (time_loading_after-time_loading_before)/1000;
 			if (tl>1)
-				System.out.println("Loading in : "+tl);
+				logger.debug("Loading in : "+tl);
 		}
 		if(currentUser!=null)
 			userWeight = currentUser.getDist().floatValue();
@@ -669,12 +688,16 @@ public class TopKAlgorithm {
 						// if the tag is not a leaf, we have a random access to the disk
 						if (!this.invertedLists.containsKey(query.get(index)))
 							this.nbILSocialAccesses += 1;
+						else
+							this.nbILSocialFastAccesses += 1;	// the tag is a complete word, we read the inverted list sequentially on disk
 						advanceTextualList(query.get(index),index,false);
 					}
 					else {
 						// if the tag is not a leaf, we have a random access to the disk
 						if (!this.invertedLists.containsKey(query.get(index)))
 							this.nbILSocialAccesses += 1;
+						else
+							this.nbILSocialFastAccesses += 1;	// the tag is a complete word, we read the inverted list sequentially on disk
 						advanceTextualList(query.get(index),index,true);
 					}
 					candidates.addItem(item1);
@@ -698,7 +721,10 @@ public class TopKAlgorithm {
 				index++;
 				continue;
 			}
-			if(!topItemQuery.get(tag).equals(-1l)){
+			if (topItemQuery.get(tag).equals(-1l)) {
+				logger.debug("IL visited completely");
+			}
+			if (!topItemQuery.get(tag).equals(-1l)) {
 				currNode = completionTrie.searchPrefix(tag, false);
 				currCompletion = currNode.getBestDescendant().getWord();
 				Item<String> item = candidates.findItem(topItemQuery.get(tag), currCompletion);
@@ -721,13 +747,17 @@ public class TopKAlgorithm {
 					// If the word is not a leaf, we count an access to the disk
 					if (!this.invertedLists.containsKey(tag))
 						this.nbILTextualAccesses += 1;
-					advanceTextualList(tag,index,false);
+					else
+						this.nbILTextualFastAccesses += 1;	// the tag is a complete word, we read the inverted list directly
+					advanceTextualList(tag, index, false);
 				}
 				else {
 					// if the tag is not a leaf, we have a random access to the disk
 					if (!this.invertedLists.containsKey(tag))
 						this.nbILTextualAccesses += 1;
-					advanceTextualList(tag,index,true);
+					else
+						this.nbILTextualFastAccesses += 1;	// the tag is a complete word, we read the inverted list directly
+					advanceTextualList(tag, index, true);
 				}
 			}
 			index++;
@@ -740,13 +770,13 @@ public class TopKAlgorithm {
 	 * @param tag
 	 * @param index
 	 */
-	protected void advanceTextualList(String tag, int index, boolean exact){
+	protected void advanceTextualList(String tag, int index, boolean exact) {
+		
 		RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact).getBestDescendant();
 		String word = current_best_leaf.getWord();
 		List<DocumentNumTag> invertedList = this.invertedLists.get(word);
 		positions.put(word, positions.get(word)+1);
 		int position = positions.get(word);
-		
 
 		if(position < invertedList.size()){
 			total_documents_asocial++;
@@ -770,11 +800,11 @@ public class TopKAlgorithm {
 	 * @throws SQLException
 	 */
 	protected Item<String> createNewCandidateItem(long itemId, List<String> tagList, Item<String> item, String completion) throws SQLException{
-		
+
 		item = new Item<String>(itemId, this.alpha, this.score,  this.d_distr, this.d_hist, this.error, completion);        
 		int sizeOfQuery = tagList.size();
 		int index = 0;
-		
+
 		for(String tag: tagList){
 			index++;
 			if (index < sizeOfQuery) {
@@ -792,7 +822,7 @@ public class TopKAlgorithm {
 		}
 		return item;
 	}
-	
+
 	/**
 	 * Creates a new candidate copy of the given one, which will be used for new prefix
 	 * @param itemId
@@ -869,7 +899,7 @@ public class TopKAlgorithm {
 	public BasicSearchResult getResultsList(){
 		return this.resultList;
 	}
-	
+
 	private static long getUsedMemory() {
 		return Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 	}
@@ -895,7 +925,7 @@ public class TopKAlgorithm {
 		System.out.println("Beginning of file loading...");
 
 		// Tag Inverted lists processing
-		
+
 		br = new BufferedReader(new FileReader(Params.dir+Params.ILFile));
 		List<DocumentNumTag> currIL;
 		int counter = 0;
@@ -959,7 +989,7 @@ public class TopKAlgorithm {
 		br.close();
 		final long size2 = ( getUsedMemory() - start2) / 1024 / 1024;
 		System.out.println("User spaces file = " + size2 + "M");
-		
+
 		Params.number_users = this.userSpaces.size();
 
 		// Tag Freq processing
@@ -1109,7 +1139,7 @@ public class TopKAlgorithm {
 		JsonArray arrayResults = new JsonArray();
 		JsonObject currItem;
 		int n = 0;
-		
+
 		for (Item<String> item: this.candidates.getTopK(k)) {
 			n++;
 			//item.debugging();
@@ -1121,14 +1151,18 @@ public class TopKAlgorithm {
 			currItem.add("socialScore", new JsonPrimitive( item.getSocialScore() ));   	// sum( idf(t) * sf(item | s, t ) for t in query)
 			arrayResults.add(currItem);
 		}
+
+		jsonResult.add("status", new JsonPrimitive(1)); 											// No problem appeared in TOPKS
+		jsonResult.add("nLoops", new JsonPrimitive(this.numloops));									// Number of loops in TOPKS
+		jsonResult.add("nbILSocialAccesses", new JsonPrimitive(this.nbILSocialAccesses));			// Number of Disk accesses for IL from social branch
+		jsonResult.add("nbILSocialFastAccesses", new JsonPrimitive(this.nbILSocialFastAccesses));	// Number of Sequential Disk accesses for IL from social branch
+		jsonResult.add("nbILTextualAccesses", new JsonPrimitive(this.nbILTextualAccesses));			// Number of Disk accesses for IL from textual branch
+		jsonResult.add("nbILTextualFastAccesses", new JsonPrimitive(this.nbILTextualFastAccesses));	// Number of Sequential Disk accesses for IL from textual branch
+		jsonResult.add("nbPSpacesAccesses", new JsonPrimitive(this.nbPSpacesAccesses));				// Number of Disk accesses for p-spaces
+		jsonResult.add("n", new JsonPrimitive(n));													// Number of results
+		jsonResult.add("results", arrayResults);													// Array of the results
 		
-		jsonResult.add("status", new JsonPrimitive(1)); 									// No problem appeared in TOPKS
-		jsonResult.add("nLoops", new JsonPrimitive(this.numloops));							// Number of loops in TOPKS
-		jsonResult.add("nbILSocialAccesses", new JsonPrimitive(this.nbILSocialAccesses));	// Number of Disk accesses for IL from social branch
-		jsonResult.add("nbILTextualAccesses", new JsonPrimitive(this.nbILTextualAccesses));	// Number of Disk accesses for IL from textual branch
-		jsonResult.add("nbPSpacesAccesses", new JsonPrimitive(this.nbPSpacesAccesses));		// Number of Disk accesses for p-spaces
-		jsonResult.add("n", new JsonPrimitive(n));											// Number of results
-		jsonResult.add("results", arrayResults);											// Array of the results
+		//System.out.println(jsonResult.toString());
 
 		return jsonResult;
 	}

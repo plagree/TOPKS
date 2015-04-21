@@ -1,8 +1,10 @@
 package org.dbweb.Arcomem.Integration;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathCompositionFunction;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
@@ -10,7 +12,9 @@ import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 import org.dbweb.socialsearch.topktrust.algorithm.score.TfIdfScore;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 public class TOPKSSearcher {
 	
@@ -58,8 +62,58 @@ public class TOPKSSearcher {
 		JsonObject jsonResult = topk_alg.getJsonAnswer(k);
 		return jsonResult;
 	}
+	
+	public JsonObject executeIncrementalQuery(String user, List<String> query, int k, int t, int nNeigh, float alpha, int lengthPrefixMin) throws SQLException {
+		topk_alg.setAlpha(alpha);
+		JsonArray arrayResults = new JsonArray();
+		JsonObject currResult = null;
+		int lengthTag = 0, nbSeenWords = 0;
+		List<String> currQuery = new ArrayList<String>();
+		
+		for (String word: query) {
+			lengthTag = word.length();
+			nbSeenWords++;
+			for (int l=lengthPrefixMin; l<=lengthTag; l++) {
+				
+				// true for the first query execution
+				boolean newQuery = true;
+				// New word
+				if (l == lengthPrefixMin) {
+					currQuery.add(word.substring(0, l));
+					topk_alg.executeQuery(user, currQuery, k, t, newQuery, nNeigh);
+					newQuery = false;
+				}
+				
+				// Incremental computation
+				else {
+					currQuery.remove(nbSeenWords-1);
+					currQuery.add(word.substring(0, l));
+					topk_alg.executeQueryPlusLetter(user, currQuery, l, t);
+				}
+				currResult = new JsonObject();
+				currResult.add("l",  new JsonPrimitive(l));
+				currResult.add("word", new JsonPrimitive(word));
+				currResult.add("topksResult", topk_alg.getJsonAnswer(k));
+				arrayResults.add(currResult);
+			}
+			break; // Just one word so far
+		}
+		// Clean the TOPKSAlgorithm object
+		String[] words = new String[query.size()];
+		int i = 0;
+		for (String term: query) {
+			words[i] = term;
+			i++;
+		}
+		topk_alg.reinitialize(words, lengthPrefixMin);
+		
+		JsonObject jsonResult = new JsonObject();
+		jsonResult.add("results", arrayResults);
+		return jsonResult;
+	}
 
 	public void setSkippedTests(int skippedTests) {
 		this.topk_alg.setSkippedTests(skippedTests);
 	}
+	
 }
