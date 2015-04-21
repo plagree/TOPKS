@@ -254,20 +254,19 @@ public class ItemList implements Cloneable{
 	 * @param guaranteed
 	 * @param possible
 	 */
-	public void extractProbableTopK(int k, Set<String> guaranteed, Set<String> possible, Map<String,Integer> high, Map<String,Float> user_weights, Map<String, Integer> positions, int approx) {
+	public void extractProbableTopK(int k, Set<String> guaranteed, Set<String> possible, Map<String, ReadingHead> topReadingHead, 
+									Map<String,Float> user_weights, Map<String, Integer> positions, int approx) {
 		int counter = 0;
 		double wsc_t = 0;
 		
-		int index = 0;
 		for (Item<String> curr_item: sorted_items) {
-			curr_item.computeBestScore(high, user_weights, positions, approx);
+			curr_item.computeBestScore(topReadingHead, user_weights, positions, approx);
 		}
-		
-		ArrayList<Item<String>> sorted_ws = new ArrayList<Item<String>>(sorted_items);
+		List<Item<String>> sorted_ws = new ArrayList<Item<String>>(sorted_items);
 		Collections.sort(sorted_ws);
-		ArrayList<Item<String>> sorted_bs = new ArrayList<Item<String>>(sorted_items);
+		List<Item<String>> sorted_bs = new ArrayList<Item<String>>(sorted_items);
 		Collections.sort(sorted_bs, new ItemBestScoreComparator());
-		ArrayList<Item<String>> possibleItems = new ArrayList<Item<String>>();
+		List<Item<String>> possibleItems = new ArrayList<Item<String>>();
 
 		if(sorted_ws.size() >= k)
 			wsc_t = sorted_ws.get(k-1).getComputedScore();
@@ -355,16 +354,14 @@ public class ItemList implements Cloneable{
 
 
 	public boolean terminationCondition(List<String> query, float value, int k, int num_tags, float alpha, int num_users, 
-										RadixTreeImpl idf, Map<String,Integer> high, Map<String, Float> user_weights, 
+										RadixTreeImpl idf, Map<String, ReadingHead> topReadingHead, Map<String, Float> user_weights, 
 										Map<String,Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, 
 										Set<String> guaranteed, Set<String> possible) throws IOException {
-		//if(sortNeeded) Collections.sort(items,comparator);
-		this.processBoundary(query, value,k, num_tags, alpha, num_users, 
-							 idf, high, user_weights, positions, approx, sortNeeded, 
-							 needUnseen, guaranteed, possible);
-		//System.out.println("Max from rest: "+this.max_from_rest);
-		//System.out.println("Max from unseen: "+this.score_unseen);
-		//System.out.println("Min from top k: "+this.min_from_topk);
+
+		this.processBoundary(query, value,k, num_tags, alpha, num_users, idf,
+							 topReadingHead, user_weights, positions, approx, 
+							 sortNeeded, needUnseen, guaranteed, possible);
+		
 		if ( (this.max_from_rest <= this.min_from_topk) && (number_of_candidates >= k) ) {
 			if (fil != null) {
 				try {
@@ -388,7 +385,7 @@ public class ItemList implements Cloneable{
 	}
 
 	private void processBoundary(List<String> query, float value, int k, int num_tags, float alpha, 
-								 int num_users, RadixTreeImpl idf, Map<String,Integer> high_value, Map<String,Float> user_weights, 
+								 int num_users, RadixTreeImpl idf, Map<String, ReadingHead> topReadingHead, Map<String,Float> user_weights, 
 								 Map<String, Integer> positions, int approx, boolean sortNeeded, boolean needUnseen, 
 								 Set<String> guaranteed, Set<String> possible) throws IOException {
 		
@@ -401,13 +398,16 @@ public class ItemList implements Cloneable{
 		
 		if (needUnseen) { //Upper bound on unseen items
 			for(String tag : query) {
+				double high_value = 0;
+				if (topReadingHead.get(tag) != null)
+					high_value = topReadingHead.get(tag).getValue();
 				double uw = user_weights.get(tag);
-				double normalpart = alpha * high_value.get(tag);
-				double socialpart = (1 - alpha) * high_value.get(tag) * uw; //contribution;
+				double normalpart = alpha * high_value;
+				double socialpart = (1 - alpha) * high_value * uw; //contribution;
 				double scorepart = normalpart + socialpart;
 				scoremax += score.getScore(scorepart, idf.searchPrefix(tag, false).getValue());
-				this.soccontrib.put(tag, (double)high_value.get(tag));
-				this.normcontrib.put(tag, (double)high_value.get(tag));
+				this.soccontrib.put(tag, (double)high_value);
+				this.normcontrib.put(tag, (double)high_value);
 			}
 		}
 		this.score_unseen = scoremax; // value of the upper bound estimation of unseen items
@@ -425,7 +425,7 @@ public class ItemList implements Cloneable{
 					if(!current_topk.contains(curr_item.getItemId())){
 						topk_changed = true;
 					}
-					curr_item.computeBestScore(high_value, user_weights, positions, approx);
+					curr_item.computeBestScore(topReadingHead, user_weights, positions, approx);
 					long docId = curr_item.getItemId();
 					if (!newtopk.containsKey(docId)) {
 						newtopk.put(docId, curr_item.getCompletion()); // newtopk String to obj <docId, completion>
@@ -436,7 +436,7 @@ public class ItemList implements Cloneable{
 			}
 			else{
 				if((needUnseen||possible.contains(curr_item.getItemId())) && (!guaranteed.contains(curr_item.getItemId()))){
-					curr_item.computeBestScore(high_value, user_weights, positions, approx);
+					curr_item.computeBestScore(topReadingHead, user_weights, positions, approx);
 					double curr_candidate = curr_item.getBestscore();
 					//if(curr_candidate<=scoremin) curr_item.setPruned(true);
 					if(scoremax < curr_candidate) {
@@ -456,7 +456,7 @@ public class ItemList implements Cloneable{
 			if(possible.size()>0){
 				for(String itm:possible){
 					curr_item = items.get(itm);
-					curr_item.computeBestScore(high_value, user_weights, positions, approx);
+					curr_item.computeBestScore(topReadingHead, user_weights, positions, approx);
 					if((curr_item.getBestscore()>scoremin)||(newtopk.containsKey(itm))){      			
 						possible_s.add(itm);
 					}
@@ -465,7 +465,7 @@ public class ItemList implements Cloneable{
 			else{
 				for(String itm:items.keySet()){
 					curr_item = items.get(itm);
-					curr_item.computeBestScore(high_value, user_weights, positions, approx);        			
+					curr_item.computeBestScore(topReadingHead, user_weights, positions, approx);        			
 					if((curr_item.getBestscore()>scoremin)||(newtopk.containsKey(itm))){    			
 						possible_s.add(itm);
 					}

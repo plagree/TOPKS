@@ -49,7 +49,7 @@ public class TOPKSServer {
 			server = HttpServer.create(new InetSocketAddress(PORT), 0);
 			server.createContext("/topks", new TOPKSHandler());			// TOPKS single query
 			server.createContext("/asyt", new ASYTHandler());			// TOPKS ASYT Incremental
-			server.setExecutor(null); // creates a default executor
+			server.setExecutor(null); 									// creates a default executor
 			server.start();
 			System.out.println("Server started on port "+PORT);
 		} catch (IOException e) {
@@ -176,14 +176,12 @@ public class TOPKSServer {
 							Integer.parseInt(params.get("l"))
 							);
 
-					//System.out.println(jsonResponse.toString());
-
+					System.out.println(jsonResponse.toString());
 				} catch (NumberFormatException e) {
 					e.printStackTrace();
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
-
 				responseBuffer.append(gson.toJson(jsonResponse).toString());
 				response = responseBuffer.toString();
 				t.sendResponseHeaders(200, response.length());

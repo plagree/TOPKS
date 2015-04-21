@@ -200,7 +200,7 @@ public class Item<E> implements Comparable<Item<E>>{
 		return this.soccontrib;
 	}
 
-	public double computeBestScore(Map<String, Integer> high, Map<String, Float> user_weights, Map<String, Integer> positions, int approx){
+	public double computeBestScore(Map<String, ReadingHead> topReadingHead, Map<String, Float> user_weights, Map<String, Integer> positions, int approx){
 		bestscore = 0;
 		for(E tag : this.tags.keySet()){
 			double uw = 0;
@@ -212,13 +212,13 @@ public class Item<E> implements Comparable<Item<E>>{
 			double stf = 0;
 			this.normcontrib.put(tag, 0.0);
 			this.soccontrib.put(tag, 0.0);
-			if(tdf.containsKey(tag)){ // value in IL
+			if (tdf.containsKey(tag)) { // value in IL
 				bnormal=tdf.get(tag);
 				stf = tdf.get(tag);
 			}
-			else if(high.containsKey(tag)){ // top value IL
-				bnormal=high.get(tag);
-				stf = high.get(tag);
+			else if(topReadingHead.containsKey(tag) && (topReadingHead.get(tag) != null)){ // top value IL
+				bnormal = topReadingHead.get(tag).getValue();
+				stf = topReadingHead.get(tag).getValue();
 				this.normcontrib.put(tag, bnormal);
 			}
 			if(uf.containsKey(tag)) bsocial=uf.get(tag); // score so far
@@ -254,7 +254,7 @@ public class Item<E> implements Comparable<Item<E>>{
 			}
 			bpartial = alpha*bnormal + (1-alpha)*bsocial;
 			bestscore += score.getScore(bpartial, idf.get(tag));
-		}    	
+		}
 		return this.bestscore;
 	}
 

@@ -19,6 +19,7 @@ import org.dbweb.socialsearch.topktrust.datastructure.DataDistribution;
 import org.dbweb.socialsearch.topktrust.datastructure.DataHistogram;
 import org.dbweb.socialsearch.topktrust.datastructure.Item;
 import org.dbweb.socialsearch.topktrust.datastructure.ItemList;
+import org.dbweb.socialsearch.topktrust.datastructure.ReadingHead;
 import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
 import org.dbweb.socialsearch.topktrust.datastructure.comparators.MinScoreItemComparator;
 import org.dbweb.socialsearch.topktrust.datastructure.views.UserView;
@@ -97,7 +98,8 @@ public class TopKAlgorithm {
 	protected TIntObjectMap<PatriciaTrie<TLongSet>> userSpaces;
 	protected RadixTreeImpl tag_idf;
 	protected List<Float> values;
-	protected Map<String,Integer> topValueQuery;
+	//protected Map<String,Integer> topValueQuery;
+	protected Map<String, ReadingHead> topReadingHead;
 	protected Map<String, Integer> positions;
 	protected Map<String,Float> userWeights;
 	protected Map<String,Integer> tagFreqs;
@@ -105,7 +107,7 @@ public class TopKAlgorithm {
 	protected Map<String,HashSet<String>> unknown_tf;
 	protected List<Integer> vst;
 	protected Set<Integer> skr;
-	protected Map<String, Long> topItemQuery;
+	//protected Map<String, Long> topItemQuery;
 	protected List<String> dictionary;
 	protected PatriciaTrie<String> dictionaryTrie;
 	protected RadixTreeImpl completionTrie; // Completion trie
@@ -270,8 +272,7 @@ public class TopKAlgorithm {
 		PreparedStatement ps;
 		ResultSet result;
 		if (newQuery) {
-			topValueQuery = new HashMap<String, Integer>();
-			topItemQuery = new HashMap<String, Long>();
+			topReadingHead = new HashMap<String, ReadingHead>();
 			userWeights = new HashMap<String, Float>();
 		}
 		pos = new int[query.size()];
@@ -280,8 +281,10 @@ public class TopKAlgorithm {
 		int index = 0;
 		boolean exact = false;
 		pos[index]=0;
-		topItemQuery.put(tag, this.invertedLists.get(completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord()).get(0).getDocId());
-		topValueQuery.put(tag, (int)completionTrie.searchPrefix(tag, false).getValue());
+		String completion = completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord();
+		int value = (int)completionTrie.searchPrefix(tag, false).getValue();
+		long item = this.invertedLists.get(completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord()).get(0).getDocId();
+		topReadingHead.put(tag, new ReadingHead(completion, item, value));
 		index++;
 		userWeights.put(tag, userWeight);
 
@@ -352,7 +355,7 @@ public class TopKAlgorithm {
 			Iterator<Entry<String, String>> iterator = completions.entrySet().iterator();
 			Entry<String, String> currentEntry = null;
 			userWeight = 1;
-			while(iterator.hasNext()){
+			while(iterator.hasNext()) {
 				currentEntry = iterator.next();
 				String completion = currentEntry.getKey();
 				if (!positions.containsKey(completion)) {
@@ -385,20 +388,22 @@ public class TopKAlgorithm {
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
 		RadixTreeNode radixTreeNode = completionTrie.searchPrefix(newPrefix, false);
+		
 		if (radixTreeNode == null)
 			return 0;
+		
 		String bestCompletion = radixTreeNode.getBestDescendant().getWord();
 		List<DocumentNumTag> arr = this.invertedLists.get(bestCompletion);
+		
 		if (positions.get(bestCompletion) < arr.size()) {
-			topValueQuery.put(newPrefix, arr.get(positions.get(bestCompletion)).getNum());
-			topItemQuery.put(newPrefix, arr.get(positions.get(bestCompletion)).getDocId());
+			topReadingHead.put(newPrefix, 
+					new ReadingHead(bestCompletion, arr.get(positions.get(bestCompletion)).getDocId(), arr.get(positions.get(bestCompletion)).getNum()));
 		}
 		else {
-			topValueQuery.put(newPrefix, 0);
-			topItemQuery.put(newPrefix, -1l);
+			topReadingHead.put(newPrefix, null);
 		}
-		topValueQuery.remove(previousPrefix);
-		topItemQuery.remove(previousPrefix);
+		
+		topReadingHead.remove(previousPrefix);
 		userWeights.put(newPrefix, userWeights.get(previousPrefix));
 		userWeights.remove(previousPrefix);
 
@@ -434,7 +439,7 @@ public class TopKAlgorithm {
 		this.nbILTextualFastAccesses = 0;
 		this.nbPSpacesAccesses = 0;
 
-		do{
+		do {
 			docs_inserted = false;
 			boolean social = false;
 			boolean socialBranch = chooseBranch(query);
@@ -459,8 +464,9 @@ public class TopKAlgorithm {
 					 * them if necessary to the top-k answer of the algorithm.
 					 */
 					terminationCondition = candidates.terminationCondition(query, userWeight, k, query.size(), alpha, Params.number_users, 
-							tag_idf, topValueQuery, userWeights, positions, approxMethod, 
+							tag_idf, topReadingHead, userWeights, positions, approxMethod, 
 							docs_inserted, needUnseen, guaranteed, possible);
+					
 					if (terminationCondition)
 						logger.debug("termination condition positive");
 				} catch (IOException e) {
@@ -473,7 +479,7 @@ public class TopKAlgorithm {
 				candidates.resetChange();
 				long time_1 = System.currentTimeMillis();
 				if ( (time_1 - before_main_loop) > t) {
-					this.candidates.extractProbableTopK(k, guaranteed, possible, topValueQuery, userWeights, positions, approxMethod);
+					this.candidates.extractProbableTopK(k, guaranteed, possible, topReadingHead, userWeights, positions, approxMethod);
 					logger.debug("time under limit");
 					underTimeLimit = false;
 				}
@@ -486,7 +492,7 @@ public class TopKAlgorithm {
 				logger.debug("time not under limit");
 				underTimeLimit = false;
 			}
-			if (userWeight==0) {
+			if (userWeight == 0) {
 				logger.debug("userWeight == 0");
 				terminationCondition = true;
 			}
@@ -501,9 +507,7 @@ public class TopKAlgorithm {
 				terminationCondition = true;
 				logger.debug("Budget consumed...");
 			}
-
 		} while(!terminationCondition && !finished && underTimeLimit);
-
 		this.numloops = loops;
 		System.out.println("There were "+loops+" loops ...");
 	}
@@ -531,7 +535,7 @@ public class TopKAlgorithm {
 			if( (approxMethod&Methods.MET_TOPKS) == Methods.MET_TOPKS)
 				upper_docs_score = alpha * candidates.getNormalContrib(tag);
 			else
-				upper_docs_score = alpha * topValueQuery.get(tag);
+				upper_docs_score = alpha * topReadingHead.get(tag).getValue();
 
 			if( !( (upper_social_score == 0) && (upper_docs_score == 0) ) ) finished = false;
 
@@ -630,7 +634,6 @@ public class TopKAlgorithm {
 				currentUserId = Integer.MAX_VALUE;
 				pos[index]++;
 				userWeight = 0;
-				//float prev_part_sum = pos[index];
 				if((approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR)
 					d_distr.setPos(tag, userWeight, pos[index]+1);
 				else if((approxMethod&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST)
@@ -662,28 +665,35 @@ public class TopKAlgorithm {
 	 * Given the new discovered items in User Spaces, do top-items can be updated?
 	 * @param query List<String>
 	 */
-	private void lookIntoList(List<String> query){
+	private void lookIntoList(List<String> query) {
+		
 		int index=0;
 		boolean found = true;
+		
 		while (found) {
 			String completion;
 			String autre = completionTrie.searchPrefix(query.get(query.size()-1), false).getBestDescendant().getWord(); // gros doute
-			for(index=0;index<query.size();index++) {
+			for(index=0; index<query.size(); index++) {
 				found = false;
+				
+				// We reached the end of the inverted list
+				if (topReadingHead.get(query.get(index)) == null)
+					continue;
+				
 				if (index == (query.size()-1)) //  prefix
 					completion = completionTrie.searchPrefix(query.get(index), false).getBestDescendant().getWord();
 				else {
 					completion = query.get(index);
 				}
-				if(unknown_tf.get(query.get(index)).contains(topItemQuery.get(query.get(index))+"#"+completion)){
-					Item<String> item1 = candidates.findItem(topItemQuery.get(query.get(index)), autre);
+				if(unknown_tf.get(query.get(index)).contains(topReadingHead.get(query.get(index)).getItem()+"#"+completion)){
+					Item<String> item1 = candidates.findItem(topReadingHead.get(query.get(index)).getItem(), autre);
 					if (item1==null) {
-						unknown_tf.get(query.get(index)).remove(topItemQuery.get(query.get(index))+"#"+completion); // DON'T UNDERSTAND
+						unknown_tf.get(query.get(index)).remove(topReadingHead.get(query.get(index)).getItem()+"#"+completion); // DON'T UNDERSTAND
 						continue;
 					}
 					candidates.removeItem(item1);
-					item1.updateScoreDocs(query.get(index), topValueQuery.get(query.get(index)), approxMethod);
-					unknown_tf.get(query.get(index)).remove(topItemQuery.get(query.get(index))+"#"+completion); 
+					item1.updateScoreDocs(query.get(index), topReadingHead.get(query.get(index)).getValue(), approxMethod);
+					unknown_tf.get(query.get(index)).remove(topReadingHead.get(query.get(index)).getItem()+"#"+completion); 
 					if (index == (query.size()-1)) { //  prefix
 						// if the tag is not a leaf, we have a random access to the disk
 						if (!this.invertedLists.containsKey(query.get(index)))
@@ -721,25 +731,25 @@ public class TopKAlgorithm {
 				index++;
 				continue;
 			}
-			if (topItemQuery.get(tag).equals(-1l)) {
+			if (topReadingHead.get(tag) == null) {
 				logger.debug("IL visited completely");
 			}
-			if (!topItemQuery.get(tag).equals(-1l)) {
+			if (!(topReadingHead.get(tag) == null)) {
 				currNode = completionTrie.searchPrefix(tag, false);
 				currCompletion = currNode.getBestDescendant().getWord();
-				Item<String> item = candidates.findItem(topItemQuery.get(tag), currCompletion);
+				Item<String> item = candidates.findItem(topReadingHead.get(tag).getItem(), currCompletion);
 				if(item == null) {
-					Item<String> item2 = candidates.findItem(topItemQuery.get(tag), "");
+					Item<String> item2 = candidates.findItem(topReadingHead.get(tag).getItem(), "");
 					if (item2 != null) {
-						item = this.createCopyCandidateItem(item2, topItemQuery.get(tag), query, item, currCompletion);
+						item = this.createCopyCandidateItem(item2, topReadingHead.get(tag).getItem(), query, item, currCompletion);
 					}
 					else {
-						item = this.createNewCandidateItem(topItemQuery.get(tag), query,item, currCompletion);
+						item = this.createNewCandidateItem(topReadingHead.get(tag).getItem(), query,item, currCompletion);
 					}
 				}
 				else
 					candidates.removeItem(item);
-				item.updateScoreDocs(tag, topValueQuery.get(tag), approxMethod);
+				item.updateScoreDocs(tag, topReadingHead.get(tag).getValue(), approxMethod);
 				if(unknown_tf.get(tag).contains(item.getItemId()+"#"+currCompletion)) unknown_tf.get(tag).remove(item.getItemId()+"#"+currCompletion);
 				candidates.addItem(item);
 				docs_inserted = true;
@@ -780,13 +790,11 @@ public class TopKAlgorithm {
 
 		if(position < invertedList.size()){
 			total_documents_asocial++;
-			topValueQuery.put(tag, invertedList.get(position).getNum());
-			topItemQuery.put(tag, invertedList.get(position).getDocId());
+			topReadingHead.put(tag, new ReadingHead(word, invertedList.get(position).getDocId(), invertedList.get(position).getNum()));
 			current_best_leaf.updatePreviousBestValue(invertedList.get(position).getNum());
 		}
 		else{
-			topValueQuery.put(tag, 0);
-			topItemQuery.put(tag, -1l);
+			topReadingHead.put(tag, null);
 		}
 	}
 
