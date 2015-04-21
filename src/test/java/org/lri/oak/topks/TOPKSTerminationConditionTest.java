@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.dbweb.Arcomem.Integration.TOPKSSearcher;
 import org.dbweb.socialsearch.shared.Params;
+import org.dbweb.socialsearch.topktrust.algorithm.score.TfIdfScore;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -27,7 +28,7 @@ public class TOPKSTerminationConditionTest {
 		Params.tagFreqFile = "tag-freq.txt";
 		Params.threshold = 0f;
 		
-		this.searcher = new TOPKSSearcher();
+		this.searcher = new TOPKSSearcher(new TfIdfScore());
 	}
 
 	@Test

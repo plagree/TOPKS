@@ -7,6 +7,7 @@ import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathCompositionFunction;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
+import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 import org.dbweb.socialsearch.topktrust.algorithm.score.TfIdfScore;
 
 import com.google.gson.JsonObject;
@@ -22,10 +23,9 @@ public class TOPKSSearcher {
 	private static final int method = 1;
 	private TopKAlgorithm topk_alg;
 
-	public TOPKSSearcher() {
+	public TOPKSSearcher(Score score) {
 		
 		OptimalPaths optpath;
-		TfIdfScore score = new TfIdfScore();
 		try {
 			optpath = new OptimalPaths(network, null, heap, null, coeff);
 			topk_alg = new TopKAlgorithm(null, taggers, network, method, score, 0f, pathFunction, optpath, 1);

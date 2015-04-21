@@ -10,6 +10,7 @@ import java.net.URL;
 import org.dbweb.Arcomem.Integration.TOPKSSearcher;
 import org.dbweb.Arcomem.Integration.TOPKSServer;
 import org.dbweb.socialsearch.shared.Params;
+import org.dbweb.socialsearch.topktrust.algorithm.score.TfIdfScore;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ public class  TOPKSServerTest {
 		Params.tagFreqFile = "tag-freq.txt";
 		Params.threshold = 0f;
 		
-		TOPKSSearcher searcher = new TOPKSSearcher();
+		TOPKSSearcher searcher = new TOPKSSearcher(new TfIdfScore());
     	TOPKSServer server = new TOPKSServer(searcher);
     	server.run();
     	

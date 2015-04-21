@@ -1,6 +1,8 @@
 package org.dbweb.Arcomem.Integration;
 
 import org.dbweb.socialsearch.shared.Params;
+import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
+import org.dbweb.socialsearch.topktrust.algorithm.score.TfIdfScore;
 
 public class Main {
 
@@ -23,7 +25,8 @@ public class Main {
 		Params.threshold = Float.parseFloat(args[4]);
 		
 		// Index files and load data in memory
-		TOPKSSearcher topksSearcher = new TOPKSSearcher();
+		Score score = new TfIdfScore(); // Tfidf scoring
+		TOPKSSearcher topksSearcher = new TOPKSSearcher(score);
 		topksSearcher.setSkippedTests(100);
 		// Start a server listening to queries
 		TOPKSServer topksServer = new TOPKSServer(topksSearcher);

@@ -140,16 +140,15 @@ public class TopKAlgorithm {
 	protected float alpha = 0;
 
 	protected int total_lists_social;
+	
+	protected int nbPSpacesAccesses;		// Accesses of p-spaces
+	protected int nbILSocialAccesses; 		// Accesses on non-leaf inverted lists from social branch
+	protected int nbILTextualAccesses; 		// Accesses on non-leaf inverted lists from textual branch
 
 	//amine
 	protected String newXMLResults="", newBucketResults="", newXMLStats="";
 
 	BasicSearchResult resultList=new BasicSearchResult();
-
-	public BasicSearchResult getResultList() {
-		resultList.sortItems();
-		return resultList;
-	}
 
 	public void setAlpha(float alpha) {
 		this.alpha = alpha;
@@ -374,6 +373,10 @@ public class TopKAlgorithm {
 	public int executeQueryPlusLetter(String seeker, List<String> query, int k, int t) throws SQLException{
 		//if (query.size() != 1)
 		//	System.out.println("Query+l: "+query.toString());
+		
+		this.nbILSocialAccesses = 0; 		// Accesses on non-leaf inverted lists
+		this.nbILTextualAccesses = 0; 		// Accesses on non-leaf inverted lists
+		
 		String newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
@@ -419,6 +422,11 @@ public class TopKAlgorithm {
 		long before_main_loop = System.currentTimeMillis();
 		finished = false;
 		int currVisited = 0;
+		
+		// Reset counter of IL accesses and p-spaces accesses
+		this.nbILSocialAccesses = 0;
+		this.nbILTextualAccesses = 0;
+		this.nbPSpacesAccesses = 0;
 		
 		do{
 			docs_inserted = false;
@@ -472,6 +480,10 @@ public class TopKAlgorithm {
 				terminationCondition = true;
 			loops++;
 			if (currVisited >= (this.nVisited+1))
+				terminationCondition = true;
+			
+			// We check if we did not use the whole budget yet
+			else if ((this.nbILSocialAccesses + this.nbILTextualAccesses + this.nbPSpacesAccesses) >= Params.DISK_BUDGET)
 				terminationCondition = true;
 			
 		} while(!terminationCondition && !finished && underTimeLimit);
@@ -552,6 +564,8 @@ public class TopKAlgorithm {
 				
 				if(this.userSpaces.containsKey(currentUserId) && !(currentUserId==seeker)){
 					// HERE WE CHECK
+					// User space access
+					this.nbPSpacesAccesses += 1;
 					SortedMap<String, TLongSet> completions = userSpaces.get(currentUserId).prefixMap(tag);
 					if (completions.size()>0) {
 						Iterator<Entry<String, TLongSet>> iterator = completions.entrySet().iterator();
@@ -651,9 +665,16 @@ public class TopKAlgorithm {
 					candidates.removeItem(item1);
 					item1.updateScoreDocs(query.get(index), topValueQuery.get(query.get(index)), approxMethod);
 					unknown_tf.get(query.get(index)).remove(topItemQuery.get(query.get(index))+"#"+completion); 
-					if (index == (query.size()-1)) //  prefix
+					if (index == (query.size()-1)) { //  prefix
+						// if the tag is not a leaf, we have a random access to the disk
+						if (!this.invertedLists.containsKey(query.get(index)))
+							this.nbILSocialAccesses += 1;
 						advanceTextualList(query.get(index),index,false);
+					}
 					else {
+						// if the tag is not a leaf, we have a random access to the disk
+						if (!this.invertedLists.containsKey(query.get(index)))
+							this.nbILSocialAccesses += 1;
 						advanceTextualList(query.get(index),index,true);
 					}
 					candidates.addItem(item1);
@@ -696,9 +717,16 @@ public class TopKAlgorithm {
 				if(unknown_tf.get(tag).contains(item.getItemId()+"#"+currCompletion)) unknown_tf.get(tag).remove(item.getItemId()+"#"+currCompletion);
 				candidates.addItem(item);
 				docs_inserted = true;
-				if ((index+1)==query.size()) // prefix, we don't search for exact match
+				if ((index+1)==query.size()) { // prefix, we don't search for exact match
+					// If the word is not a leaf, we count an access to the disk
+					if (!this.invertedLists.containsKey(tag))
+						this.nbILTextualAccesses += 1;
 					advanceTextualList(tag,index,false);
+				}
 				else {
+					// if the tag is not a leaf, we have a random access to the disk
+					if (!this.invertedLists.containsKey(tag))
+						this.nbILTextualAccesses += 1;
 					advanceTextualList(tag,index,true);
 				}
 			}
@@ -793,23 +821,6 @@ public class TopKAlgorithm {
 	}
 
 	/**
-	 * Not used in current version
-	 * @return
-	 */
-	public String statistics(){
-		String tkpos="";
-		return String.format(Locale.US, ""+
-				"<br><stat><b>Time</b>: main loop <b>%.3f</b> sec</stat><br><br>"+
-				"<stat><b>%d</b> total <b>user lists</b>, last proximity <b>%.3f</b></stat><br><br>"+
-				"<stat><b>%d top-k changes</b>, last at position <b>%s</b></stat><br><br>"+
-				"<stat><b>%d</b> docs in <b>user lists</b>, <b>%d</b> in <b>inverted lists</b>, <b>%d</b> random</stat><br><br>", 
-				(float)time_loop/(float)1000,
-				total_lists_social, this.userWeight,
-				total_topk_changes, tkpos,
-				total_documents_social, total_documents_asocial, total_rnd);
-	}
-
-	/**
 	 * Gives the ranking of a given item in the ranked list of discovered items
 	 * @param item
 	 * @param k
@@ -840,39 +851,6 @@ public class TopKAlgorithm {
 		this.landmark = landmark;
 	}
 
-	/**
-	 * Not used in current version
-	 * @param originalUnprotectedString
-	 * @return
-	 */
-	private String protectSpecialCharacters(String originalUnprotectedString) {
-		if (originalUnprotectedString == null) {
-			return null;
-		}
-		boolean anyCharactersProtected = false;
-
-		StringBuffer stringBuffer = new StringBuffer();
-		for (int i = 0; i < originalUnprotectedString.length(); i++) {
-			char ch = originalUnprotectedString.charAt(i);
-
-			boolean controlCharacter = ch < 32;
-			boolean unicodeButNotAscii = ch > 126;
-			boolean characterWithSpecialMeaningInXML = ch == '<' || ch == '&' || ch == '>';
-
-			if (characterWithSpecialMeaningInXML || unicodeButNotAscii || controlCharacter) {
-				stringBuffer.append("&#" + (int) ch + ";");
-				anyCharactersProtected = true;
-			} else {
-				stringBuffer.append(ch);
-			}
-		}
-		if (anyCharactersProtected == false) {
-			return originalUnprotectedString;
-		}
-
-		return stringBuffer.toString();
-	}
-
 	public TreeSet<Item<String>> getResults(){
 		TreeSet<Item<String>> results = new TreeSet<Item<String>>();
 		for(String itid:candidates.get_topk())
@@ -884,48 +862,12 @@ public class TopKAlgorithm {
 		return candidates.get_topk();
 	}
 
-	public ArrayList<Integer> getVisited(){
-		skr = new HashSet<Integer>();
-		for(int i=0;i<Params.seeker.length;i++) skr.add(Params.seeker[i]);
-		ArrayList<Integer> vst_u = new ArrayList<Integer>();
-		for(int curr:vst){
-			if(skr.contains(curr)) vst_u.add(curr);
-		}
-		this.visitedNodes=vst_u;
-		return vst_u;
-	}
-
-	public String getNewResultsXML(boolean exact){
-		String result="";
-		result=String.format(Locale.US, "<ResultSet seeker=\"%s\" nbloops=\"%s\" isExact=\"%d\">", seeker, this.numloops, exact?1:0);
-
-		result+=this.newXMLResults;
-		if(!exact)
-			result+=this.newBucketResults;
-		result+=this.newXMLStats;
-		result+="</ResultSet>\n";
-
-		return result;
-	}
-
 	public String getResultsXML(){
 		return this.newXMLResults;
 	}
 
 	public BasicSearchResult getResultsList(){
 		return this.resultList;
-	}
-
-	public ArrayList<Integer> getViResult(){
-		return this.visitedNodes;
-	}
-
-	public char[] getResultsForR() {
-		char[] chaine=null;
-		BasicSearchResult sr=new BasicSearchResult();
-		sr.getResult();
-
-		return chaine;
 	}
 	
 	private static long getUsedMemory() {
@@ -1157,6 +1099,11 @@ public class TopKAlgorithm {
 		System.out.println("Users spaces loaded");
 	}
 
+	/**
+	 * Returns a JSON object containing different parameters
+	 * @param k
+	 * @return
+	 */
 	public JsonObject getJsonAnswer(int k) {
 		JsonObject jsonResult = new JsonObject();
 		JsonArray arrayResults = new JsonArray();
@@ -1175,10 +1122,13 @@ public class TopKAlgorithm {
 			arrayResults.add(currItem);
 		}
 		
-		jsonResult.add("status", new JsonPrimitive(1));
-		jsonResult.add("nLoops", new JsonPrimitive(this.numloops));
-		jsonResult.add("n", new JsonPrimitive(n));
-		jsonResult.add("results", arrayResults);
+		jsonResult.add("status", new JsonPrimitive(1)); 									// No problem appeared in TOPKS
+		jsonResult.add("nLoops", new JsonPrimitive(this.numloops));							// Number of loops in TOPKS
+		jsonResult.add("nbILSocialAccesses", new JsonPrimitive(this.nbILSocialAccesses));	// Number of Disk accesses for IL from social branch
+		jsonResult.add("nbILTextualAccesses", new JsonPrimitive(this.nbILTextualAccesses));	// Number of Disk accesses for IL from textual branch
+		jsonResult.add("nbPSpacesAccesses", new JsonPrimitive(this.nbPSpacesAccesses));		// Number of Disk accesses for p-spaces
+		jsonResult.add("n", new JsonPrimitive(n));											// Number of results
+		jsonResult.add("results", arrayResults);											// Array of the results
 
 		return jsonResult;
 	}

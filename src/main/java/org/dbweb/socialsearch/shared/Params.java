@@ -19,4 +19,5 @@ public class Params {
 	public static int numberLinks = 0;
 	public static int number_documents = 1570866;
 	public static int number_users = 0;
+	public static int DISK_BUDGET = 200;
 }
