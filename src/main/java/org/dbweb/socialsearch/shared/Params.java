@@ -22,4 +22,6 @@ public class Params {
 	public static int DISK_BUDGET = 100000;
 	public static int NORMALIZER = 150;
 	public static boolean VERBOSE = false;
+	public static boolean NDCG = false;
+	public static long TIME_NDCG = 1;
 }

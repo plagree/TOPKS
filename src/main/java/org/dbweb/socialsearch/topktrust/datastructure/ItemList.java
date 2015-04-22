@@ -22,7 +22,6 @@ import java.lang.Math;
 
 import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.socialsearch.shared.Methods;
-import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 import org.dbweb.socialsearch.topktrust.datastructure.comparators.*;
 import org.slf4j.Logger;
@@ -78,7 +77,7 @@ public class ItemList implements Cloneable{
 		this.score = score;
 	}
 
-	public void removeItem(Item<String> item){
+	public void removeItem(Item<String> item) {
 		this.items.remove(item.getItemId()+"#"+item.getCompletion());
 		removeSortItem(this.sorted_items, item);
 	}
@@ -309,11 +308,9 @@ public class ItemList implements Cloneable{
 			TreeMap<String, Double> sorted = new TreeMap<String, Double>(vc);
 			for(String itm:possible){
 				double coeff_uni = Math.random();
-				double coeff_exp = Math.log(1-Math.random())/(-1.0f);
 				double ws = items.get(itm).getComputedScore();
 				double bs = items.get(itm).getBestscore();
 				double sc_uni = ws + (bs-ws)*coeff_uni;
-				double sc_exp = ws + (bs-ws)*(1.0f-1.0f/(1.0f+coeff_exp));
 				normal.put(itm, sc_uni);
 			}		
 			sorted.putAll(normal);
@@ -386,7 +383,6 @@ public class ItemList implements Cloneable{
 		
 		Map<Long, String> newtopk = new HashMap<Long, String>();
 		int number = 0;
-		//double scoremin = 0.0f;
 		double scoremax = 0.0f;
 		thritem = 0;
 		topk_changed = false;
@@ -482,23 +478,23 @@ public class ItemList implements Cloneable{
 	}
 
 	@Override
-	public ItemList clone(){
+	public ItemList clone() {
 		return new ItemList(this.items);
 	}
 
-	public Set<String> get_topk(){
+	public Set<String> get_topk() {
 		return this.current_topk;
 	}
 
-	public String toString(){
+	public String toString() {
 		String out = "";
-		for(Item<String> item:items.values()){
+		for(Item<String> item:items.values()) {
 			out = out + item.getItemId() + "\n";
 		}
 		return out;
 	}
 
-	public void setBestscoreestim(double score){
+	public void setBestscoreestim(double score) {
 		bestScoreEstim = (bestScoreEstim>score)?score:bestScoreEstim;
 	}
 
@@ -532,5 +528,14 @@ public class ItemList implements Cloneable{
 				break;
 		}
 		return res;
+	}
+	
+	public List<Long> getListItems(int k) {
+		List<Item<String>> topK = this.getTopK(k);
+		List<Long> result = new ArrayList<Long>();
+		for (Item<String> item: topK) {
+			result.add(item.getItemId());
+		}
+		return result;
 	}
 }

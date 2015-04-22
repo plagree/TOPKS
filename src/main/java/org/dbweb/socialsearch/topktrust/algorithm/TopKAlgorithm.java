@@ -23,15 +23,15 @@ import org.dbweb.socialsearch.topktrust.datastructure.ReadingHead;
 import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
 import org.dbweb.socialsearch.topktrust.datastructure.comparators.MinScoreItemComparator;
 import org.dbweb.socialsearch.topktrust.datastructure.views.UserView;
-import org.dbweb.socialsearch.topktrust.datastructure.views.ViewScore;
 import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.completion.trie.RadixTreeNode;
+import org.externals.Tools.NDCG;
+import org.externals.Tools.NDCGResults;
 
 import gnu.trove.iterator.TLongIterator;
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.set.TLongSet;
-import gnu.trove.set.hash.THashSet;
 import gnu.trove.set.hash.TLongHashSet;
 
 import java.io.BufferedReader;
@@ -49,11 +49,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeSet;
@@ -98,16 +95,14 @@ public class TopKAlgorithm {
 	protected TIntObjectMap<PatriciaTrie<TLongSet>> userSpaces;
 	protected RadixTreeImpl tag_idf;
 	protected List<Float> values;
-	//protected Map<String,Integer> topValueQuery;
 	protected Map<String, ReadingHead> topReadingHead;
 	protected Map<String, Integer> positions;
-	protected Map<String,Float> userWeights;
-	protected Map<String,Integer> tagFreqs;
-	protected Map<String,ArrayList<UserView>> userviews;
-	protected Map<String,HashSet<String>> unknown_tf;
+	protected Map<String, Float> userWeights;
+	protected Map<String, Integer> tagFreqs;
+	protected Map<String, ArrayList<UserView>> userviews;
+	protected Map<String, HashSet<String>> unknown_tf;
 	protected List<Integer> vst;
 	protected Set<Integer> skr;
-	//protected Map<String, Long> topItemQuery;
 	protected List<String> dictionary;
 	protected PatriciaTrie<String> dictionaryTrie;
 	protected RadixTreeImpl completionTrie; // Completion trie
@@ -148,6 +143,10 @@ public class TopKAlgorithm {
 	protected int nbILSocialFastAccesses; 	// Accesses on leaf inverted lists from social branch (sequential disk read)
 	protected int nbILTextualAccesses; 		// Accesses on non-leaf inverted lists from textual branch
 	protected int nbILTextualFastAccesses; 	// Accesses on leaf inverted lists from textual branch (sequential disk read)
+	
+	// NDCG lists
+	protected List<Long> oracleNDCG;
+	protected NDCGResults ndcgResults;
 
 	//amine
 	protected String newXMLResults="", newBucketResults="", newXMLStats="";
@@ -165,11 +164,9 @@ public class TopKAlgorithm {
 	private LandmarkPathsComputing landmark;
 	private DataDistribution d_distr;
 	private DataHistogram d_hist;
-	private ViewTransformer viewTransformer;
 	private Score score;
 	private double error;
 
-	private double bestScoreEstim = Double.POSITIVE_INFINITY; 
 	//debug purpose
 	public double bestscore;
 
@@ -242,7 +239,7 @@ public class TopKAlgorithm {
 	 * @throws SQLException
 	 */
 	public int executeQuery(String seeker, List<String> query, int k, int t, boolean newQuery, int nVisited) throws SQLException {
-		
+
 		this.nVisited = nVisited;
 		this.max_pos_val = 1.0f;
 		this.d_distr = null;
@@ -283,10 +280,10 @@ public class TopKAlgorithm {
 		String completion = completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord();
 		int value = (int)completionTrie.searchPrefix(tag, false).getValue();
 		long item = this.invertedLists.get(completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord()).get(0).getDocId();
-		topReadingHead.put(tag, new ReadingHead(completion, item, value));
+		ReadingHead rh = new ReadingHead(completion, item, value);
+		topReadingHead.put(tag, rh);
 		index++;
 		userWeights.put(tag, userWeight);
-
 		if((this.approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
 			String sqlGetDistribution = String.format(sqlGetDistributionTemplate, this.networkTable);
 			ps = connection.prepareStatement(sqlGetDistribution);
@@ -332,7 +329,7 @@ public class TopKAlgorithm {
 		total_documents_asocial = 0;
 		total_topk_changes = 0;
 		total_conforming_lists = 0;
-
+		
 		//long time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query, t); /* MAIN ALGORITHM */
 		//long time1 = System.currentTimeMillis();
@@ -421,8 +418,7 @@ public class TopKAlgorithm {
 	 * @param t
 	 * @throws SQLException
 	 */
-	protected void mainLoop(int k, String seeker, List<String> query, int t) throws SQLException{
-
+	protected void mainLoop(int k, String seeker, List<String> query, int t) throws SQLException {
 		int loops = 0;
 		int steps = 1;
 		boolean underTimeLimit = true;
@@ -430,8 +426,12 @@ public class TopKAlgorithm {
 		guaranteed = new HashSet<String>();
 		possible = new HashSet<String>();
 		long before_main_loop = System.currentTimeMillis();
+		long currentTime = 0;
+		long time_NDCG = 0;
+		long timeThresholdNDCG = Params.TIME_NDCG;
 		finished = false;
 		int currVisited = 0;
+		this.ndcgResults = new NDCGResults();
 
 		// Reset counter of IL accesses and p-spaces accesses
 		this.nbILSocialAccesses = 0;
@@ -458,7 +458,7 @@ public class TopKAlgorithm {
 			if(social) this.total_lists_social++;
 
 			steps = (steps+1) % skippedTests;
-			if( (steps == 0) || (!needUnseen && ( (approxMethod&Methods.MET_ET) == Methods.MET_ET) ) ) {
+			if ( (steps == 0) || (!needUnseen && ( (approxMethod&Methods.MET_ET) == Methods.MET_ET) ) ) {
 				try {
 					/*
 					 * During the terminationCondition method, look up at top_items of different ILs, we add
@@ -479,17 +479,31 @@ public class TopKAlgorithm {
 				}
 				candidates.resetChange();
 				long time_1 = System.currentTimeMillis();
-				if ( (time_1 - before_main_loop) > t) {
+				if ((time_1 - before_main_loop) > t) {
 					this.candidates.extractProbableTopK(k, guaranteed, possible, topReadingHead, userWeights, positions, approxMethod);
 					logger.debug("time under limit");
 					underTimeLimit = false;
 				}
 			}
-			else{
-				terminationCondition=false;
+			else {
+				// Analysis for NDCG vs t plot
+				currentTime = (System.currentTimeMillis() - before_main_loop) - time_NDCG / 1000000;
+				//System.out.println(currentTime+" : "+(System.currentTimeMillis() - before_main_loop)+", "+(time_NDCG / 1000));
+				if (Params.NDCG && (currentTime >= timeThresholdNDCG)) {
+					long bef = System.nanoTime();
+					double ndcg = NDCG.getNDCG(this.candidates.getListItems(k), oracleNDCG, k);
+					if (ndcg > 1) {
+						System.out.println(ndcg);
+						System.out.println(this.candidates.getListItems(k).toString() + ",   "+oracleNDCG.toString());
+					}
+					this.ndcgResults.addPoint(currentTime, ndcg);
+					time_NDCG += (System.nanoTime() - bef);
+					timeThresholdNDCG += Params.TIME_NDCG;
+				}
+				terminationCondition = false;
 			}
 			long time_1 = System.currentTimeMillis();
-			if ( (time_1-before_main_loop) > Math.max(t+25, t)) {
+			if ((time_1-before_main_loop) > Math.max(t+25, t)) {
 				logger.debug("time not under limit");
 				underTimeLimit = false;
 			}
@@ -1197,5 +1211,30 @@ public class TopKAlgorithm {
 	public void setSkippedTests(int skippedTests) {
 		this.skippedTests = skippedTests;
 	}
+	
+	public void computeOracleNDCG(int k) {
+		this.oracleNDCG = this.candidates.getListItems(k);
+	}
+	
+	public JsonObject getJsonNDCG(int k) {
+		JsonObject jsonResult = new JsonObject();
+		JsonArray arrayResults = new JsonArray();
+		JsonObject currItem;
+		
+		List<Double> ndcgs = this.ndcgResults.getNdcgs();
+		List<Long> times = this.ndcgResults.getTimes();
+		for (int i=0; i<this.ndcgResults.size(); i++) {
+			currItem = new JsonObject();
+			currItem.add("t", new JsonPrimitive(times.get(i)));					// time spent
+			currItem.add("ndcg", new JsonPrimitive(ndcgs.get(i)));				// ndcg score
+			arrayResults.add(currItem);
+		}
+
+		jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
+		jsonResult.add("results", arrayResults);
+
+		return jsonResult;
+	}
+
 
 }

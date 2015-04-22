@@ -58,8 +58,31 @@ public class TOPKSSearcher {
 			words[i] = term;
 			i++;
 		}
-		topk_alg.reinitialize(words,1);
+		topk_alg.reinitialize(words, 1);
 		JsonObject jsonResult = topk_alg.getJsonAnswer(k);
+		return jsonResult;
+	}
+	
+	public JsonObject executeQueryNDCG(String user, List<String> query, int k, int t, boolean newQuery, int nNeigh, float alpha) throws SQLException {
+		// Computation for infinity (oracle)
+		Params.NDCG = false;
+		topk_alg.setAlpha(alpha);
+		topk_alg.executeQuery(user, query, k, t, newQuery, nNeigh);
+		topk_alg.computeOracleNDCG(k);
+		String[] words = new String[query.size()];
+		int i = 0;
+		for (String term: query) {
+			words[i] = term;
+			i++;
+		}
+		topk_alg.reinitialize(words, 1);
+		
+		// Computation of the NDCGResults object (NDCG vs t)
+		Params.NDCG = true;
+		topk_alg.executeQuery(user, query, k, t, newQuery, nNeigh);
+		System.out.println(topk_alg.getJsonAnswer(k).toString());
+		JsonObject jsonResult = topk_alg.getJsonNDCG(k);
+		Params.NDCG = false;
 		return jsonResult;
 	}
 	
