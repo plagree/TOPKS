@@ -19,8 +19,12 @@ public class DocumentNumTag implements Comparable<DocumentNumTag>{
 	
 	@Override
 	public int compareTo(DocumentNumTag o) {
-		// TODO Auto-generated method stub
 		return this.num - o.getNum();
+	}
+	
+	@Override
+	public String toString() {
+		return "Item: "+this.docId+", value: "+this.num;
 	}
 	
 }

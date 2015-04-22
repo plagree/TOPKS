@@ -22,6 +22,7 @@ import java.lang.Math;
 
 import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.socialsearch.shared.Methods;
+import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 import org.dbweb.socialsearch.topktrust.datastructure.comparators.*;
 import org.slf4j.Logger;
@@ -36,8 +37,6 @@ public class ItemList implements Cloneable{
 	private static Logger log = LoggerFactory.getLogger(ItemList.class);
 	private Map<String,Item<String>> items; //this is a map (for fast access to item pointers)
 	private Set<String> current_topk = new HashSet<String>();
-	private DataDistribution d_distr;
-	private DataHistogram d_hist;
 	private Score score;
 
 	private double min_from_topk;
@@ -47,7 +46,6 @@ public class ItemList implements Cloneable{
 	}
 
 	private int number_of_candidates;
-	private double error;
 	private boolean views = false;
 
 	private double bestScoreEstim = Double.POSITIVE_INFINITY;
@@ -70,16 +68,13 @@ public class ItemList implements Cloneable{
 		this.number_of_candidates = 0;
 	}
 
-	public ItemList(Comparator comparator, Score score, DataDistribution d_distr, DataHistogram d_hist, double error) {
+	public ItemList(Comparator comparator, Score score) {
 		this.min_from_topk = 0;
 		this.max_from_rest = 0;
 		this.number_of_candidates = 0;
 		this.items = new HashMap<String,Item<String>>();
 		this.sorted_items = new PriorityQueue<Item<String>>();
 		this.comparator = comparator;
-		this.d_distr = d_distr;
-		this.d_hist = d_hist;
-		this.error = error;
 		this.score = score;
 	}
 
@@ -142,22 +137,22 @@ public class ItemList implements Cloneable{
 		return this.sorted_items.size();
 	}
 
-	public void addItem(Item<String> item){
+	public void addItem(Item<String> item) {
 		this.items.put(item.getItemId()+"#"+item.getCompletion(), item);
 		if(!item.isPruned()) this.sorted_items.add(item);
 	}
 
-	public Item<String> findItem(long itemId, String completion){
+	public Item<String> findItem(long itemId, String completion) {
 		if(items.containsKey(itemId+"#"+completion))
 			return items.get(itemId+"#"+completion);
 		else
 			return null;    	
 	}
-	public Map<String,Item<String>> getItems(){
+	public Map<String,Item<String>> getItems() {
 		return items;
 	}
 
-	public double getMaxContrib(String tag, double max){
+	public double getMaxContrib(String tag, double max) {
 		double contrib = max;
 		for(Item<String> c_item:items.values()){
 			double val = c_item.getContrib(tag);
@@ -166,22 +161,22 @@ public class ItemList implements Cloneable{
 		return contrib;
 	}
 
-	public void setContribs(List<String> query, RadixTreeImpl trie){
+	public void setContribs(List<String> query, RadixTreeImpl trie) {
 		boolean exact = false;
 		for(int i=0; i<query.size(); i++){
 			exact = !((i+1)==query.size()); // exact if not the last word (not a prefix)
-			this.normcontrib.put(query.get(i), (double)trie.searchPrefix(query.get(i), exact).getValue());
+			this.normcontrib.put(query.get(i), ((double)trie.searchPrefix(query.get(i), exact).getValue()));
 			this.soccontrib.put(query.get(i), (double)trie.searchPrefix(query.get(i), exact).getValue());
 		}
 	}
 
-	public double getNormalContrib(String tag){
+	public double getNormalContrib(String tag) {
 		if (normcontrib.containsKey(tag))
 			return normcontrib.get(tag);
 		return 0;
 	}
 
-	public double getSocialContrib(String tag){
+	public double getSocialContrib(String tag) {
 		if (soccontrib.containsKey(tag))
 			return soccontrib.get(tag);
 		return 0;

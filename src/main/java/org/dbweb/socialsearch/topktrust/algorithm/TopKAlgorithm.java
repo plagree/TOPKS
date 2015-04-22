@@ -231,7 +231,6 @@ public class TopKAlgorithm {
 		this.number_users = Params.number_users;
 	}
 
-
 	/**
 	 * Main call from TopKAlgorithm class, call this after building a new object to run algorithm
 	 * This query method must be called for the FIRST prefix, when iterating to the next letter, use
@@ -243,8 +242,8 @@ public class TopKAlgorithm {
 	 * @throws SQLException
 	 */
 	public int executeQuery(String seeker, List<String> query, int k, int t, boolean newQuery, int nVisited) throws SQLException {
+		
 		this.nVisited = nVisited;
-		//System.out.println(query.toString()+", "+seeker);
 		this.max_pos_val = 1.0f;
 		this.d_distr = null;
 		this.d_hist = null;
@@ -280,7 +279,7 @@ public class TopKAlgorithm {
 		String tag = query.get(query.size()-1);
 		int index = 0;
 		boolean exact = false;
-		pos[index]=0;
+		pos[index] = 0;
 		String completion = completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord();
 		int value = (int)completionTrie.searchPrefix(tag, false).getValue();
 		long item = this.invertedLists.get(completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord()).get(0).getDocId();
@@ -318,7 +317,7 @@ public class TopKAlgorithm {
 		if (newQuery) {
 			this.queryNbNeighbour = new ArrayList<Integer>();
 			Comparator comparator = new MinScoreItemComparator();
-			candidates = new ItemList(comparator, this.score, this.d_distr, this.d_hist, this.error);
+			candidates = new ItemList(comparator, this.score);
 			candidates.setContribs(query, completionTrie);
 		}
 		else {
@@ -358,12 +357,14 @@ public class TopKAlgorithm {
 			while(iterator.hasNext()) {
 				currentEntry = iterator.next();
 				String completion = currentEntry.getKey();
+				
 				if (!positions.containsKey(completion)) {
 					logger.debug("keyword not valid: "+completion);
 				}
 				if (positions.get(completion) == 0) {
 					continue;
 				}
+				
 				positions.put(completion, 0);
 				DocumentNumTag firstDoc = this.invertedLists.get(completion).get(0);
 				RadixTreeNode current_best_leaf = completionTrie.searchPrefix(completion, false).getBestDescendant();
@@ -503,13 +504,16 @@ public class TopKAlgorithm {
 			}
 
 			// We check if we did not use the whole budget yet
-			else if ((this.nbILSocialAccesses + this.nbILTextualAccesses + this.nbPSpacesAccesses) >= Params.DISK_BUDGET) {
+			else if ((this.nbILSocialAccesses + this.nbILSocialFastAccesses + this.nbILTextualFastAccesses + 
+					  this.nbILTextualAccesses + this.nbPSpacesAccesses) >= Params.DISK_BUDGET) {
 				terminationCondition = true;
 				logger.debug("Budget consumed...");
 			}
 		} while(!terminationCondition && !finished && underTimeLimit);
 		this.numloops = loops;
-		System.out.println("There were "+loops+" loops ...");
+		
+		if (Params.VERBOSE)
+			System.out.println("There were "+loops+" loops ...");
 	}
 
 	/**
@@ -693,22 +697,25 @@ public class TopKAlgorithm {
 					}
 					candidates.removeItem(item1);
 					item1.updateScoreDocs(query.get(index), topReadingHead.get(query.get(index)).getValue(), approxMethod);
-					unknown_tf.get(query.get(index)).remove(topReadingHead.get(query.get(index)).getItem()+"#"+completion); 
+					unknown_tf.get(query.get(index)).remove(topReadingHead.get(query.get(index)).getItem()+"#"+completion);
+					
 					if (index == (query.size()-1)) { //  prefix
 						// if the tag is not a leaf, we have a random access to the disk
-						if (!this.invertedLists.containsKey(query.get(index)))
+						//if (!this.invertedLists.containsKey(query.get(index)))
+						if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
 							this.nbILSocialAccesses += 1;
 						else
 							this.nbILSocialFastAccesses += 1;	// the tag is a complete word, we read the inverted list sequentially on disk
-						advanceTextualList(query.get(index),index,false);
+						advanceTextualList(query.get(index), index, false);
 					}
 					else {
 						// if the tag is not a leaf, we have a random access to the disk
-						if (!this.invertedLists.containsKey(query.get(index)))
+						//if (!this.invertedLists.containsKey(query.get(index)))
+						if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
 							this.nbILSocialAccesses += 1;
 						else
 							this.nbILSocialFastAccesses += 1;	// the tag is a complete word, we read the inverted list sequentially on disk
-						advanceTextualList(query.get(index),index,true);
+						advanceTextualList(query.get(index), index, true);
 					}
 					candidates.addItem(item1);
 					found = true;
@@ -755,7 +762,8 @@ public class TopKAlgorithm {
 				docs_inserted = true;
 				if ((index+1)==query.size()) { // prefix, we don't search for exact match
 					// If the word is not a leaf, we count an access to the disk
-					if (!this.invertedLists.containsKey(tag))
+					//if (!this.invertedLists.containsKey(tag))
+					if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
 						this.nbILTextualAccesses += 1;
 					else
 						this.nbILTextualFastAccesses += 1;	// the tag is a complete word, we read the inverted list directly
@@ -763,7 +771,8 @@ public class TopKAlgorithm {
 				}
 				else {
 					// if the tag is not a leaf, we have a random access to the disk
-					if (!this.invertedLists.containsKey(tag))
+					//if (!this.invertedLists.containsKey(tag))
+					if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
 						this.nbILTextualAccesses += 1;
 					else
 						this.nbILTextualFastAccesses += 1;	// the tag is a complete word, we read the inverted list directly
@@ -930,7 +939,9 @@ public class TopKAlgorithm {
 		BufferedReader br;
 		String line;
 		String[] data;
-		System.out.println("Beginning of file loading...");
+		
+		if (Params.VERBOSE)
+			System.out.println("Beginning of file loading...");
 
 		// Tag Inverted lists processing
 
@@ -957,14 +968,15 @@ public class TopKAlgorithm {
 			positions.put(tag, 0);
 			tagFreqs.put(tag, firstDoc.getNum());
 			counter++;
-			if ((counter%50000)==0)
+			if ((counter%50000) == 0 && Params.VERBOSE)
 				System.out.println("\t"+counter+" tag ILs loaded");
 		}
 		br.close();
 		final long size = ( getUsedMemory() - start) / 1024 / 1024;
-		System.out.println("Inverted List file = " + size + "M");
-
-		System.out.println("Inverted List file loaded...");
+		if (Params.VERBOSE) {
+			System.out.println("Inverted List file = " + size + "M");
+			System.out.println("Inverted List file loaded...");
+		}
 
 		// Triples processing
 		int userId;
@@ -973,7 +985,10 @@ public class TopKAlgorithm {
 		final long start2 = getUsedMemory();
 		br = new BufferedReader(new FileReader(Params.dir+Params.triplesFile));
 		counter = 0;
-		System.out.println("Loading of triples");
+		
+		if (Params.VERBOSE)
+			System.out.println("Loading of triples");
+		
 		while ((line = br.readLine()) != null) {
 			data = line.split("\t");
 
@@ -991,12 +1006,14 @@ public class TopKAlgorithm {
 				this.userSpaces.get(userId).put(tag, new TLongHashSet());
 			this.userSpaces.get(userId).get(tag).add(itemId);
 			counter++;
-			if ( (counter%1000000) == 0)
+			if ( (counter%1000000) == 0 && Params.VERBOSE)
 				System.out.println("\t"+counter+" triples loaded");
 		}
 		br.close();
 		final long size2 = ( getUsedMemory() - start2) / 1024 / 1024;
-		System.out.println("User spaces file = " + size2 + "M");
+		
+		if (Params.VERBOSE)
+			System.out.println("User spaces file = " + size2 + "M");
 
 		Params.number_users = this.userSpaces.size();
 
@@ -1016,7 +1033,9 @@ public class TopKAlgorithm {
 		}
 		br.close();
 		final long size3 = ( getUsedMemory() - start3) / 1024 / 1024;
-		System.out.println("TagFreq file = " + size3 + "M");
+		
+		if (Params.VERBOSE)
+			System.out.println("TagFreq file = " + size3 + "M");
 	}
 
 	/**

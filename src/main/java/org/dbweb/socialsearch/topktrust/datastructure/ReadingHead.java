@@ -47,10 +47,11 @@ public class ReadingHead {
 	
     @Override
     public int hashCode() {
-        /*int hash = 1;
-        hash = hash * 13 + (int)this.item;
-        hash = hash * 17 + this.value;
-        hash = hash * 31 + this.completion.hashCode();*/
         return (this.value+this.item+this.completion).hashCode();
+    }
+    
+    @Override
+    public String toString() {
+    	return "Reading head of term " + this.completion + " with value " + this.value + " and item " + this.item; 
     }
 }

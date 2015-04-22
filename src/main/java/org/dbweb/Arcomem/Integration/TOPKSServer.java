@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.dbweb.socialsearch.shared.Params;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -175,8 +177,8 @@ public class TOPKSServer {
 							Float.parseFloat(params.get("alpha")),
 							Integer.parseInt(params.get("l"))
 							);
-
-					System.out.println(jsonResponse.toString());
+					if (Params.VERBOSE)
+						System.out.println(jsonResponse.toString());
 				} catch (NumberFormatException e) {
 					e.printStackTrace();
 				} catch (SQLException e) {
