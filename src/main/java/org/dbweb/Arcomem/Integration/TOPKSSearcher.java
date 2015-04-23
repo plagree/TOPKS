@@ -67,7 +67,7 @@ public class TOPKSSearcher {
 		// Computation for infinity (oracle)
 		Params.NDCG = false;
 		topk_alg.setAlpha(alpha);
-		topk_alg.executeQuery(user, query, k, t, newQuery, nNeigh);
+		topk_alg.executeQuery(user, query, k, 5000, newQuery, nNeigh);
 		topk_alg.computeOracleNDCG(k);
 		String[] words = new String[query.size()];
 		int i = 0;
@@ -80,8 +80,7 @@ public class TOPKSSearcher {
 		// Computation of the NDCGResults object (NDCG vs t)
 		Params.NDCG = true;
 		topk_alg.executeQuery(user, query, k, t, newQuery, nNeigh);
-		System.out.println(topk_alg.getJsonAnswer(k).toString());
-		JsonObject jsonResult = topk_alg.getJsonNDCG(k);
+		JsonObject jsonResult = topk_alg.getJsonNDCG_vs_time(k);
 		Params.NDCG = false;
 		return jsonResult;
 	}

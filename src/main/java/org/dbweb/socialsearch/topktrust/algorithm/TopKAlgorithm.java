@@ -500,6 +500,10 @@ public class TopKAlgorithm {
 					time_NDCG += (System.nanoTime() - bef);
 					timeThresholdNDCG += Params.TIME_NDCG;
 				}
+				if (currentTime >= t && Params.NDCG) {
+					System.out.println("Time: "+t);
+					break;
+				}
 				terminationCondition = false;
 			}
 			long time_1 = System.currentTimeMillis();
@@ -670,7 +674,7 @@ public class TopKAlgorithm {
 			long time_loading_after = System.currentTimeMillis();
 			long tl = (time_loading_after-time_loading_before)/1000;
 			if (tl>1)
-				logger.debug("Loading in : "+tl);
+				System.out.println("Loading in : "+tl);
 		}
 		if(currentUser!=null)
 			userWeight = currentUser.getDist().floatValue();
@@ -1216,7 +1220,7 @@ public class TopKAlgorithm {
 		this.oracleNDCG = this.candidates.getListItems(k);
 	}
 	
-	public JsonObject getJsonNDCG(int k) {
+	public JsonObject getJsonNDCG_vs_time(int k) {
 		JsonObject jsonResult = new JsonObject();
 		JsonArray arrayResults = new JsonArray();
 		JsonObject currItem;
@@ -1236,5 +1240,24 @@ public class TopKAlgorithm {
 		return jsonResult;
 	}
 
+	public JsonObject getJsonNDCG_vs_users(int k) {
+		JsonObject jsonResult = new JsonObject();
+		JsonArray arrayResults = new JsonArray();
+		JsonObject currItem;
+		
+		List<Double> ndcgs = this.ndcgResults.getNdcgs();
+		List<Long> times = this.ndcgResults.getTimes();
+		for (int i=0; i<this.ndcgResults.size(); i++) {
+			currItem = new JsonObject();
+			currItem.add("nb_users", new JsonPrimitive(times.get(i)));					// time spent
+			currItem.add("ndcg", new JsonPrimitive(ndcgs.get(i)));				// ndcg score
+			arrayResults.add(currItem);
+		}
+
+		jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
+		jsonResult.add("results", arrayResults);
+
+		return jsonResult;
+	}
 
 }
