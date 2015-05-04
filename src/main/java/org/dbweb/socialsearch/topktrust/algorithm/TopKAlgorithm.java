@@ -143,10 +143,13 @@ public class TopKAlgorithm {
 	protected int nbILSocialFastAccesses; 	// Accesses on leaf inverted lists from social branch (sequential disk read)
 	protected int nbILTextualAccesses; 		// Accesses on non-leaf inverted lists from textual branch
 	protected int nbILTextualFastAccesses; 	// Accesses on leaf inverted lists from textual branch (sequential disk read)
-	
+
 	// NDCG lists
 	protected List<Long> oracleNDCG;
 	protected NDCGResults ndcgResults;
+	// Time for exact top k
+	protected long time_topk = 0;
+	protected Set<Long> topk_infinity;
 
 	//amine
 	protected String newXMLResults="", newBucketResults="", newXMLStats="";
@@ -185,7 +188,7 @@ public class TopKAlgorithm {
 	private int numloops = 0;
 	private int skippedTests; // Number of loops before testing the exit condition
 	private int nVisited;
-	
+
 	private static Logger logger = LoggerFactory.getLogger(TopKAlgorithm.class);
 
 	public TopKAlgorithm(DBConnection dbConnection, String tagTable, String networkTable, int method, Score itemScore, float scoreAlpha, PathCompositionFunction distFunc, OptimalPaths optPathClass, double error) throws SQLException {
@@ -329,7 +332,7 @@ public class TopKAlgorithm {
 		total_documents_asocial = 0;
 		total_topk_changes = 0;
 		total_conforming_lists = 0;
-		
+
 		//long time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query, t); /* MAIN ALGORITHM */
 		//long time1 = System.currentTimeMillis();
@@ -354,14 +357,14 @@ public class TopKAlgorithm {
 			while(iterator.hasNext()) {
 				currentEntry = iterator.next();
 				String completion = currentEntry.getKey();
-				
+
 				if (!positions.containsKey(completion)) {
 					logger.debug("keyword not valid: "+completion);
 				}
 				if (positions.get(completion) == 0) {
 					continue;
 				}
-				
+
 				positions.put(completion, 0);
 				DocumentNumTag firstDoc = this.invertedLists.get(completion).get(0);
 				RadixTreeNode current_best_leaf = completionTrie.searchPrefix(completion, false).getBestDescendant();
@@ -386,13 +389,13 @@ public class TopKAlgorithm {
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
 		RadixTreeNode radixTreeNode = completionTrie.searchPrefix(newPrefix, false);
-		
+
 		if (radixTreeNode == null)
 			return 0;
-		
+
 		String bestCompletion = radixTreeNode.getBestDescendant().getWord();
 		List<DocumentNumTag> arr = this.invertedLists.get(bestCompletion);
-		
+
 		if (positions.get(bestCompletion) < arr.size()) {
 			topReadingHead.put(newPrefix, 
 					new ReadingHead(bestCompletion, arr.get(positions.get(bestCompletion)).getDocId(), arr.get(positions.get(bestCompletion)).getNum()));
@@ -400,7 +403,7 @@ public class TopKAlgorithm {
 		else {
 			topReadingHead.put(newPrefix, null);
 		}
-		
+
 		topReadingHead.remove(previousPrefix);
 		userWeights.put(newPrefix, userWeights.get(previousPrefix));
 		userWeights.remove(previousPrefix);
@@ -425,13 +428,14 @@ public class TopKAlgorithm {
 		needUnseen = true;
 		guaranteed = new HashSet<String>();
 		possible = new HashSet<String>();
-		long before_main_loop = System.currentTimeMillis();
 		long currentTime = 0;
 		long time_NDCG = 0;
 		long timeThresholdNDCG = Params.TIME_NDCG;
 		finished = false;
 		int currVisited = 0;
 		this.ndcgResults = new NDCGResults();
+		this.time_topk = 0;
+		long before_main_loop = System.currentTimeMillis();
 
 		// Reset counter of IL accesses and p-spaces accesses
 		this.nbILSocialAccesses = 0;
@@ -467,7 +471,7 @@ public class TopKAlgorithm {
 					terminationCondition = candidates.terminationCondition(query, userWeight, k, query.size(), alpha, Params.number_users, 
 							tag_idf, topReadingHead, userWeights, positions, approxMethod, 
 							docs_inserted, needUnseen, guaranteed, possible);
-					
+
 					if (terminationCondition)
 						logger.debug("termination condition positive");
 				} catch (IOException e) {
@@ -486,23 +490,47 @@ public class TopKAlgorithm {
 				}
 			}
 			else {
-				// Analysis for NDCG vs t plot
-				currentTime = (System.currentTimeMillis() - before_main_loop) - time_NDCG / 1000000;
-				//System.out.println(currentTime+" : "+(System.currentTimeMillis() - before_main_loop)+", "+(time_NDCG / 1000));
-				if (Params.NDCG && (currentTime >= timeThresholdNDCG)) {
-					long bef = System.nanoTime();
-					double ndcg = NDCG.getNDCG(this.candidates.getListItems(k), oracleNDCG, k);
-					if (ndcg > 1) {
-						System.out.println(ndcg);
-						System.out.println(this.candidates.getListItems(k).toString() + ",   "+oracleNDCG.toString());
+				// Curve NDCG vs time
+				if (Params.NDCG_TIME) {
+					// Analysis for NDCG vs t plot
+					currentTime = (System.currentTimeMillis() - before_main_loop) - time_NDCG / 1000000;
+					//System.out.println(currentTime+" : "+(System.currentTimeMillis() - before_main_loop)+", "+(time_NDCG / 1000));
+					if (Params.NDCG_TIME && (currentTime >= timeThresholdNDCG)) {
+						long bef = System.nanoTime();
+						double ndcg = NDCG.getNDCG(this.candidates.getListItems(k), oracleNDCG, k);
+						if (ndcg > 1) {
+							System.out.println(ndcg);
+							System.out.println(this.candidates.getListItems(k).toString() + ",   "+oracleNDCG.toString());
+						}
+						this.ndcgResults.addPoint(currentTime, ndcg);
+						time_NDCG += (System.nanoTime() - bef);
+						timeThresholdNDCG += Params.TIME_NDCG;
 					}
-					this.ndcgResults.addPoint(currentTime, ndcg);
-					time_NDCG += (System.nanoTime() - bef);
-					timeThresholdNDCG += Params.TIME_NDCG;
+					if (currentTime >= t && Params.NDCG_TIME) {
+						System.out.println("Time: "+t);
+						break;
+					}
 				}
-				if (currentTime >= t && Params.NDCG) {
-					System.out.println("Time: "+t);
-					break;
+				// Curve NDCG vs #users visited in the social graph
+				else if (Params.NDCG_USERS) {
+					if (currVisited%Params.STEP_NEIGH == 0) {
+						double ndcg = NDCG.getNDCG(this.candidates.getListItems(k), oracleNDCG, k);
+						//System.out.println(ndcg);
+						//System.out.println(this.candidates.getListItems(k));
+						//System.out.println(oracleNDCG);
+						this.ndcgResults.addPoint(currVisited, ndcg);
+						//break;
+					}
+				}
+				else if (Params.EXACT_TOPK && (currVisited%10 == 0)) {
+					// Analysis for NDCG vs t plot
+					currentTime = (System.currentTimeMillis() - before_main_loop) - time_NDCG / 1000000;
+					long bef = System.nanoTime();
+					if (this.topk_infinity.equals(this.candidates.get_topk_as_set(k))) {
+						this.time_topk = currentTime;
+						break;
+					}
+					time_NDCG += (System.nanoTime() - bef);
 				}
 				terminationCondition = false;
 			}
@@ -523,15 +551,15 @@ public class TopKAlgorithm {
 
 			// We check if we did not use the whole budget yet
 			else if ((this.nbILSocialAccesses + this.nbILSocialFastAccesses + this.nbILTextualFastAccesses + 
-					  this.nbILTextualAccesses + this.nbPSpacesAccesses) >= Params.DISK_BUDGET) {
+					this.nbILTextualAccesses + this.nbPSpacesAccesses) >= Params.DISK_BUDGET) {
 				terminationCondition = true;
 				logger.debug("Budget consumed...");
 			}
 		} while(!terminationCondition && !finished && underTimeLimit);
 		this.numloops = loops;
-		
-		if (Params.VERBOSE)
-			System.out.println("There were "+loops+" loops ...");
+
+		//if (Params.VERBOSE)
+		System.out.println("There were "+loops+" loops ...");
 	}
 
 	/**
@@ -590,11 +618,11 @@ public class TopKAlgorithm {
 			if(currentUser!=null){
 				boolean found_docs = false;
 
-				if((approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR)
+				if((approxMethod&Methods.MET_APPR_MVAR) == Methods.MET_APPR_MVAR)
 					d_distr.setPos(tag, userWeight, pos[index]+1);
-				else if((approxMethod&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST)
+				else if((approxMethod&Methods.MET_APPR_HIST) == Methods.MET_APPR_HIST)
 					d_hist.setVals(tag, pos[index]+1, userWeight);
-				if((this.approxMethod&Methods.MET_APPR_LAND)==Methods.MET_APPR_LAND){
+				if((this.approxMethod&Methods.MET_APPR_LAND) == Methods.MET_APPR_LAND){
 					userWeights.put(tag, landmark.getMaxRemaining());
 				}
 				else{
@@ -603,10 +631,10 @@ public class TopKAlgorithm {
 
 				currentUserId = currentUser.getEntryId();
 				long itemId = 0;
-				
+
 				if (!this.userSpaces.containsKey(currentUserId))
 					logger.debug("User with empty p-space");
-				
+
 				if(this.userSpaces.containsKey(currentUserId) && !(currentUserId==seeker)){
 					// HERE WE CHECK
 					// User space access
@@ -656,16 +684,16 @@ public class TopKAlgorithm {
 				currentUserId = Integer.MAX_VALUE;
 				pos[index]++;
 				userWeight = 0;
-				if((approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR)
+				if((approxMethod&Methods.MET_APPR_MVAR) == Methods.MET_APPR_MVAR)
 					d_distr.setPos(tag, userWeight, pos[index]+1);
-				else if((approxMethod&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST)
+				else if((approxMethod&Methods.MET_APPR_HIST) == Methods.MET_APPR_HIST)
 					d_hist.setVals(tag, pos[index]+1, userWeight);
 				userWeights.put(tag, userWeight);
 			}
 			index++;
 		}/* END FOR ALL TAGS IN QUERY Q */
 		this.nbNeighbour++;
-		if((this.approxMethod&Methods.MET_APPR_LAND)==Methods.MET_APPR_LAND){
+		if((this.approxMethod&Methods.MET_APPR_LAND) == Methods.MET_APPR_LAND){
 			currentUser = landmark.getNextUser();
 		}
 		else{
@@ -688,20 +716,20 @@ public class TopKAlgorithm {
 	 * @param query List<String>
 	 */
 	private void lookIntoList(List<String> query) {
-		
+
 		int index=0;
 		boolean found = true;
-		
+
 		while (found) {
 			String completion;
 			String autre = completionTrie.searchPrefix(query.get(query.size()-1), false).getBestDescendant().getWord(); // gros doute
 			for(index=0; index<query.size(); index++) {
 				found = false;
-				
+
 				// We reached the end of the inverted list
 				if (topReadingHead.get(query.get(index)) == null)
 					continue;
-				
+
 				if (index == (query.size()-1)) //  prefix
 					completion = completionTrie.searchPrefix(query.get(index), false).getBestDescendant().getWord();
 				else {
@@ -716,7 +744,7 @@ public class TopKAlgorithm {
 					candidates.removeItem(item1);
 					item1.updateScoreDocs(query.get(index), topReadingHead.get(query.get(index)).getValue(), approxMethod);
 					unknown_tf.get(query.get(index)).remove(topReadingHead.get(query.get(index)).getItem()+"#"+completion);
-					
+
 					if (index == (query.size()-1)) { //  prefix
 						// if the tag is not a leaf, we have a random access to the disk
 						//if (!this.invertedLists.containsKey(query.get(index)))
@@ -808,7 +836,7 @@ public class TopKAlgorithm {
 	 * @param index
 	 */
 	protected void advanceTextualList(String tag, int index, boolean exact) {
-		
+
 		RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact).getBestDescendant();
 		String word = current_best_leaf.getWord();
 		List<DocumentNumTag> invertedList = this.invertedLists.get(word);
@@ -957,7 +985,7 @@ public class TopKAlgorithm {
 		BufferedReader br;
 		String line;
 		String[] data;
-		
+
 		if (Params.VERBOSE)
 			System.out.println("Beginning of file loading...");
 
@@ -1003,10 +1031,10 @@ public class TopKAlgorithm {
 		final long start2 = getUsedMemory();
 		br = new BufferedReader(new FileReader(Params.dir+Params.triplesFile));
 		counter = 0;
-		
+
 		if (Params.VERBOSE)
 			System.out.println("Loading of triples");
-		
+
 		while ((line = br.readLine()) != null) {
 			data = line.split("\t");
 
@@ -1029,7 +1057,7 @@ public class TopKAlgorithm {
 		}
 		br.close();
 		final long size2 = ( getUsedMemory() - start2) / 1024 / 1024;
-		
+
 		if (Params.VERBOSE)
 			System.out.println("User spaces file = " + size2 + "M");
 
@@ -1051,7 +1079,7 @@ public class TopKAlgorithm {
 		}
 		br.close();
 		final long size3 = ( getUsedMemory() - start3) / 1024 / 1024;
-		
+
 		if (Params.VERBOSE)
 			System.out.println("TagFreq file = " + size3 + "M");
 	}
@@ -1206,7 +1234,7 @@ public class TopKAlgorithm {
 		jsonResult.add("nbPSpacesAccesses", new JsonPrimitive(this.nbPSpacesAccesses));				// Number of Disk accesses for p-spaces
 		jsonResult.add("n", new JsonPrimitive(n));													// Number of results
 		jsonResult.add("results", arrayResults);													// Array of the results
-		
+
 		//System.out.println(jsonResult.toString());
 
 		return jsonResult;
@@ -1215,18 +1243,22 @@ public class TopKAlgorithm {
 	public void setSkippedTests(int skippedTests) {
 		this.skippedTests = skippedTests;
 	}
-	
+
 	public void computeOracleNDCG(int k) {
 		this.oracleNDCG = this.candidates.getListItems(k);
 	}
 	
+	public void computeTopkInfinity(int k) {
+		this.topk_infinity = this.candidates.get_topk_as_set(k);
+	}
+
 	public JsonObject getJsonNDCG_vs_time(int k) {
 		JsonObject jsonResult = new JsonObject();
 		JsonArray arrayResults = new JsonArray();
 		JsonObject currItem;
-		
+
 		List<Double> ndcgs = this.ndcgResults.getNdcgs();
-		List<Long> times = this.ndcgResults.getTimes();
+		List<Long> times = this.ndcgResults.getSteps();
 		for (int i=0; i<this.ndcgResults.size(); i++) {
 			currItem = new JsonObject();
 			currItem.add("t", new JsonPrimitive(times.get(i)));					// time spent
@@ -1240,22 +1272,30 @@ public class TopKAlgorithm {
 		return jsonResult;
 	}
 
-	public JsonObject getJsonNDCG_vs_users(int k) {
+	public JsonObject getJsonNDCG_vs_nbusers(int k) {
 		JsonObject jsonResult = new JsonObject();
 		JsonArray arrayResults = new JsonArray();
 		JsonObject currItem;
-		
+
 		List<Double> ndcgs = this.ndcgResults.getNdcgs();
-		List<Long> times = this.ndcgResults.getTimes();
+		List<Long> nbusers = this.ndcgResults.getSteps();
 		for (int i=0; i<this.ndcgResults.size(); i++) {
 			currItem = new JsonObject();
-			currItem.add("nb_users", new JsonPrimitive(times.get(i)));					// time spent
+			currItem.add("nb_users", new JsonPrimitive(nbusers.get(i)));					// time spent
 			currItem.add("ndcg", new JsonPrimitive(ndcgs.get(i)));				// ndcg score
 			arrayResults.add(currItem);
 		}
 
 		jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
 		jsonResult.add("results", arrayResults);
+
+		return jsonResult;
+	}
+
+	public JsonObject getJsonExactTopK_vs_t(int k) {
+		JsonObject jsonResult = new JsonObject();
+		jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
+		jsonResult.add("time", new JsonPrimitive(this.time_topk));
 
 		return jsonResult;
 	}

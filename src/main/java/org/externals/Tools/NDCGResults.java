@@ -5,24 +5,24 @@ import java.util.List;
 
 public class NDCGResults {
 
-	private List<Long> times;
+	private List<Long> steps;
 	private List<Double> ndcgs;
 	
 	public NDCGResults() {
-		times = new ArrayList<Long>();
+		steps = new ArrayList<Long>();
 		ndcgs = new ArrayList<Double>();
 	}
 	
-	public void addPoint(long time, double ndcg) {
-		times.add(time);
+	public void addPoint(long step, double ndcg) {
+		steps.add(step);
 		ndcgs.add(ndcg);
 	}
 	
-	public List<Long> getTimes() {
-		return times;
+	public List<Long> getSteps() {
+		return steps;
 	}
-	public void setTimes(List<Long> times) {
-		this.times = times;
+	public void setSteps(List<Long> steps) {
+		this.steps = steps;
 	}
 	public List<Double> getNdcgs() {
 		return ndcgs;
@@ -32,7 +32,7 @@ public class NDCGResults {
 	}
 	
 	public int size() {
-		return times.size();
+		return steps.size();
 	}
 	
 }

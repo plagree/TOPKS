@@ -538,4 +538,13 @@ public class ItemList implements Cloneable{
 		}
 		return result;
 	}
+	
+	public Set<Long> get_topk_as_set(int k) {
+		List<Item<String>> topK = this.getTopK(k);
+		Set<Long> result = new HashSet<Long>();
+		for (Item<String> item: topK) {
+			result.add(item.getItemId());
+		}
+		return result;
+	}
 }

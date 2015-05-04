@@ -63,11 +63,11 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}
 	
-	public JsonObject executeQueryNDCG(String user, List<String> query, int k, int t, boolean newQuery, int nNeigh, float alpha) throws SQLException {
+	public JsonObject executeQueryNDCG_vs_time(String user, List<String> query, int k, int t, boolean newQuery, int nNeigh, float alpha) throws SQLException {
 		// Computation for infinity (oracle)
-		Params.NDCG = false;
+		Params.NDCG_TIME = false;
 		topk_alg.setAlpha(alpha);
-		topk_alg.executeQuery(user, query, k, 5000, newQuery, nNeigh);
+		topk_alg.executeQuery(user, query, k, 25000, newQuery, nNeigh);
 		topk_alg.computeOracleNDCG(k);
 		String[] words = new String[query.size()];
 		int i = 0;
@@ -78,10 +78,55 @@ public class TOPKSSearcher {
 		topk_alg.reinitialize(words, 1);
 		
 		// Computation of the NDCGResults object (NDCG vs t)
-		Params.NDCG = true;
+		Params.NDCG_TIME = true;
 		topk_alg.executeQuery(user, query, k, t, newQuery, nNeigh);
 		JsonObject jsonResult = topk_alg.getJsonNDCG_vs_time(k);
-		Params.NDCG = false;
+		topk_alg.reinitialize(words, 1);
+		Params.NDCG_TIME = false;
+		return jsonResult;
+	}
+	
+	public JsonObject executeQueryNDCG_vs_nbusers(String user, List<String> query, int k, int t, boolean newQuery, int nNeigh, float alpha) throws SQLException {
+		// Computation for infinity (oracle)
+		Params.NDCG_USERS = false;
+		topk_alg.setAlpha(alpha);
+		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
+		topk_alg.computeOracleNDCG(k);
+		String[] words = new String[query.size()];
+		int i = 0;
+		for (String term: query) {
+			words[i] = term;
+			i++;
+		}
+		topk_alg.reinitialize(words, 1);
+		// Computation of the NDCGResults object (NDCG vs t)
+		Params.NDCG_USERS = true;
+		topk_alg.executeQuery(user, query, k, t, newQuery, nNeigh);
+		JsonObject jsonResult = topk_alg.getJsonNDCG_vs_nbusers(k);
+		topk_alg.reinitialize(words, 1);
+		Params.NDCG_USERS = false;
+		return jsonResult;
+	}
+	
+	public JsonObject executeQueryExactTopK_vs_time(String user, List<String> query, int k, boolean newQuery, float alpha) throws SQLException {
+		// Computation for infinity (oracle)
+		Params.EXACT_TOPK = false;
+		topk_alg.setAlpha(alpha);
+		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
+		topk_alg.computeTopkInfinity(k);
+		String[] words = new String[query.size()];
+		int i = 0;
+		for (String term: query) {
+			words[i] = term;
+			i++;
+		}
+		topk_alg.reinitialize(words, 1);
+		// Computation for topk exact
+		Params.EXACT_TOPK = true;
+		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
+		topk_alg.reinitialize(words, 1);
+		Params.EXACT_TOPK = false;
+		JsonObject jsonResult = topk_alg.getJsonExactTopK_vs_t(k);
 		return jsonResult;
 	}
 	
