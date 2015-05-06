@@ -145,7 +145,7 @@ public class TOPKSSearcher {
 		JsonObject jsonResult = new JsonObject();
 		jsonResult.add("status", new JsonPrimitive(1));
 
-
+		System.out.println("echo");
 		// Compute the different oracles for each prefix length
 		List<Set<Long>> oracles = new ArrayList<Set<Long>>(); // Exact top k for each prefix length
 		for (int l=lengthPrefixMinimum; l<=keyword.length(); l++) {
@@ -161,7 +161,7 @@ public class TOPKSSearcher {
 			}
 			topk_alg.reinitialize(words, 1);
 		}
-
+		System.out.println("echo2");
 		// TESTS here for incremental version
 		JsonArray arrayResultsIncremental = new JsonArray();
 		Params.EXACT_TOPK = true;
@@ -170,6 +170,7 @@ public class TOPKSSearcher {
 			currentQuery = new ArrayList<String>();
 			currentQuery.add(keyword.substring(0, l));
 			topk_alg.setTopkInfinity(oracles.get(index));
+			System.out.println("echo3");
 			if (l==lengthPrefixMinimum) {
 				currentQuery = new ArrayList<String>();
 				currentQuery.add(keyword.substring(0, l));

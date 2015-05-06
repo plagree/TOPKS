@@ -210,7 +210,7 @@ public class TOPKSServer {
 	}
 	
 		/**
-	 * query: /exact_topk?...
+	 * query: /incremental?...
 	 * @author lagree
 	 *
 	 */
