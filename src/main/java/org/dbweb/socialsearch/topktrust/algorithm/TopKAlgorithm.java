@@ -384,7 +384,7 @@ public class TopKAlgorithm {
 	public int executeQueryPlusLetter(String seeker, List<String> query, int k, int t) throws SQLException{
 		//if (query.size() != 1)
 		//	System.out.println("Query+l: "+query.toString());
-
+		long timeBefore = System.currentTimeMillis();
 		String newPrefix = query.get(query.size()-1);
 		String previousPrefix = newPrefix.substring(0, newPrefix.length()-1);
 		this.updateKeys(previousPrefix, newPrefix);
@@ -409,7 +409,10 @@ public class TopKAlgorithm {
 		userWeights.remove(previousPrefix);
 
 		candidates.filterTopk(query);
+		long timeFiltering = System.currentTimeMillis() - timeBefore;
+		long timePrevious = this.time_topk;
 		mainLoop(k, seeker, query, t);
+		this.time_topk += (timePrevious + timeFiltering);
 		return 0;
 	}
 
@@ -1251,6 +1254,14 @@ public class TopKAlgorithm {
 	public void computeTopkInfinity(int k) {
 		this.topk_infinity = this.candidates.get_topk_as_set(k);
 	}
+	
+	public void setTopkInfinity(Set<Long> oracle) {
+		this.topk_infinity = oracle;
+	}
+	
+	public Set<Long> getTopkInfinity() {
+		return this.topk_infinity;
+	}
 
 	public JsonObject getJsonNDCG_vs_time(int k) {
 		JsonObject jsonResult = new JsonObject();
@@ -1300,4 +1311,7 @@ public class TopKAlgorithm {
 		return jsonResult;
 	}
 
+	public long getTimeTopK() {
+		return this.time_topk;
+	}
 }
