@@ -177,7 +177,9 @@ public class TOPKSSearcher {
 				topk_alg.executeQuery(user, query, k, 10000, true, 100000);
 			}
 			else {
+				System.out.println("echo5");
 				topk_alg.executeQueryPlusLetter(user, query, l, 10000);
+				System.out.println("echo6");
 			}
 			index++;
 
@@ -187,6 +189,7 @@ public class TOPKSSearcher {
 			currItem.add("time", new JsonPrimitive(topk_alg.getTimeTopK()));
 			arrayResultsIncremental.add(currItem);
 		}
+		System.out.println("echo4");
 		topk_alg.reinitialize(words, 1);
 
 		// TESTS for non incremental version
