@@ -27,4 +27,7 @@ public class Params {
 	public static int STEP_NEIGH = 20;
 	public static long TIME_NDCG = 1;
 	public static boolean EXACT_TOPK = false; // time to reach the exact TOPK_S
+	
+	
+	public static boolean DEBUG = false;
 }

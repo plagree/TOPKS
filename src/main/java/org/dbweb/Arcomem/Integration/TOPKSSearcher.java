@@ -139,29 +139,30 @@ public class TOPKSSearcher {
 		topk_alg.setAlpha(alpha);
 		String[] words = new String[query.size()];
 		int i = 0;
+		for (String term: query) {
+			words[i] = term;
+			i++;
+		}
 
 		List<String> currentQuery = new ArrayList<String>();
 		// JSON results
 		JsonObject jsonResult = new JsonObject();
 		jsonResult.add("status", new JsonPrimitive(1));
 
-		System.out.println("echo");
+		System.out.println("BEFORE ORACLES");
 		// Compute the different oracles for each prefix length
 		List<Set<Long>> oracles = new ArrayList<Set<Long>>(); // Exact top k for each prefix length
 		for (int l=lengthPrefixMinimum; l<=keyword.length(); l++) {
+			System.out.println(keyword.substring(0, l));
 			currentQuery = new ArrayList<String>();
 			currentQuery.add(keyword.substring(0, l));
 			topk_alg.executeQuery(user, currentQuery, k, 10000, true, 100000);
 			topk_alg.computeTopkInfinity(k);
 			oracles.add(topk_alg.getTopkInfinity());
-			i = 0;
-			for (String term: query) {
-				words[i] = term;
-				i++;
-			}
+			System.out.println(topk_alg.getTopkInfinity());
 			topk_alg.reinitialize(words, 1);
 		}
-		System.out.println("echo2");
+		System.out.println("BEFORE INCREMENTAL TESTS");
 		// TESTS here for incremental version
 		JsonArray arrayResultsIncremental = new JsonArray();
 		Params.EXACT_TOPK = true;
@@ -169,27 +170,25 @@ public class TOPKSSearcher {
 		for (int l=lengthPrefixMinimum; l<=keyword.length(); l++) {
 			currentQuery = new ArrayList<String>();
 			currentQuery.add(keyword.substring(0, l));
+			System.out.println(currentQuery);
 			topk_alg.setTopkInfinity(oracles.get(index));
-			System.out.println("echo3");
+			System.out.println(oracles.get(index));
 			if (l==lengthPrefixMinimum) {
-				currentQuery = new ArrayList<String>();
-				currentQuery.add(keyword.substring(0, l));
-				topk_alg.executeQuery(user, query, k, 10000, true, 100000);
+				topk_alg.executeQuery(user, currentQuery, k, 10000, true, 100000);
 			}
 			else {
-				System.out.println("echo5");
-				topk_alg.executeQueryPlusLetter(user, query, l, 10000);
-				System.out.println("echo6");
+				topk_alg.executeQueryPlusLetter(user, currentQuery, l, 10000);
 			}
 			index++;
 
 			// JSON
 			JsonObject currItem = new JsonObject();
 			currItem.add("l", new JsonPrimitive(l));					// time spent
+			currItem.add("q", new JsonPrimitive(keyword.substring(0, l)));
 			currItem.add("time", new JsonPrimitive(topk_alg.getTimeTopK()));
 			arrayResultsIncremental.add(currItem);
 		}
-		System.out.println("echo4");
+		System.out.println("NON INCREMENTAL");
 		topk_alg.reinitialize(words, 1);
 
 		// TESTS for non incremental version
@@ -199,12 +198,13 @@ public class TOPKSSearcher {
 			currentQuery = new ArrayList<String>();
 			currentQuery.add(keyword.substring(0, l));
 			topk_alg.setTopkInfinity(oracles.get(index));
-			topk_alg.executeQuery(user, query, k, 10000, true, 100000);
+			topk_alg.executeQuery(user, currentQuery, k, 10000, true, 100000);
 			index++;
 			
 			// JSON
 			JsonObject currItem = new JsonObject();
 			currItem.add("l", new JsonPrimitive(l));					// time spent
+			currItem.add("q", new JsonPrimitive(keyword.substring(0, l)));
 			currItem.add("time", new JsonPrimitive(topk_alg.getTimeTopK()));
 			arrayResultsNonIncremental.add(currItem);
 

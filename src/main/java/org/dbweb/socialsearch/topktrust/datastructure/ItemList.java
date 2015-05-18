@@ -180,6 +180,10 @@ public class ItemList implements Cloneable{
 			return soccontrib.get(tag);
 		return 0;
 	}
+	
+	public Map<String, Double> getSocContrib() {
+		return this.soccontrib;
+	}
 
 	public long getContribItem(){
 		return thritem;
