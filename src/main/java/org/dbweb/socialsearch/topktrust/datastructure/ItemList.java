@@ -492,8 +492,14 @@ public class ItemList implements Cloneable{
 
 	public String toString() {
 		String out = "";
-		for(Item<String> item:items.values()) {
-			out = out + item.getItemId() + "\n";
+		List<Item<String>> sorted_av = new ArrayList<Item<String>>(sorted_items);
+		Collections.sort(sorted_av);
+		int counter = 0;
+		for(Item<String> item: sorted_av) {
+			out += item.getItemId() + " " + item.getCompletion() + " " + item.getComputedScore() + "; ";
+			counter++;
+			if (counter > 10)
+				break;
 		}
 		return out;
 	}
@@ -519,7 +525,6 @@ public class ItemList implements Cloneable{
 		Collections.sort(sorted_av);
 
 		for (Item<String> currItem: sorted_av) {
-			
 			if (itemAlreadySeen.contains(currItem.getItemId())) {
 				continue;
 			}
@@ -528,8 +533,9 @@ public class ItemList implements Cloneable{
 			counter++;
 			
 			// We found the k best items
-			if (counter >= k)
+			if (counter >= k) {
 				break;
+			}
 		}
 		return res;
 	}

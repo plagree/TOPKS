@@ -408,16 +408,20 @@ public class TopKAlgorithm {
 		userWeights.put(newPrefix, userWeights.get(previousPrefix));
 		userWeights.remove(previousPrefix);
 
-		//System.out.println("Before filter topk");
 		candidates.filterTopk(query);
-		//System.out.println("After filter topk");
+
 		long timeFiltering = System.currentTimeMillis() - timeBefore;
-		long timePrevious = this.time_topk;
-		Params.DEBUG = true;
-		//System.out.println("Before mainloop");
-		mainLoop(k, seeker, query, t);
-		//System.out.println("After mainloop");
-		this.time_topk += (timePrevious + timeFiltering);
+		//long timePrevious = this.time_topk;
+		Params.DEBUG = false;
+
+		if (this.topk_infinity.equals(this.candidates.get_topk_as_set(k))) {
+			this.time_topk = timeFiltering;
+			System.out.println("There was 0 loop ...");
+		}
+		else {
+			mainLoop(k, seeker, query, t);
+			this.time_topk += timeFiltering;
+		}
 		return 0;
 	}
 
@@ -430,7 +434,7 @@ public class TopKAlgorithm {
 	 * @throws SQLException
 	 */
 	protected void mainLoop(int k, String seeker, List<String> query, int t) throws SQLException {
-		
+
 		int loops = 0;
 		int steps = 1;
 		boolean underTimeLimit = true;
@@ -464,7 +468,10 @@ public class TopKAlgorithm {
 			if (Params.DEBUG == true)
 				System.out.println("ccc");
 			if(socialBranch){
-				currVisited += 1;
+				if (this.currentUser == null)
+					break;
+				if (!(this.currentUser.getEntryId() == Integer.parseInt(seeker)))
+					currVisited += 1;
 				if (Params.DEBUG == true)
 					System.out.println("a");
 				processSocial(query);
@@ -519,7 +526,6 @@ public class TopKAlgorithm {
 				if (Params.NDCG_TIME) {
 					// Analysis for NDCG vs t plot
 					currentTime = (System.currentTimeMillis() - before_main_loop) - time_NDCG / 1000000;
-					//System.out.println(currentTime+" : "+(System.currentTimeMillis() - before_main_loop)+", "+(time_NDCG / 1000));
 					if (Params.NDCG_TIME && (currentTime >= timeThresholdNDCG)) {
 						long bef = System.nanoTime();
 						double ndcg = NDCG.getNDCG(this.candidates.getListItems(k), oracleNDCG, k);
@@ -540,20 +546,14 @@ public class TopKAlgorithm {
 				else if (Params.NDCG_USERS) {
 					if (currVisited%Params.STEP_NEIGH == 0) {
 						double ndcg = NDCG.getNDCG(this.candidates.getListItems(k), oracleNDCG, k);
-						//System.out.println(ndcg);
-						//System.out.println(this.candidates.getListItems(k));
-						//System.out.println(oracleNDCG);
 						this.ndcgResults.addPoint(currVisited, ndcg);
-						//break;
 					}
 				}
 				else if (Params.EXACT_TOPK && (currVisited%1000 == 0)) {
-					// Analysis for NDCG vs t plot
 					currentTime = (System.currentTimeMillis() - before_main_loop) - time_NDCG / 1000000;
 					long bef = System.nanoTime();
 					if (this.topk_infinity.equals(this.candidates.get_topk_as_set(k))) {
 						this.time_topk = currentTime;
-						System.out.println(this.numloops);
 						break;
 					}
 					time_NDCG += (System.nanoTime() - bef);
@@ -572,7 +572,7 @@ public class TopKAlgorithm {
 				terminationCondition = true;
 			}
 			loops++;
-			if (currVisited >= (this.nVisited+1)) {
+			if (currVisited >= this.nVisited) {
 				logger.debug("currVisited >= nVisited");
 				terminationCondition = true;
 			}
@@ -603,7 +603,7 @@ public class TopKAlgorithm {
 		double upper_social_score;
 		double upper_docs_score;
 		boolean textual = false;
-		
+
 		for(String tag: query) {
 			if (userWeights.get(tag) == null) {
 				System.out.println(this.numloops);
@@ -1344,5 +1344,9 @@ public class TopKAlgorithm {
 
 	public long getTimeTopK() {
 		return this.time_topk;
+	}
+
+	public ItemList getCandidates() {
+		return this.candidates;
 	}
 }

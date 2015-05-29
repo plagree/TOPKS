@@ -11,7 +11,6 @@ import org.dbweb.socialsearch.topktrust.algorithm.functions.PathCompositionFunct
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
-import org.dbweb.socialsearch.topktrust.algorithm.score.TfIdfScore;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -131,6 +130,9 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}
 
+	/**
+	 * TO DEBUG
+	 */
 	public JsonObject executeIncrementalVsNonincrementalQuery(String user, List<String> query, 
 			int k, float alpha, int lengthPrefixMinimum) throws SQLException {
 		// Computation for infinity (oracle)
@@ -149,20 +151,21 @@ public class TOPKSSearcher {
 		JsonObject jsonResult = new JsonObject();
 		jsonResult.add("status", new JsonPrimitive(1));
 
-		System.out.println("BEFORE ORACLES");
+		System.out.println("ORACLE COMPUTATION\n=====");
 		// Compute the different oracles for each prefix length
 		List<Set<Long>> oracles = new ArrayList<Set<Long>>(); // Exact top k for each prefix length
 		for (int l=lengthPrefixMinimum; l<=keyword.length(); l++) {
-			System.out.println(keyword.substring(0, l));
+			//System.out.println(keyword.substring(0, l));
 			currentQuery = new ArrayList<String>();
 			currentQuery.add(keyword.substring(0, l));
 			topk_alg.executeQuery(user, currentQuery, k, 10000, true, 100000);
 			topk_alg.computeTopkInfinity(k);
 			oracles.add(topk_alg.getTopkInfinity());
-			System.out.println(topk_alg.getTopkInfinity());
+			//System.out.println(topk_alg.getCandidates().toString());
+			//System.out.println(topk_alg.getTopkInfinity());
 			topk_alg.reinitialize(words, 1);
 		}
-		System.out.println("BEFORE INCREMENTAL TESTS");
+		System.out.println("INCREMENTAL TESTS\n=====");
 		// TESTS here for incremental version
 		JsonArray arrayResultsIncremental = new JsonArray();
 		Params.EXACT_TOPK = true;
@@ -170,14 +173,14 @@ public class TOPKSSearcher {
 		for (int l=lengthPrefixMinimum; l<=keyword.length(); l++) {
 			currentQuery = new ArrayList<String>();
 			currentQuery.add(keyword.substring(0, l));
-			System.out.println(currentQuery);
+			//System.out.println(currentQuery);
 			topk_alg.setTopkInfinity(oracles.get(index));
-			System.out.println(oracles.get(index));
+			//System.out.println(oracles.get(index));
 			if (l==lengthPrefixMinimum) {
 				topk_alg.executeQuery(user, currentQuery, k, 10000, true, 100000);
 			}
 			else {
-				topk_alg.executeQueryPlusLetter(user, currentQuery, l, 10000);
+				topk_alg.executeQueryPlusLetter(user, currentQuery, k, 100000);
 			}
 			index++;
 
@@ -215,7 +218,7 @@ public class TOPKSSearcher {
 		jsonResult.add("incremental", arrayResultsIncremental);
 		jsonResult.add("notincremental", arrayResultsNonIncremental);
 		return jsonResult;
-	}
+	} /** END TO DEBUG */
 
 	public JsonObject executeIncrementalQuery(String user, List<String> query, int k, int t, int nNeigh, float alpha, int lengthPrefixMin) throws SQLException {
 		topk_alg.setAlpha(alpha);
