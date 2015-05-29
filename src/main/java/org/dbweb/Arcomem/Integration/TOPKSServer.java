@@ -245,7 +245,7 @@ public class TOPKSServer {
 							query, 
 							Integer.parseInt(params.get("k")),
 							Float.parseFloat(params.get("alpha")),
-							2
+							3
 							);
 				} catch (NumberFormatException e) {
 					e.printStackTrace();

@@ -155,14 +155,11 @@ public class TOPKSSearcher {
 		// Compute the different oracles for each prefix length
 		List<Set<Long>> oracles = new ArrayList<Set<Long>>(); // Exact top k for each prefix length
 		for (int l=lengthPrefixMinimum; l<=keyword.length(); l++) {
-			//System.out.println(keyword.substring(0, l));
 			currentQuery = new ArrayList<String>();
 			currentQuery.add(keyword.substring(0, l));
 			topk_alg.executeQuery(user, currentQuery, k, 10000, true, 100000);
 			topk_alg.computeTopkInfinity(k);
 			oracles.add(topk_alg.getTopkInfinity());
-			//System.out.println(topk_alg.getCandidates().toString());
-			//System.out.println(topk_alg.getTopkInfinity());
 			topk_alg.reinitialize(words, 1);
 		}
 		System.out.println("INCREMENTAL TESTS\n=====");
@@ -173,9 +170,7 @@ public class TOPKSSearcher {
 		for (int l=lengthPrefixMinimum; l<=keyword.length(); l++) {
 			currentQuery = new ArrayList<String>();
 			currentQuery.add(keyword.substring(0, l));
-			//System.out.println(currentQuery);
 			topk_alg.setTopkInfinity(oracles.get(index));
-			//System.out.println(oracles.get(index));
 			if (l==lengthPrefixMinimum) {
 				topk_alg.executeQuery(user, currentQuery, k, 10000, true, 100000);
 			}
