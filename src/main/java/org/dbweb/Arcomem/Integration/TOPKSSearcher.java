@@ -130,9 +130,41 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}
 
-	/**
-	 * TO DEBUG
-	 */
+	public JsonObject executeSocialBaseline(String user, List<String> query, int k, boolean newQuery, float alpha) throws SQLException {
+		Params.EXACT_TOPK = false;
+		// Oracle computation (visit of whole graph)
+		topk_alg.setAlpha(alpha);
+		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
+		topk_alg.computeTopkInfinity(k);
+		String[] words = new String[query.size()];
+		int i = 0;
+		for (String term: query) {
+			words[i] = term;
+			i++;
+		}
+		//topk_alg.reinitialize(words, 1);
+		// Computation for topk exact : normal version
+		Params.EXACT_TOPK = true;
+		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
+		topk_alg.reinitialize(words, 1);
+		long time_topks_asyt = topk_alg.getTimeTopK();
+		//System.out.println("TOPKS-ASYT: "+time_topks_asyt);
+		// Computation for topk exact : baseline with union of ILs
+		long res[] = topk_alg.executeSocialBaselineQuery(user, query, k, 10000, newQuery, 100000);
+		Params.EXACT_TOPK = false;
+		// Create JSON Response
+		JsonObject jsonResult = new JsonObject();
+		jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
+		JsonObject obj = new JsonObject();
+		obj.add("time", new JsonPrimitive(time_topks_asyt));
+		jsonResult.add("topks_asyt", obj);
+		obj = new JsonObject();
+		obj.add("merge", new JsonPrimitive(res[0]));
+		obj.add("topks", new JsonPrimitive(res[1]));
+		jsonResult.add("baseline", obj);
+		return jsonResult; // jsonResult;
+	}
+	
 	public JsonObject executeIncrementalVsNonincrementalQuery(String user, List<String> query, 
 			int k, float alpha, int lengthPrefixMinimum) throws SQLException {
 		// Computation for infinity (oracle)
@@ -213,7 +245,7 @@ public class TOPKSSearcher {
 		jsonResult.add("incremental", arrayResultsIncremental);
 		jsonResult.add("notincremental", arrayResultsNonIncremental);
 		return jsonResult;
-	} /** END TO DEBUG */
+	}
 
 	public JsonObject executeIncrementalQuery(String user, List<String> query, int k, int t, int nNeigh, float alpha, int lengthPrefixMin) throws SQLException {
 		topk_alg.setAlpha(alpha);

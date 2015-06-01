@@ -1,6 +1,6 @@
 package org.dbweb.socialsearch.topktrust.datastructure;
 
-public class ReadingHead {
+public class ReadingHead implements Comparable<ReadingHead> {
 	/**
 	 * Reading head on an inverted list
 	 */
@@ -43,6 +43,11 @@ public class ReadingHead {
 
 	public void setValue(int value) {
 		this.value = value;
+	}
+	
+	@Override
+	public int compareTo(ReadingHead obj) {
+		return -(this.value - obj.value);
 	}
 	
     @Override

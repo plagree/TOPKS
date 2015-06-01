@@ -53,6 +53,7 @@ public class TOPKSServer {
 			server.createContext("/asyt", new ASYTHandler());			// TOPKS ASYT Incremental
 			server.createContext("/ndcg", new NDCGHandler());			// TOPKS NDCG vs time experiment
 			server.createContext("/exact_topk", new ExactTopkHandler());// TOPKS time exact topk vs l prefix experiment
+			server.createContext("/social_baseline", new SocialBaselineHandler()); // TOPKS with social baseline (union of ILs of completions)
 			server.createContext("/incremental", new ExactTopkIncVsNonincHandler()); // TOPKS time for exact topk incremental vs not
 			server.setExecutor(null); 									// creates a default executor
 			server.start();
@@ -389,6 +390,63 @@ public class TOPKSServer {
 		}
 	}
 
+	/**
+	 * query: /social_baseline?...
+	 * @author lagree
+	 *
+	 */
+	private static class SocialBaselineHandler implements HttpHandler {
+		@Override
+		public void handle(HttpExchange t) throws IOException {
+			Map<String, String> params = TOPKSServer.queryToMap(t.getRequestURI().getQuery());
+			Headers h = t.getResponseHeaders();
+			h.add("Content-Type", "application/json; charset=UTF-8");
+			StringBuilder responseBuffer = new StringBuilder(); // put the response text in this buffer to be sent out at the end
+			String response;
+			JsonObject jsonResponse = new JsonObject();
+			Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+			// If we didn't receive a request in the right format
+			if (!params.containsKey("q") && !params.containsKey("seeker")) {
+				jsonResponse.add("status", new JsonPrimitive(0));
+				responseBuffer.append(jsonResponse.toString());
+				response = responseBuffer.toString();
+				t.sendResponseHeaders(400, response.length());
+			}
+			else {
+				System.out.println(t.getRequestURI());
+				
+				// Create the query List of words
+				List<String> query = new ArrayList<String>();
+				query.add(params.get("q"));
+				
+				try {
+					jsonResponse = TOPKSServer.topksSearcher.executeSocialBaseline(
+							params.get("seeker"), 
+							query, 
+							Integer.parseInt(params.get("k")),
+							true,
+							Float.parseFloat(params.get("alpha"))
+							);
+				} catch (NumberFormatException e) {
+					e.printStackTrace();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+
+				responseBuffer.append(gson.toJson(jsonResponse).toString());
+				response = responseBuffer.toString();
+				t.sendResponseHeaders(200, response.length());
+			}
+
+			OutputStream os = t.getResponseBody();
+			os.write(response.getBytes("UTF-8"));
+			os.flush();
+			os.close();
+			t.close();
+		}
+	}
+	
 	public static Map<String, String> queryToMap(String query){
 		Map<String, String> result = new HashMap<String, String>();
 		if (query == null)

@@ -50,7 +50,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeSet;
@@ -242,7 +244,6 @@ public class TopKAlgorithm {
 	 * @throws SQLException
 	 */
 	public int executeQuery(String seeker, List<String> query, int k, int t, boolean newQuery, int nVisited) throws SQLException {
-
 		this.nVisited = nVisited;
 		this.max_pos_val = 1.0f;
 		this.d_distr = null;
@@ -275,18 +276,20 @@ public class TopKAlgorithm {
 			userWeights = new HashMap<String, Float>();
 		}
 		pos = new int[query.size()];
-
+		
 		String tag = query.get(query.size()-1);
 		int index = 0;
 		boolean exact = false;
 		pos[index] = 0;
+
 		String completion = completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord();
 		int value = (int)completionTrie.searchPrefix(tag, false).getValue();
-		long item = this.invertedLists.get(completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord()).get(0).getDocId();
+		long item = this.invertedLists.get(completion).get(0).getDocId();
 		ReadingHead rh = new ReadingHead(completion, item, value);
 		topReadingHead.put(tag, rh);
 		index++;
 		userWeights.put(tag, userWeight);
+
 		if((this.approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
 			String sqlGetDistribution = String.format(sqlGetDistributionTemplate, this.networkTable);
 			ps = connection.prepareStatement(sqlGetDistribution);
@@ -333,10 +336,7 @@ public class TopKAlgorithm {
 		total_topk_changes = 0;
 		total_conforming_lists = 0;
 
-		//long time0 = System.currentTimeMillis();
 		mainLoop(k, seeker, query, t); /* MAIN ALGORITHM */
-		//long time1 = System.currentTimeMillis();
-		//System.out.println("Only mainLoop : "+(time1-time0)/1000+"sec.");
 
 		return 0;
 	}
@@ -397,7 +397,7 @@ public class TopKAlgorithm {
 		List<DocumentNumTag> arr = this.invertedLists.get(bestCompletion);
 
 		if (positions.get(bestCompletion) < arr.size()) {
-			topReadingHead.put(newPrefix, 
+			topReadingHead.put(newPrefix,
 					new ReadingHead(bestCompletion, arr.get(positions.get(bestCompletion)).getDocId(), arr.get(positions.get(bestCompletion)).getNum()));
 		}
 		else {
@@ -423,6 +423,73 @@ public class TopKAlgorithm {
 			this.time_topk += timeFiltering;
 		}
 		return 0;
+	}
+
+	public long[] executeSocialBaselineQuery(String seeker, List<String> query, int k, 
+			int t, boolean newQuery, int nVisited) throws SQLException {
+		String prefix = query.get(0);
+		RadixTreeNode radixTreeNode = completionTrie.searchPrefix(prefix, false);
+		RadixTreeNode originalNode = radixTreeNode.clone();
+		radixTreeNode.setBestDescendant(radixTreeNode);
+		radixTreeNode.setReal(true);
+		radixTreeNode.setWord(prefix);
+
+		// Union of inverted lists of possible completions
+		long timeBefore = System.nanoTime();
+		Set<Long> seenItems = new HashSet<Long>(); // set of scanned items
+		Map<String, Integer> indexPosition = new HashMap<String, Integer>();
+		Queue<ReadingHead> queue = new PriorityQueue<ReadingHead>();
+
+		Map<String, String> completions = this.dictionaryTrie.prefixMap(prefix);
+		Iterator<Entry<String, String>> iterator = completions.entrySet().iterator();
+		Entry<String, String> currentEntry = null;
+		DocumentNumTag firstDoc = null;
+		while(iterator.hasNext()) {
+			currentEntry = iterator.next();
+			String completion = currentEntry.getKey();
+			indexPosition.put(completion, 0);
+			firstDoc = this.invertedLists.get(completion).get(0);
+			queue.add(new ReadingHead(completion, firstDoc.getDocId(), firstDoc.getNum()));
+		}
+
+		List<DocumentNumTag> mergedList = new ArrayList<DocumentNumTag>(); // Output of the merge of inverted lists
+		ReadingHead currentHead = null;
+		String completion = null;
+		while(!queue.isEmpty()) {
+			currentHead = queue.poll();
+			if (!seenItems.contains(currentHead.getItem())) {
+				seenItems.add(currentHead.getItem());
+				mergedList.add(new DocumentNumTag(currentHead.getItem(), currentHead.getValue()));
+			}
+			completion = currentHead.getCompletion();
+			int count = indexPosition.get(completion);
+			indexPosition.put(completion, count+1);
+			if (count + 1 < this.invertedLists.get(completion).size()) {
+				firstDoc = this.invertedLists.get(completion).get(count + 1);
+				currentHead.setValue(firstDoc.getNum());
+				currentHead.setItem(firstDoc.getDocId());
+				queue.add(currentHead);
+			}
+		}
+
+		List<DocumentNumTag> originalList = null;
+		if (this.invertedLists.containsKey(prefix))
+			originalList = this.invertedLists.get(prefix);
+		this.invertedLists.put(prefix, mergedList);
+		long timeToMerge = (System.nanoTime() - timeBefore) / 1000000;
+		
+		// Execute query with materialized list
+		long timeBeforeQuery = System.nanoTime();
+		this.executeQuery(seeker, query, k, t, newQuery, nVisited);
+		radixTreeNode.setBestDescendant(originalNode.getBestDescendant());
+		radixTreeNode.setReal(originalNode.isReal());
+		radixTreeNode.setWord(originalNode.getWord());
+		radixTreeNode.updatePreviousBestValue(originalNode.getValue());
+		if (originalList != null)
+			this.invertedLists.put(prefix, originalList);
+		long timeQuery = (System.nanoTime() - timeBeforeQuery) / 1000000;
+		long res[] = {timeToMerge, timeQuery};
+		return res;
 	}
 
 	/**
@@ -634,13 +701,12 @@ public class TopKAlgorithm {
 	/**
 	 * Social process of the TOPKS algorithm
 	 */
-	protected void processSocial(List<String> query) throws SQLException{
-
+	protected void processSocial(List<String> query) throws SQLException {
 		int currentUserId;
 		int index = 0;
 		String tag;
 		int nbNeighbourTag = 0;
-
+		
 		// for all tags in the query Q, triples Tagged(u,i,t_j)
 		for(int i=0; i<query.size(); i++) {
 			tag = query.get(i);
@@ -750,7 +816,6 @@ public class TopKAlgorithm {
 	 * @param query List<String>
 	 */
 	private void lookIntoList(List<String> query) {
-
 		int index=0;
 		boolean found = true;
 
@@ -813,7 +878,7 @@ public class TopKAlgorithm {
 		int index = 0;
 		RadixTreeNode currNode = null;
 		String currCompletion;
-		for(String tag: query){
+		for(String tag: query) {
 			if (this.queryNbNeighbour.get(index) > this.nbNeighbour) {
 				index++;
 				continue;

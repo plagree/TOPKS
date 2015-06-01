@@ -33,6 +33,17 @@ public class RadixTreeNode implements Comparable {
 		word = name;
 	}
 	
+	public RadixTreeNode clone() {
+		RadixTreeNode node = new RadixTreeNode(this.word);
+		node.setKey(this.getKey());
+		node.setChildren(this.getChildren());
+		node.setReal(this.isReal());
+		node.setParent(this.getParent());
+		node.setValue(this.getValue());
+		node.setBestDescendant(this.getBestDescendant());
+		return node;
+	}
+	
 	public String getWord() {
 		return word;
 	}
