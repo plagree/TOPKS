@@ -152,8 +152,7 @@ public class TOPKSSearcher {
 		long time_topks_asyt_before = (System.nanoTime() - timeBeforeQuery) / 1000000;
 		topk_alg.reinitialize(words, 1);
 		long time_topks_asyt_all = (System.nanoTime() - timeBeforeQuery) / 1000000;
-		//long time_topks_asyt = topk_alg.getTimeTopK();
-		//System.out.println("TOPKS-ASYT: "+time_topks_asyt);
+		JsonObject topks_asyt_il_accesses = topk_alg.getILaccesses();
 		
 		// Computation for topk exact : baseline with union of ILs
 		long res[] = topk_alg.executeSocialBaselineQuery(user, query, k, 10000, newQuery, 100000);
@@ -165,11 +164,14 @@ public class TOPKSSearcher {
 		JsonObject obj = new JsonObject();
 		obj.add("time_before", new JsonPrimitive(time_topks_asyt_before));
 		obj.add("time_all", new JsonPrimitive(time_topks_asyt_all));
+		obj.add("il_accesses", topks_asyt_il_accesses);
 		jsonResult.add("topks_asyt", obj);
 		obj = new JsonObject();
 		obj.add("merge", new JsonPrimitive(res[0]));
 		obj.add("topks", new JsonPrimitive(res[1]));
+		obj.add("il_accesses", topk_alg.getILaccesses());
 		jsonResult.add("baseline", obj);
+		
 		return jsonResult;
 	}
 	

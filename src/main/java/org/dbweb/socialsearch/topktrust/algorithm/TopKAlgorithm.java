@@ -141,10 +141,12 @@ public class TopKAlgorithm {
 	protected int total_lists_social;
 
 	protected int nbPSpacesAccesses;		// Accesses of p-spaces
-	protected int nbILSocialAccesses; 		// Accesses on non-leaf inverted lists from social branch
+	/*protected int nbILSocialAccesses; 		// Accesses on non-leaf inverted lists from social branch
 	protected int nbILSocialFastAccesses; 	// Accesses on leaf inverted lists from social branch (sequential disk read)
 	protected int nbILTextualAccesses; 		// Accesses on non-leaf inverted lists from textual branch
-	protected int nbILTextualFastAccesses; 	// Accesses on leaf inverted lists from textual branch (sequential disk read)
+	protected int nbILTextualFastAccesses; 	// Accesses on leaf inverted lists from textual branch (sequential disk read) */
+	protected int nbILFastAccesses;
+	protected int nbILAccesses;
 
 	// NDCG lists
 	protected List<Long> oracleNDCG;
@@ -518,10 +520,12 @@ public class TopKAlgorithm {
 		long before_main_loop = System.currentTimeMillis();
 
 		// Reset counter of IL accesses and p-spaces accesses
-		this.nbILSocialAccesses = 0;
-		this.nbILSocialFastAccesses = 0;
-		this.nbILTextualAccesses = 0;
-		this.nbILTextualFastAccesses = 0;
+		//this.nbILSocialAccesses = 0;
+		//this.nbILSocialFastAccesses = 0;
+		//this.nbILTextualAccesses = 0;
+		//this.nbILTextualFastAccesses = 0;
+		this.nbILAccesses = 0;
+		this.nbILFastAccesses = 0;
 		this.nbPSpacesAccesses = 0;
 		if (Params.DEBUG == true)
 			System.out.println("aaa");
@@ -639,17 +643,18 @@ public class TopKAlgorithm {
 				terminationCondition = true;
 			}
 			loops++;
+			this.numloops = loops;
 			if (currVisited >= this.nVisited) {
 				logger.debug("currVisited >= nVisited");
 				terminationCondition = true;
 			}
 
 			// We check if we did not use the whole budget yet
-			else if ((this.nbILSocialAccesses + this.nbILSocialFastAccesses + this.nbILTextualFastAccesses + 
+			/*else if ((this.nbILSocialAccesses + this.nbILSocialFastAccesses + this.nbILTextualFastAccesses + 
 					this.nbILTextualAccesses + this.nbPSpacesAccesses) >= Params.DISK_BUDGET) {
 				terminationCondition = true;
 				logger.debug("Budget consumed...");
-			}
+			}*/
 			if (Params.DEBUG == true)
 				System.out.println("f");
 		} while(!terminationCondition && !finished && underTimeLimit);
@@ -846,20 +851,20 @@ public class TopKAlgorithm {
 
 					if (index == (query.size()-1)) { //  prefix
 						// if the tag is not a leaf, we have a random access to the disk
-						//if (!this.invertedLists.containsKey(query.get(index)))
-						if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
+						// if (!this.invertedLists.containsKey(query.get(index)))
+						/* if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
 							this.nbILSocialAccesses += 1;
 						else
-							this.nbILSocialFastAccesses += 1;	// the tag is a complete word, we read the inverted list sequentially on disk
+							this.nbILSocialFastAccesses += 1;	// the tag is a complete word, we read the inverted list sequentially on disk */
 						advanceTextualList(query.get(index), index, false);
 					}
 					else {
 						// if the tag is not a leaf, we have a random access to the disk
-						//if (!this.invertedLists.containsKey(query.get(index)))
-						if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
+						// if (!this.invertedLists.containsKey(query.get(index)))
+						/*if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
 							this.nbILSocialAccesses += 1;
 						else
-							this.nbILSocialFastAccesses += 1;	// the tag is a complete word, we read the inverted list sequentially on disk
+							this.nbILSocialFastAccesses += 1;	// the tag is a complete word, we read the inverted list sequentially on disk */
 						advanceTextualList(query.get(index), index, true);
 					}
 					candidates.addItem(item1);
@@ -908,19 +913,19 @@ public class TopKAlgorithm {
 				if ((index+1)==query.size()) { // prefix, we don't search for exact match
 					// If the word is not a leaf, we count an access to the disk
 					//if (!this.invertedLists.containsKey(tag))
-					if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
+					/*if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
 						this.nbILTextualAccesses += 1;
-					else
-						this.nbILTextualFastAccesses += 1;	// the tag is a complete word, we read the inverted list directly
+					/else
+						this.nbILTextualFastAccesses += 1;	// the tag is a complete word, we read the inverted list directly */
 					advanceTextualList(tag, index, false);
 				}
 				else {
 					// if the tag is not a leaf, we have a random access to the disk
 					//if (!this.invertedLists.containsKey(tag))
-					if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
+					/*if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
 						this.nbILTextualAccesses += 1;
 					else
-						this.nbILTextualFastAccesses += 1;	// the tag is a complete word, we read the inverted list directly
+						this.nbILTextualFastAccesses += 1;	// the tag is a complete word, we read the inverted list directly */
 					advanceTextualList(tag, index, true);
 				}
 			}
@@ -937,6 +942,12 @@ public class TopKAlgorithm {
 	protected void advanceTextualList(String tag, int index, boolean exact) {
 
 		RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact).getBestDescendant();
+		if (current_best_leaf.getWord().equals(tag)) {
+			this.nbILFastAccesses += 1;
+		}
+		else {
+			this.nbILAccesses += 1;
+		}
 		String word = current_best_leaf.getWord();
 		List<DocumentNumTag> invertedList = this.invertedLists.get(word);
 		positions.put(word, positions.get(word)+1);
@@ -1326,10 +1337,10 @@ public class TopKAlgorithm {
 
 		jsonResult.add("status", new JsonPrimitive(1)); 											// No problem appeared in TOPKS
 		jsonResult.add("nLoops", new JsonPrimitive(this.numloops));									// Number of loops in TOPKS
-		jsonResult.add("nbILSocialAccesses", new JsonPrimitive(this.nbILSocialAccesses));			// Number of Disk accesses for IL from social branch
-		jsonResult.add("nbILSocialFastAccesses", new JsonPrimitive(this.nbILSocialFastAccesses));	// Number of Sequential Disk accesses for IL from social branch
-		jsonResult.add("nbILTextualAccesses", new JsonPrimitive(this.nbILTextualAccesses));			// Number of Disk accesses for IL from textual branch
-		jsonResult.add("nbILTextualFastAccesses", new JsonPrimitive(this.nbILTextualFastAccesses));	// Number of Sequential Disk accesses for IL from textual branch
+		//jsonResult.add("nbILSocialAccesses", new JsonPrimitive(this.nbILSocialAccesses));			// Number of Disk accesses for IL from social branch
+		//jsonResult.add("nbILSocialFastAccesses", new JsonPrimitive(this.nbILSocialFastAccesses));	// Number of Sequential Disk accesses for IL from social branch
+		//jsonResult.add("nbILTextualAccesses", new JsonPrimitive(this.nbILTextualAccesses));			// Number of Disk accesses for IL from textual branch
+		//jsonResult.add("nbILTextualFastAccesses", new JsonPrimitive(this.nbILTextualFastAccesses));	// Number of Sequential Disk accesses for IL from textual branch
 		jsonResult.add("nbPSpacesAccesses", new JsonPrimitive(this.nbPSpacesAccesses));				// Number of Disk accesses for p-spaces
 		jsonResult.add("n", new JsonPrimitive(n));													// Number of results
 		jsonResult.add("results", arrayResults);													// Array of the results
@@ -1417,5 +1428,12 @@ public class TopKAlgorithm {
 
 	public ItemList getCandidates() {
 		return this.candidates;
+	}
+	
+	public JsonObject getILaccesses() {
+		JsonObject accesses = new JsonObject();
+		accesses.add("fast", new JsonPrimitive(this.nbILFastAccesses));
+		accesses.add("slow", new JsonPrimitive(this.nbILAccesses));
+		return accesses;
 	}
 }
