@@ -444,7 +444,7 @@ public class TopKAlgorithm {
 		Iterator<Entry<String, String>> iterator = completions.entrySet().iterator();
 		Entry<String, String> currentEntry = null;
 		DocumentNumTag firstDoc = null;
-		while(iterator.hasNext()) {
+		while (iterator.hasNext()) {
 			currentEntry = iterator.next();
 			String completion = currentEntry.getKey();
 			indexPosition.put(completion, 0);
@@ -455,7 +455,7 @@ public class TopKAlgorithm {
 		List<DocumentNumTag> mergedList = new ArrayList<DocumentNumTag>(); // Output of the merge of inverted lists
 		ReadingHead currentHead = null;
 		String completion = null;
-		while(!queue.isEmpty()) {
+		while (!queue.isEmpty()) {
 			currentHead = queue.poll();
 			if (!seenItems.contains(currentHead.getItem())) {
 				seenItems.add(currentHead.getItem());
@@ -616,7 +616,7 @@ public class TopKAlgorithm {
 						this.ndcgResults.addPoint(currVisited, ndcg);
 					}
 				}
-				else if (Params.EXACT_TOPK && (currVisited%1000 == 0)) {
+				else if (Params.EXACT_TOPK && (currVisited%100 == 0)) {
 					currentTime = (System.currentTimeMillis() - before_main_loop) - time_NDCG / 1000000;
 					long bef = System.nanoTime();
 					if (this.topk_infinity.equals(this.candidates.get_topk_as_set(k))) {
@@ -1345,6 +1345,10 @@ public class TopKAlgorithm {
 
 	public void computeOracleNDCG(int k) {
 		this.oracleNDCG = this.candidates.getListItems(k);
+	}
+	
+	public List<Long> getOrderedResponseList(int k) {
+		return this.candidates.getListItems(k);
 	}
 
 	public void computeTopkInfinity(int k) {

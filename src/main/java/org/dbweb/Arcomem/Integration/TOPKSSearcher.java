@@ -11,6 +11,7 @@ import org.dbweb.socialsearch.topktrust.algorithm.functions.PathCompositionFunct
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
+import org.externals.Tools.NDCG;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -142,27 +143,69 @@ public class TOPKSSearcher {
 			words[i] = term;
 			i++;
 		}
-		//topk_alg.reinitialize(words, 1);
+		topk_alg.reinitialize(words, 1);
+		
 		// Computation for topk exact : normal version
 		Params.EXACT_TOPK = true;
+		long timeBeforeQuery = System.nanoTime();
 		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
+		long time_topks_asyt_before = (System.nanoTime() - timeBeforeQuery) / 1000000;
 		topk_alg.reinitialize(words, 1);
-		long time_topks_asyt = topk_alg.getTimeTopK();
+		long time_topks_asyt_all = (System.nanoTime() - timeBeforeQuery) / 1000000;
+		//long time_topks_asyt = topk_alg.getTimeTopK();
 		//System.out.println("TOPKS-ASYT: "+time_topks_asyt);
+		
 		// Computation for topk exact : baseline with union of ILs
 		long res[] = topk_alg.executeSocialBaselineQuery(user, query, k, 10000, newQuery, 100000);
 		Params.EXACT_TOPK = false;
+		
 		// Create JSON Response
 		JsonObject jsonResult = new JsonObject();
 		jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
 		JsonObject obj = new JsonObject();
-		obj.add("time", new JsonPrimitive(time_topks_asyt));
+		obj.add("time_before", new JsonPrimitive(time_topks_asyt_before));
+		obj.add("time_all", new JsonPrimitive(time_topks_asyt_all));
 		jsonResult.add("topks_asyt", obj);
 		obj = new JsonObject();
 		obj.add("merge", new JsonPrimitive(res[0]));
 		obj.add("topks", new JsonPrimitive(res[1]));
 		jsonResult.add("baseline", obj);
-		return jsonResult; // jsonResult;
+		return jsonResult;
+	}
+	
+	public JsonObject executeMixedBaseline(String user, List<String> query, int k, boolean newQuery, float alpha) throws SQLException {
+		Params.EXACT_TOPK = false;
+		// Oracle computation (visit of whole graph)
+		topk_alg.setAlpha(alpha);
+		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
+		topk_alg.computeTopkInfinity(k);
+		List<Long> oracleNDCG = topk_alg.getOrderedResponseList(k);
+		String[] words = new String[query.size()];
+		int i = 0;
+		for (String term: query) {
+			words[i] = term;
+			i++;
+		}
+		topk_alg.reinitialize(words, 1);
+		
+		// Computation TOPKS-ASYT
+		Params.EXACT_TOPK = true;
+		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
+		double ndcg_topks_asyt = NDCG.getNDCG(oracleNDCG, topk_alg.getOrderedResponseList(k), k);
+		topk_alg.reinitialize(words, 1);
+		long time_topks_asyt = topk_alg.getTimeTopK();
+		Params.EXACT_TOPK = false;
+		
+		// NDCG for mixed version
+		long time_baseline = 0;
+		
+		// Create JSON Response
+		JsonObject jsonResult = new JsonObject();
+		jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
+		JsonObject obj = new JsonObject();
+		jsonResult.add("topks_asyt", new JsonPrimitive(time_topks_asyt));
+		jsonResult.add("baseline", new JsonPrimitive(time_baseline));
+		return jsonResult;
 	}
 	
 	public JsonObject executeIncrementalVsNonincrementalQuery(String user, List<String> query, 
