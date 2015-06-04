@@ -278,7 +278,7 @@ public class TopKAlgorithm {
 			userWeights = new HashMap<String, Float>();
 		}
 		pos = new int[query.size()];
-		
+
 		String tag = query.get(query.size()-1);
 		int index = 0;
 		boolean exact = false;
@@ -430,6 +430,31 @@ public class TopKAlgorithm {
 	public long[] executeSocialBaselineQuery(String seeker, List<String> query, int k, 
 			int t, boolean newQuery, int nVisited) throws SQLException {
 		String prefix = query.get(0);
+
+		// DEBUG CT-IL TRIE INDEX
+		/*
+		RadixTreeNode best_leaf = completionTrie.searchPrefix(prefix, false).getBestDescendant();
+		String word = best_leaf.getWord();
+		List<DocumentNumTag> invertedList = this.invertedLists.get(word);
+		DocumentNumTag current_read = invertedList.get(0);
+		ReadingHead rh = new ReadingHead(word, current_read.getDocId(), current_read.getNum());
+		for (int i=0; i<10; i++) {
+			System.out.println(rh.toString());
+			best_leaf = completionTrie.searchPrefix(prefix, false).getBestDescendant();
+			word = best_leaf.getWord();
+			invertedList = this.invertedLists.get(word);
+			positions.put(word, positions.get(word)+1);
+			int position = positions.get(word);
+			//System.out.println("Position: "+position);
+			best_leaf.updatePreviousBestValue(invertedList.get(position).getNum());
+			best_leaf = completionTrie.searchPrefix(prefix, false).getBestDescendant();
+			word = best_leaf.getWord();
+			current_read = this.invertedLists.get(word).get(positions.get(word));
+			rh = new ReadingHead(word, current_read.getDocId(), current_read.getNum());
+			//best_leaf.updatePreviousBestValue(invertedList.get(position).getNum());
+			//System.out.println(rh.toString());
+		}*/
+
 		RadixTreeNode radixTreeNode = completionTrie.searchPrefix(prefix, false);
 		RadixTreeNode originalNode = radixTreeNode.clone();
 		radixTreeNode.setBestDescendant(radixTreeNode);
@@ -477,9 +502,23 @@ public class TopKAlgorithm {
 		List<DocumentNumTag> originalList = null;
 		if (this.invertedLists.containsKey(prefix))
 			originalList = this.invertedLists.get(prefix);
+
+		// DEBUG MATERIALIZED INVERTED LIST
+		/*int i = 0;
+		for (DocumentNumTag item: mergedList) {
+			i++;
+			System.out.println(item.getDocId()+", "+item.getNum());
+			if (i == 20)
+				break;
+		}*/
 		this.invertedLists.put(prefix, mergedList);
+		boolean prefix_not_a_word = false;
+		if (!this.positions.containsKey(prefix)) {
+			positions.put(prefix, 0);
+			prefix_not_a_word = true;
+		}
 		long timeToMerge = (System.nanoTime() - timeBefore) / 1000000;
-		
+
 		// Execute query with materialized list
 		long timeBeforeQuery = System.nanoTime();
 		this.executeQuery(seeker, query, k, t, newQuery, nVisited);
@@ -489,6 +528,8 @@ public class TopKAlgorithm {
 		radixTreeNode.updatePreviousBestValue(originalNode.getValue());
 		if (originalList != null)
 			this.invertedLists.put(prefix, originalList);
+		if (prefix_not_a_word)
+			this.positions.put(prefix, null);
 		long timeQuery = (System.nanoTime() - timeBeforeQuery) / 1000000;
 		long res[] = {timeToMerge, timeQuery};
 		return res;
@@ -520,10 +561,6 @@ public class TopKAlgorithm {
 		long before_main_loop = System.currentTimeMillis();
 
 		// Reset counter of IL accesses and p-spaces accesses
-		//this.nbILSocialAccesses = 0;
-		//this.nbILSocialFastAccesses = 0;
-		//this.nbILTextualAccesses = 0;
-		//this.nbILTextualFastAccesses = 0;
 		this.nbILAccesses = 0;
 		this.nbILFastAccesses = 0;
 		this.nbPSpacesAccesses = 0;
@@ -711,7 +748,7 @@ public class TopKAlgorithm {
 		int index = 0;
 		String tag;
 		int nbNeighbourTag = 0;
-		
+
 		// for all tags in the query Q, triples Tagged(u,i,t_j)
 		for(int i=0; i<query.size(); i++) {
 			tag = query.get(i);
@@ -940,7 +977,6 @@ public class TopKAlgorithm {
 	 * @param index
 	 */
 	protected void advanceTextualList(String tag, int index, boolean exact) {
-
 		RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact).getBestDescendant();
 		if (current_best_leaf.getWord().equals(tag)) {
 			this.nbILFastAccesses += 1;
@@ -952,15 +988,19 @@ public class TopKAlgorithm {
 		List<DocumentNumTag> invertedList = this.invertedLists.get(word);
 		positions.put(word, positions.get(word)+1);
 		int position = positions.get(word);
-
-		if(position < invertedList.size()){
-			total_documents_asocial++;
-			topReadingHead.put(tag, new ReadingHead(word, invertedList.get(position).getDocId(), invertedList.get(position).getNum()));
+		if (position < invertedList.size())
 			current_best_leaf.updatePreviousBestValue(invertedList.get(position).getNum());
-		}
-		else{
+		else
+			current_best_leaf.updatePreviousBestValue(0);
+		current_best_leaf = completionTrie.searchPrefix(tag, false).getBestDescendant();
+		word = current_best_leaf.getWord();
+		if (current_best_leaf.getValue() == 0) {
 			topReadingHead.put(tag, null);
+			return;
 		}
+		DocumentNumTag current_read = this.invertedLists.get(word).get(positions.get(word));
+		ReadingHead new_top_rh = new ReadingHead(word, current_read.getDocId(), current_read.getNum());
+		topReadingHead.put(tag, new_top_rh);
 	}
 
 	/**
@@ -1357,7 +1397,7 @@ public class TopKAlgorithm {
 	public void computeOracleNDCG(int k) {
 		this.oracleNDCG = this.candidates.getListItems(k);
 	}
-	
+
 	public List<Long> getOrderedResponseList(int k) {
 		return this.candidates.getListItems(k);
 	}
@@ -1429,7 +1469,7 @@ public class TopKAlgorithm {
 	public ItemList getCandidates() {
 		return this.candidates;
 	}
-	
+
 	public JsonObject getILaccesses() {
 		JsonObject accesses = new JsonObject();
 		accesses.add("fast", new JsonPrimitive(this.nbILFastAccesses));

@@ -30,4 +30,5 @@ public class Params {
 	
 	
 	public static boolean DEBUG = false;
+	public static int DUMB = 0;
 }
