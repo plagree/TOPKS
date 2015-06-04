@@ -28,8 +28,12 @@ import org.dbweb.completion.trie.RadixTreeNode;
 import org.externals.Tools.NDCG;
 import org.externals.Tools.NDCGResults;
 
+import gnu.trove.iterator.TIntIntIterator;
+import gnu.trove.iterator.TIntObjectIterator;
 import gnu.trove.iterator.TLongIterator;
+import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.set.TLongSet;
 import gnu.trove.set.hash.TLongHashSet;
@@ -43,6 +47,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -95,6 +100,8 @@ public class TopKAlgorithm {
 	}
 
 	protected TIntObjectMap<PatriciaTrie<TLongSet>> userSpaces;
+	protected TIntIntMap sizeUserSpaces;
+	protected Map<String, Integer> sizeInvertedLists;
 	protected RadixTreeImpl tag_idf;
 	protected List<Float> values;
 	protected Map<String, ReadingHead> topReadingHead;
@@ -288,11 +295,12 @@ public class TopKAlgorithm {
 		int value = (int)completionTrie.searchPrefix(tag, false).getValue();
 		long item = this.invertedLists.get(completion).get(0).getDocId();
 		ReadingHead rh = new ReadingHead(completion, item, value);
+		System.out.println("Initialization: "+rh);
 		topReadingHead.put(tag, rh);
 		index++;
 		userWeights.put(tag, userWeight);
 
-		if((this.approxMethod&Methods.MET_APPR_MVAR)==Methods.MET_APPR_MVAR){
+		if ((this.approxMethod&Methods.MET_APPR_MVAR) == Methods.MET_APPR_MVAR) {
 			String sqlGetDistribution = String.format(sqlGetDistributionTemplate, this.networkTable);
 			ps = connection.prepareStatement(sqlGetDistribution);
 			ps.setInt(1, Integer.parseInt(seeker));
@@ -304,7 +312,7 @@ public class TopKAlgorithm {
 				this.d_distr = new DataDistribution(mean, variance, Params.number_users, query);
 			}
 		}
-		if((this.approxMethod&Methods.MET_APPR_HIST)==Methods.MET_APPR_HIST){
+		if ((this.approxMethod&Methods.MET_APPR_HIST) == Methods.MET_APPR_HIST) {
 			String sqlGetHistogram = String.format(sqlGetHistogramTemplate, this.networkTable);
 			ps = connection.prepareStatement(sqlGetHistogram);
 			ps.setInt(1, Integer.parseInt(seeker));
@@ -864,7 +872,7 @@ public class TopKAlgorithm {
 		while (found) {
 			String completion;
 			String autre = completionTrie.searchPrefix(query.get(query.size()-1), false).getBestDescendant().getWord(); // gros doute
-			for(index=0; index<query.size(); index++) {
+			for (index=0; index<query.size(); index++) {
 				found = false;
 
 				// We reached the end of the inverted list
@@ -876,9 +884,9 @@ public class TopKAlgorithm {
 				else {
 					completion = query.get(index);
 				}
-				if(unknown_tf.get(query.get(index)).contains(topReadingHead.get(query.get(index)).getItem()+"#"+completion)){
+				if (unknown_tf.get(query.get(index)).contains(topReadingHead.get(query.get(index)).getItem()+"#"+completion)) {
 					Item<String> item1 = candidates.findItem(topReadingHead.get(query.get(index)).getItem(), autre);
-					if (item1==null) {
+					if (item1 == null) {
 						unknown_tf.get(query.get(index)).remove(topReadingHead.get(query.get(index)).getItem()+"#"+completion); // DON'T UNDERSTAND
 						continue;
 					}
@@ -978,6 +986,7 @@ public class TopKAlgorithm {
 	 */
 	protected void advanceTextualList(String tag, int index, boolean exact) {
 		RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact).getBestDescendant();
+		System.out.println(this.numloops+", "+topReadingHead.get(tag).toString());
 		if (current_best_leaf.getWord().equals(tag)) {
 			this.nbILFastAccesses += 1;
 		}
@@ -1001,6 +1010,7 @@ public class TopKAlgorithm {
 		DocumentNumTag current_read = this.invertedLists.get(word).get(positions.get(word));
 		ReadingHead new_top_rh = new ReadingHead(word, current_read.getDocId(), current_read.getNum());
 		topReadingHead.put(tag, new_top_rh);
+		System.out.println(this.numloops+", "+topReadingHead.get(tag).toString());
 	}
 
 	/**
@@ -1130,6 +1140,8 @@ public class TopKAlgorithm {
 		this.invertedLists = new HashMap<String, List<DocumentNumTag>>(16, 0.85f); //DONE
 		this.userSpaces = new TIntObjectHashMap<PatriciaTrie<TLongSet>>(16, 0.85f);
 		this.dictionaryTrie = new PatriciaTrie<String>(); // trie on the dictionary of words
+		this.sizeUserSpaces = new TIntIntHashMap();
+		this.sizeInvertedLists = new HashMap<String, Integer>();
 		userWeight = 1.0f;
 
 		BufferedReader br;
@@ -1140,7 +1152,6 @@ public class TopKAlgorithm {
 			System.out.println("Beginning of file loading...");
 
 		// Tag Inverted lists processing
-
 		br = new BufferedReader(new FileReader(Params.dir+Params.ILFile));
 		List<DocumentNumTag> currIL;
 		int counter = 0;
@@ -1207,6 +1218,27 @@ public class TopKAlgorithm {
 		}
 		br.close();
 		final long size2 = ( getUsedMemory() - start2) / 1024 / 1024;
+
+		// Computation of the space of user spaces and inverted lists
+		TIntObjectIterator<PatriciaTrie<TLongSet>> it = this.userSpaces.iterator();
+		while (it.hasNext()) { // Loop on userSpaces
+			it.advance();
+			int user = it.key();
+			PatriciaTrie<TLongSet> patricia = this.userSpaces.get(user);
+			Set<String> keys = patricia.keySet();
+			int current_size = 0;
+			for (String key: keys)
+				current_size += key.length() + 1;
+			Iterator<TLongSet> it2 = patricia.values().iterator();
+			while (it2.hasNext()) {
+				current_size += it2.next().size() * 8;
+			}
+			this.sizeUserSpaces.put(user, current_size);
+		}
+		Set<String> keys = this.invertedLists.keySet();
+		for (String key: keys) {
+			this.sizeInvertedLists.put(key, this.invertedLists.get(key).size()*8);
+		}
 
 		if (Params.VERBOSE)
 			System.out.println("User spaces file = " + size2 + "M");
