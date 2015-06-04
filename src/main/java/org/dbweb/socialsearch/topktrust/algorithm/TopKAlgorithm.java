@@ -299,7 +299,7 @@ public class TopKAlgorithm {
 		ReadingHead rh = new ReadingHead(completion, item, value);
 		if (this.correspondingCompletions != null)
 			rh.setCompletion(this.correspondingCompletions.get(0));
-		System.out.println("Initialization: "+rh);
+		//System.out.println("Initialization: "+rh);
 		topReadingHead.put(tag, rh);
 		index++;
 		userWeights.put(tag, userWeight);
@@ -362,7 +362,6 @@ public class TopKAlgorithm {
 	 */
 	public void reinitialize(String[] query, int length) { // TO CHECK
 		String prefix = "";
-		float best = -1;
 		for (String keyword: query) {
 			prefix = keyword.substring(0, length);
 			SortedMap<String, String> completions = this.dictionaryTrie.prefixMap(prefix);

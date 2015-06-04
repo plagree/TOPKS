@@ -144,7 +144,7 @@ public class TOPKSSearcher {
 			i++;
 		}
 		topk_alg.reinitialize(words, 1);
-
+		//Params.DUMB = 0;
 		// Computation for topk exact : normal version
 		Params.EXACT_TOPK = true;
 		long timeBeforeQuery = System.nanoTime();
@@ -156,8 +156,8 @@ public class TOPKSSearcher {
 		
 		// Computation for topk exact : baseline with union of ILs
 		long res[] = topk_alg.executeSocialBaselineQuery(user, query, k, 10000, newQuery, 100000);
-		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
-		topk_alg.reinitialize(words, 1);
+		//topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
+		//topk_alg.reinitialize(words, 1);
 		Params.EXACT_TOPK = false;
 		
 		// Create JSON Response
