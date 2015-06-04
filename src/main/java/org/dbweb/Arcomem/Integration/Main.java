@@ -27,7 +27,7 @@ public class Main {
 		// Index files and load data in memory
 		Score score = new TfIdfScore(); // Tfidf scoring
 		TOPKSSearcher topksSearcher = new TOPKSSearcher(score);
-		topksSearcher.setSkippedTests(1000);
+		topksSearcher.setSkippedTests(100000);
 		// Start a server listening to queries
 		TOPKSServer topksServer = new TOPKSServer(topksSearcher);
 		topksServer.run();

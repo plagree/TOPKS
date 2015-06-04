@@ -115,6 +115,7 @@ public class TopKAlgorithm {
 	protected List<String> dictionary;
 	protected PatriciaTrie<String> dictionaryTrie;
 	protected RadixTreeImpl completionTrie; // Completion trie
+	protected List<String> correspondingCompletions;
 
 	protected int[] pos;
 	protected int seeker;
@@ -213,6 +214,7 @@ public class TopKAlgorithm {
 		this.error = error;
 		this.score = itemScore;
 		this.skippedTests = 10000;
+		this.correspondingCompletions = null;
 
 		long time_before_loading = System.currentTimeMillis();
 		if (dbConnection != null)
@@ -295,6 +297,8 @@ public class TopKAlgorithm {
 		int value = (int)completionTrie.searchPrefix(tag, false).getValue();
 		long item = this.invertedLists.get(completion).get(0).getDocId();
 		ReadingHead rh = new ReadingHead(completion, item, value);
+		if (this.correspondingCompletions != null)
+			rh.setCompletion(this.correspondingCompletions.get(0));
 		System.out.println("Initialization: "+rh);
 		topReadingHead.put(tag, rh);
 		index++;
@@ -358,6 +362,7 @@ public class TopKAlgorithm {
 	 */
 	public void reinitialize(String[] query, int length) { // TO CHECK
 		String prefix = "";
+		float best = -1;
 		for (String keyword: query) {
 			prefix = keyword.substring(0, length);
 			SortedMap<String, String> completions = this.dictionaryTrie.prefixMap(prefix);
@@ -369,7 +374,8 @@ public class TopKAlgorithm {
 				String completion = currentEntry.getKey();
 
 				if (!positions.containsKey(completion)) {
-					logger.debug("keyword not valid: "+completion);
+					//logger.debug("keyword not valid: "+completion);
+					System.out.println(completion);
 				}
 				if (positions.get(completion) == 0) {
 					continue;
@@ -377,8 +383,10 @@ public class TopKAlgorithm {
 
 				positions.put(completion, 0);
 				DocumentNumTag firstDoc = this.invertedLists.get(completion).get(0);
-				RadixTreeNode current_best_leaf = completionTrie.searchPrefix(completion, false).getBestDescendant();
+				
+				RadixTreeNode current_best_leaf = completionTrie.searchPrefix(completion, true).getBestDescendant();
 				current_best_leaf.updatePreviousBestValue(firstDoc.getNum());
+				current_best_leaf = completionTrie.searchPrefix("res", false).getBestDescendant();
 			}
 		}
 	}
@@ -471,7 +479,7 @@ public class TopKAlgorithm {
 
 		// Union of inverted lists of possible completions
 		long timeBefore = System.nanoTime();
-		Set<Long> seenItems = new HashSet<Long>(); // set of scanned items
+		//Set<Long> seenItems = new HashSet<Long>(); // set of scanned items
 		Map<String, Integer> indexPosition = new HashMap<String, Integer>();
 		Queue<ReadingHead> queue = new PriorityQueue<ReadingHead>();
 
@@ -490,13 +498,18 @@ public class TopKAlgorithm {
 		List<DocumentNumTag> mergedList = new ArrayList<DocumentNumTag>(); // Output of the merge of inverted lists
 		ReadingHead currentHead = null;
 		String completion = null;
+		this.correspondingCompletions = new ArrayList<String>();
 		while (!queue.isEmpty()) {
 			currentHead = queue.poll();
-			if (!seenItems.contains(currentHead.getItem())) {
-				seenItems.add(currentHead.getItem());
-				mergedList.add(new DocumentNumTag(currentHead.getItem(), currentHead.getValue()));
-			}
+			// <NO MAX>
+			//if (!seenItems.contains(currentHead.getItem())) {
+			//	seenItems.add(currentHead.getItem());
+			mergedList.add(new DocumentNumTag(currentHead.getItem(), currentHead.getValue()));
+			//}
+			// </NO MAX>
+			
 			completion = currentHead.getCompletion();
+			this.correspondingCompletions.add(completion); // NO MAX
 			int count = indexPosition.get(completion);
 			indexPosition.put(completion, count+1);
 			if (count + 1 < this.invertedLists.get(completion).size()) {
@@ -514,8 +527,8 @@ public class TopKAlgorithm {
 		// DEBUG MATERIALIZED INVERTED LIST
 		/*int i = 0;
 		for (DocumentNumTag item: mergedList) {
+			System.out.println(this.correspondingCompletions.get(i)+", "+item.getDocId()+", "+item.getNum());
 			i++;
-			System.out.println(item.getDocId()+", "+item.getNum());
 			if (i == 20)
 				break;
 		}*/
@@ -533,13 +546,16 @@ public class TopKAlgorithm {
 		radixTreeNode.setBestDescendant(originalNode.getBestDescendant());
 		radixTreeNode.setReal(originalNode.isReal());
 		radixTreeNode.setWord(originalNode.getWord());
+		radixTreeNode.setChildren(originalNode.getChildren());
 		radixTreeNode.updatePreviousBestValue(originalNode.getValue());
 		if (originalList != null)
 			this.invertedLists.put(prefix, originalList);
 		if (prefix_not_a_word)
-			this.positions.put(prefix, null);
+			this.positions.remove(prefix);
 		long timeQuery = (System.nanoTime() - timeBeforeQuery) / 1000000;
 		long res[] = {timeToMerge, timeQuery};
+		this.correspondingCompletions = null;
+		
 		return res;
 	}
 
@@ -868,19 +884,22 @@ public class TopKAlgorithm {
 	private void lookIntoList(List<String> query) {
 		int index=0;
 		boolean found = true;
-
+		String autre = "";
 		while (found) {
 			String completion;
-			String autre = completionTrie.searchPrefix(query.get(query.size()-1), false).getBestDescendant().getWord(); // gros doute
+			if (topReadingHead.get(query.get(query.size()-1)) == null)
+				autre = "";
+			else
+				autre = topReadingHead.get(query.get(query.size()-1)).getCompletion(); //completionTrie.searchPrefix(query.get(query.size()-1), false).getBestDescendant().getWord(); // gros doute
 			for (index=0; index<query.size(); index++) {
 				found = false;
 
 				// We reached the end of the inverted list
-				if (topReadingHead.get(query.get(index)) == null)
+				if (topReadingHead.get(query.get(index)) == null) {
 					continue;
-
+				}
 				if (index == (query.size()-1)) //  prefix
-					completion = completionTrie.searchPrefix(query.get(index), false).getBestDescendant().getWord();
+					completion = autre; //topReadingHead.get(query.get(index)).getCompletion(); //completionTrie.searchPrefix(query.get(index), false).getBestDescendant().getWord();
 				else {
 					completion = query.get(index);
 				}
@@ -890,6 +909,7 @@ public class TopKAlgorithm {
 						unknown_tf.get(query.get(index)).remove(topReadingHead.get(query.get(index)).getItem()+"#"+completion); // DON'T UNDERSTAND
 						continue;
 					}
+					
 					candidates.removeItem(item1);
 					item1.updateScoreDocs(query.get(index), topReadingHead.get(query.get(index)).getValue(), approxMethod);
 					unknown_tf.get(query.get(index)).remove(topReadingHead.get(query.get(index)).getItem()+"#"+completion);
@@ -986,7 +1006,9 @@ public class TopKAlgorithm {
 	 */
 	protected void advanceTextualList(String tag, int index, boolean exact) {
 		RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact).getBestDescendant();
-		System.out.println(this.numloops+", "+topReadingHead.get(tag).toString());
+		//if (Params.DUMB < 10)
+		//	System.out.println(this.numloops+", "+topReadingHead.get(tag).toString());
+		//Params.DUMB += 1;
 		if (current_best_leaf.getWord().equals(tag)) {
 			this.nbILFastAccesses += 1;
 		}
@@ -1003,14 +1025,18 @@ public class TopKAlgorithm {
 			current_best_leaf.updatePreviousBestValue(0);
 		current_best_leaf = completionTrie.searchPrefix(tag, false).getBestDescendant();
 		word = current_best_leaf.getWord();
+		position = positions.get(word);
 		if (current_best_leaf.getValue() == 0) {
 			topReadingHead.put(tag, null);
 			return;
 		}
-		DocumentNumTag current_read = this.invertedLists.get(word).get(positions.get(word));
-		ReadingHead new_top_rh = new ReadingHead(word, current_read.getDocId(), current_read.getNum());
+		DocumentNumTag current_read = this.invertedLists.get(word).get(position);
+		ReadingHead new_top_rh = null;
+		if (this.correspondingCompletions == null)
+			new_top_rh = new ReadingHead(word, current_read.getDocId(), current_read.getNum());
+		else
+			new_top_rh = new ReadingHead(this.correspondingCompletions.get(position), current_read.getDocId(), current_read.getNum());
 		topReadingHead.put(tag, new_top_rh);
-		System.out.println(this.numloops+", "+topReadingHead.get(tag).toString());
 	}
 
 	/**

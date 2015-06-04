@@ -144,9 +144,9 @@ public class TOPKSSearcher {
 			i++;
 		}
 		topk_alg.reinitialize(words, 1);
-		
+
 		// Computation for topk exact : normal version
-		//Params.EXACT_TOPK = true;
+		Params.EXACT_TOPK = true;
 		long timeBeforeQuery = System.nanoTime();
 		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
 		long time_topks_asyt_before = (System.nanoTime() - timeBeforeQuery) / 1000000;
