@@ -349,9 +349,7 @@ public class TopKAlgorithm {
 		total_documents_asocial = 0;
 		total_topk_changes = 0;
 		total_conforming_lists = 0;
-
 		mainLoop(k, seeker, query, t); /* MAIN ALGORITHM */
-
 		return 0;
 	}
 
@@ -1023,12 +1021,12 @@ public class TopKAlgorithm {
 		else
 			current_best_leaf.updatePreviousBestValue(0);
 		current_best_leaf = completionTrie.searchPrefix(tag, false).getBestDescendant();
-		word = current_best_leaf.getWord();
-		position = positions.get(word);
 		if (current_best_leaf.getValue() == 0) {
 			topReadingHead.put(tag, null);
 			return;
 		}
+		word = current_best_leaf.getWord();
+		position = positions.get(word);
 		DocumentNumTag current_read = this.invertedLists.get(word).get(position);
 		ReadingHead new_top_rh = null;
 		if (this.correspondingCompletions == null)

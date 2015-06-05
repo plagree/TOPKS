@@ -144,7 +144,6 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 					break;
 				}
 			}
-
 			// just add the node as the child of the current node
 			if (flag == false) {
 				// the best match is a leaf => we create a leaf for this node

@@ -134,7 +134,7 @@ public class RadixTreeNode implements Comparable {
 		else {
 			this.setBestDescendant(this.getChildren().get(0).getBestDescendant());
 			float val = this.getChildren().get(0).getValue();
-			if (this.value >= val)
+			if (this.value > val)
 				return;
 			else {
 				if (this.parent != null)

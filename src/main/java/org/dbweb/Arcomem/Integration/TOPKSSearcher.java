@@ -133,6 +133,7 @@ public class TOPKSSearcher {
 
 	public JsonObject executeSocialBaseline(String user, List<String> query, int k, boolean newQuery, float alpha) throws SQLException {
 		Params.EXACT_TOPK = false;
+
 		// Oracle computation (visit of whole graph)
 		topk_alg.setAlpha(alpha);
 		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
@@ -144,7 +145,7 @@ public class TOPKSSearcher {
 			i++;
 		}
 		topk_alg.reinitialize(words, 1);
-		//Params.DUMB = 0;
+
 		// Computation for topk exact : normal version
 		Params.EXACT_TOPK = true;
 		long timeBeforeQuery = System.nanoTime();
@@ -153,7 +154,7 @@ public class TOPKSSearcher {
 		topk_alg.reinitialize(words, 1);
 		long time_topks_asyt_all = (System.nanoTime() - timeBeforeQuery) / 1000000;
 		JsonObject topks_asyt_il_accesses = topk_alg.getILaccesses();
-		
+
 		// Computation for topk exact : baseline with union of ILs
 		long res[] = topk_alg.executeSocialBaselineQuery(user, query, k, 10000, newQuery, 100000);
 		//topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
