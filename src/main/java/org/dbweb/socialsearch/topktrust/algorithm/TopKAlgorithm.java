@@ -444,30 +444,6 @@ public class TopKAlgorithm {
 			int t, boolean newQuery, int nVisited) throws SQLException {
 		String prefix = query.get(0);
 
-		// DEBUG CT-IL TRIE INDEX
-		/*
-		RadixTreeNode best_leaf = completionTrie.searchPrefix(prefix, false).getBestDescendant();
-		String word = best_leaf.getWord();
-		List<DocumentNumTag> invertedList = this.invertedLists.get(word);
-		DocumentNumTag current_read = invertedList.get(0);
-		ReadingHead rh = new ReadingHead(word, current_read.getDocId(), current_read.getNum());
-		for (int i=0; i<10; i++) {
-			System.out.println(rh.toString());
-			best_leaf = completionTrie.searchPrefix(prefix, false).getBestDescendant();
-			word = best_leaf.getWord();
-			invertedList = this.invertedLists.get(word);
-			positions.put(word, positions.get(word)+1);
-			int position = positions.get(word);
-			//System.out.println("Position: "+position);
-			best_leaf.updatePreviousBestValue(invertedList.get(position).getNum());
-			best_leaf = completionTrie.searchPrefix(prefix, false).getBestDescendant();
-			word = best_leaf.getWord();
-			current_read = this.invertedLists.get(word).get(positions.get(word));
-			rh = new ReadingHead(word, current_read.getDocId(), current_read.getNum());
-			//best_leaf.updatePreviousBestValue(invertedList.get(position).getNum());
-			//System.out.println(rh.toString());
-		}*/
-
 		RadixTreeNode radixTreeNode = completionTrie.searchPrefix(prefix, false);
 		RadixTreeNode originalNode = radixTreeNode.clone();
 		radixTreeNode.setBestDescendant(radixTreeNode);
@@ -476,7 +452,6 @@ public class TopKAlgorithm {
 
 		// Union of inverted lists of possible completions
 		long timeBefore = System.nanoTime();
-		//Set<Long> seenItems = new HashSet<Long>(); // set of scanned items
 		Map<String, Integer> indexPosition = new HashMap<String, Integer>();
 		Queue<ReadingHead> queue = new PriorityQueue<ReadingHead>();
 
@@ -498,13 +473,7 @@ public class TopKAlgorithm {
 		this.correspondingCompletions = new ArrayList<String>();
 		while (!queue.isEmpty()) {
 			currentHead = queue.poll();
-			// <NO MAX>
-			//if (!seenItems.contains(currentHead.getItem())) {
-			//	seenItems.add(currentHead.getItem());
 			mergedList.add(new DocumentNumTag(currentHead.getItem(), currentHead.getValue()));
-			//}
-			// </NO MAX>
-			
 			completion = currentHead.getCompletion();
 			this.correspondingCompletions.add(completion); // NO MAX
 			int count = indexPosition.get(completion);
@@ -521,14 +490,6 @@ public class TopKAlgorithm {
 		if (this.invertedLists.containsKey(prefix))
 			originalList = this.invertedLists.get(prefix);
 
-		// DEBUG MATERIALIZED INVERTED LIST
-		/*int i = 0;
-		for (DocumentNumTag item: mergedList) {
-			System.out.println(this.correspondingCompletions.get(i)+", "+item.getDocId()+", "+item.getNum());
-			i++;
-			if (i == 20)
-				break;
-		}*/
 		this.invertedLists.put(prefix, mergedList);
 		boolean prefix_not_a_word = false;
 		if (!this.positions.containsKey(prefix)) {
