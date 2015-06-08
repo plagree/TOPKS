@@ -101,6 +101,7 @@ public class TopKAlgorithm {
 
 	protected TIntObjectMap<PatriciaTrie<TLongSet>> userSpaces;
 	protected TIntIntMap sizeUserSpaces;
+	protected Set<String> invertedListsUsed;
 	protected Map<String, Integer> sizeInvertedLists;
 	protected RadixTreeImpl tag_idf;
 	protected List<Float> values;
@@ -293,7 +294,10 @@ public class TopKAlgorithm {
 		boolean exact = false;
 		pos[index] = 0;
 
+
+		this.invertedListsUsed = new HashSet<String>();
 		String completion = completionTrie.searchPrefix(tag, exact).getBestDescendant().getWord();
+		this.invertedListsUsed.add(completion);
 		int value = (int)completionTrie.searchPrefix(tag, false).getValue();
 		long item = this.invertedLists.get(completion).get(0).getDocId();
 		ReadingHead rh = new ReadingHead(completion, item, value);
@@ -409,6 +413,8 @@ public class TopKAlgorithm {
 			return 0;
 
 		String bestCompletion = radixTreeNode.getBestDescendant().getWord();
+		this.invertedListsUsed = new HashSet<String>();
+		this.invertedListsUsed.add(bestCompletion);
 		List<DocumentNumTag> arr = this.invertedLists.get(bestCompletion);
 
 		if (positions.get(bestCompletion) < arr.size()) {
@@ -440,7 +446,7 @@ public class TopKAlgorithm {
 		return 0;
 	}
 
-	public long[] executeSocialBaselineQuery(String seeker, List<String> query, int k, 
+	public int[] executeSocialBaselineQuery(String seeker, List<String> query, int k, 
 			int t, boolean newQuery, int nVisited) throws SQLException {
 		String prefix = query.get(0);
 
@@ -459,11 +465,15 @@ public class TopKAlgorithm {
 		Iterator<Entry<String, String>> iterator = completions.entrySet().iterator();
 		Entry<String, String> currentEntry = null;
 		DocumentNumTag firstDoc = null;
+		//int nbLoadedBlocksFromDisk = 0;
+		int nbInvertedListsForMerge = 0;
 		while (iterator.hasNext()) {
 			currentEntry = iterator.next();
 			String completion = currentEntry.getKey();
 			indexPosition.put(completion, 0);
 			firstDoc = this.invertedLists.get(completion).get(0);
+			//nbLoadedBlocksFromDisk += this.sizeInvertedLists.get(completion) / Params.SIZE_OF_BLOCK + 1;
+			nbInvertedListsForMerge += 1;
 			queue.add(new ReadingHead(completion, firstDoc.getDocId(), firstDoc.getNum()));
 		}
 
@@ -485,6 +495,7 @@ public class TopKAlgorithm {
 				queue.add(currentHead);
 			}
 		}
+		System.out.println(mergedList.size()+" size of merged list");
 
 		List<DocumentNumTag> originalList = null;
 		if (this.invertedLists.containsKey(prefix))
@@ -511,7 +522,7 @@ public class TopKAlgorithm {
 		if (prefix_not_a_word)
 			this.positions.remove(prefix);
 		long timeQuery = (System.nanoTime() - timeBeforeQuery) / 1000000;
-		long res[] = {timeToMerge, timeQuery};
+		int res[] = {(int)timeToMerge, (int)timeQuery, nbInvertedListsForMerge, this.invertedListsUsed.size()};
 		this.correspondingCompletions = null;
 		
 		return res;
@@ -557,9 +568,10 @@ public class TopKAlgorithm {
 			boolean socialBranch = chooseBranch(query);
 			if (Params.DEBUG == true)
 				System.out.println("ccc");
-			if(socialBranch){
-				if (this.currentUser == null)
+			if(socialBranch) {
+				if (this.alpha == 1 || this.currentUser == null) {
 					break;
+				}
 				if (!(this.currentUser.getEntryId() == Integer.parseInt(seeker)))
 					currVisited += 1;
 				if (Params.DEBUG == true)
@@ -681,6 +693,7 @@ public class TopKAlgorithm {
 
 		//if (Params.VERBOSE)
 		System.out.println("There were "+loops+" loops ...");
+		System.out.println("There were "+Params.DUMB+" reads in ILs");
 	}
 
 	/**
@@ -694,10 +707,13 @@ public class TopKAlgorithm {
 		double upper_social_score;
 		double upper_docs_score;
 		boolean textual = false;
+		
+		if (this.topReadingHead.get(query.get(query.size()-1)) == null)
+			return !textual;
 
 		for(String tag: query) {
 			if (userWeights.get(tag) == null) {
-				System.out.println(this.numloops);
+				System.out.println("WHY HERE? "+this.numloops);
 				System.exit(0);
 				return false; // (choose textual)
 			}
@@ -857,7 +873,7 @@ public class TopKAlgorithm {
 					continue;
 				}
 				if (index == (query.size()-1)) //  prefix
-					completion = autre; //topReadingHead.get(query.get(index)).getCompletion(); //completionTrie.searchPrefix(query.get(index), false).getBestDescendant().getWord();
+					completion = autre; //completionTrie.searchPrefix(query.get(index), false).getBestDescendant().getWord();
 				else {
 					completion = query.get(index);
 				}
@@ -915,8 +931,9 @@ public class TopKAlgorithm {
 				logger.debug("IL visited completely");
 			}
 			if (!(topReadingHead.get(tag) == null)) {
-				currNode = completionTrie.searchPrefix(tag, false);
-				currCompletion = currNode.getBestDescendant().getWord();
+				//currNode = completionTrie.searchPrefix(tag, false);
+				//currCompletion = currNode.getBestDescendant().getWord();
+				currCompletion = topReadingHead.get(tag).getCompletion();
 				Item<String> item = candidates.findItem(topReadingHead.get(tag).getItem(), currCompletion);
 				if(item == null) {
 					Item<String> item2 = candidates.findItem(topReadingHead.get(tag).getItem(), "");
@@ -924,7 +941,7 @@ public class TopKAlgorithm {
 						item = this.createCopyCandidateItem(item2, topReadingHead.get(tag).getItem(), query, item, currCompletion);
 					}
 					else {
-						item = this.createNewCandidateItem(topReadingHead.get(tag).getItem(), query,item, currCompletion);
+						item = this.createNewCandidateItem(topReadingHead.get(tag).getItem(), query, item, currCompletion);
 					}
 				}
 				else
@@ -964,9 +981,9 @@ public class TopKAlgorithm {
 	 */
 	protected void advanceTextualList(String tag, int index, boolean exact) {
 		RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact).getBestDescendant();
-		//if (Params.DUMB < 10)
-		//	System.out.println(this.numloops+", "+topReadingHead.get(tag).toString());
-		//Params.DUMB += 1;
+		if (Params.DUMB < 10)
+			System.out.println(this.numloops+", "+topReadingHead.get(tag).toString());
+		Params.DUMB += 1;
 		if (current_best_leaf.getWord().equals(tag)) {
 			this.nbILFastAccesses += 1;
 		}
@@ -974,6 +991,7 @@ public class TopKAlgorithm {
 			this.nbILAccesses += 1;
 		}
 		String word = current_best_leaf.getWord();
+		this.invertedListsUsed.add(word);
 		List<DocumentNumTag> invertedList = this.invertedLists.get(word);
 		positions.put(word, positions.get(word)+1);
 		int position = positions.get(word);
@@ -1393,10 +1411,6 @@ public class TopKAlgorithm {
 
 		jsonResult.add("status", new JsonPrimitive(1)); 											// No problem appeared in TOPKS
 		jsonResult.add("nLoops", new JsonPrimitive(this.numloops));									// Number of loops in TOPKS
-		//jsonResult.add("nbILSocialAccesses", new JsonPrimitive(this.nbILSocialAccesses));			// Number of Disk accesses for IL from social branch
-		//jsonResult.add("nbILSocialFastAccesses", new JsonPrimitive(this.nbILSocialFastAccesses));	// Number of Sequential Disk accesses for IL from social branch
-		//jsonResult.add("nbILTextualAccesses", new JsonPrimitive(this.nbILTextualAccesses));			// Number of Disk accesses for IL from textual branch
-		//jsonResult.add("nbILTextualFastAccesses", new JsonPrimitive(this.nbILTextualFastAccesses));	// Number of Sequential Disk accesses for IL from textual branch
 		jsonResult.add("nbPSpacesAccesses", new JsonPrimitive(this.nbPSpacesAccesses));				// Number of Disk accesses for p-spaces
 		jsonResult.add("n", new JsonPrimitive(n));													// Number of results
 		jsonResult.add("results", arrayResults);													// Array of the results
@@ -1490,6 +1504,7 @@ public class TopKAlgorithm {
 		JsonObject accesses = new JsonObject();
 		accesses.add("fast", new JsonPrimitive(this.nbILFastAccesses));
 		accesses.add("slow", new JsonPrimitive(this.nbILAccesses));
+		accesses.add("il_topks_asyt",  new JsonPrimitive(this.invertedListsUsed.size()));
 		return accesses;
 	}
 }

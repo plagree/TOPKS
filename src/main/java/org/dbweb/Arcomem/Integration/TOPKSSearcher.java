@@ -149,14 +149,16 @@ public class TOPKSSearcher {
 		// Computation for topk exact : normal version
 		Params.EXACT_TOPK = true;
 		long timeBeforeQuery = System.nanoTime();
-		topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
+		Params.DUMB = 0;
+		topk_alg.executeQuery(user, query, k, 30000, newQuery, 100000);
 		long time_topks_asyt_before = (System.nanoTime() - timeBeforeQuery) / 1000000;
 		topk_alg.reinitialize(words, 1);
 		long time_topks_asyt_all = (System.nanoTime() - timeBeforeQuery) / 1000000;
 		JsonObject topks_asyt_il_accesses = topk_alg.getILaccesses();
 
 		// Computation for topk exact : baseline with union of ILs
-		long res[] = topk_alg.executeSocialBaselineQuery(user, query, k, 10000, newQuery, 100000);
+		Params.DUMB = 0;
+		int res[] = topk_alg.executeSocialBaselineQuery(user, query, k, 30000, newQuery, 100000);
 		//topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
 		//topk_alg.reinitialize(words, 1);
 		Params.EXACT_TOPK = false;
@@ -170,8 +172,10 @@ public class TOPKSSearcher {
 		obj.add("il_accesses", topks_asyt_il_accesses);
 		jsonResult.add("topks_asyt", obj);
 		obj = new JsonObject();
-		obj.add("merge", new JsonPrimitive(res[0]));
-		obj.add("topks", new JsonPrimitive(res[1]));
+		obj.add("time_merge", new JsonPrimitive(res[0]));
+		obj.add("time_topks", new JsonPrimitive(res[1]));
+		obj.add("il_merge", new JsonPrimitive(res[2]));		// #lists used for merging
+		obj.add("il_topks", new JsonPrimitive(res[3]));		// #lists used in TOPKS-ASYT
 		obj.add("il_accesses", topk_alg.getILaccesses());
 		jsonResult.add("baseline", obj);
 		
