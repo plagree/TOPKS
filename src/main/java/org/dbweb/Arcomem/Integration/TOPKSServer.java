@@ -424,7 +424,8 @@ public class TOPKSServer {
 							query, 
 							Integer.parseInt(params.get("k")),
 							true,
-							Float.parseFloat(params.get("alpha"))
+							Float.parseFloat(params.get("alpha")),
+							Integer.parseInt(params.get("disk_budget")) // Number of accesses allowed to the disk (budget)
 							);
 				} catch (NumberFormatException e) {
 					e.printStackTrace();
