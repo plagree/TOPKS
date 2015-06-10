@@ -3,6 +3,7 @@ package org.dbweb.socialsearch.shared;
 import java.util.Map;
 
 public class Params {
+
 	// ALL GLOBAL VARIABLES SHOULD BE HERE (config file)
 	public static int[] seeker = {};
 	public static String[] network = {"soc_snet_dt"};
@@ -27,8 +28,7 @@ public class Params {
 	public static int STEP_NEIGH = 20;
 	public static long TIME_NDCG = 1;
 	public static boolean EXACT_TOPK = false; // time to reach the exact TOPK_S
-	
-	
+
 	public static boolean DEBUG = false;
 	public static int DUMB = 0;
 	public static int SIZE_OF_BLOCK = 512;

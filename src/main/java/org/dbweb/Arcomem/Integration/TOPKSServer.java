@@ -405,7 +405,6 @@ public class TOPKSServer {
 			String response;
 			JsonObject jsonResponse = new JsonObject();
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
 			// If we didn't receive a request in the right format
 			if (!params.containsKey("q") && !params.containsKey("seeker")) {
 				jsonResponse.add("status", new JsonPrimitive(0));
@@ -419,7 +418,6 @@ public class TOPKSServer {
 				// Create the query List of words
 				List<String> query = new ArrayList<String>();
 				query.add(params.get("q"));
-				
 				try {
 					jsonResponse = TOPKSServer.topksSearcher.executeSocialBaseline(
 							params.get("seeker"), 
@@ -433,7 +431,6 @@ public class TOPKSServer {
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
-
 				responseBuffer.append(gson.toJson(jsonResponse).toString());
 				response = responseBuffer.toString();
 				t.sendResponseHeaders(200, response.length());
