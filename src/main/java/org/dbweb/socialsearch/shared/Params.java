@@ -20,7 +20,7 @@ public class Params {
 	public static int numberLinks = 0;
 	public static int number_documents = 1570866;
 	public static int number_users = 0;
-	public static int DISK_BUDGET = 100000;
+	public static int DISK_BUDGET = 0;
 	public static int NORMALIZER = 150;
 	public static boolean VERBOSE = false;
 	public static boolean NDCG_TIME = false;
@@ -28,6 +28,7 @@ public class Params {
 	public static int STEP_NEIGH = 20;
 	public static long TIME_NDCG = 1;
 	public static boolean EXACT_TOPK = false; // time to reach the exact TOPK_S
+	public static boolean DISK_ACCESS_EXPERIMENT = false;
 
 	public static boolean DEBUG = false;
 	public static int DUMB = 0;

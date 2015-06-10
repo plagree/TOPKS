@@ -672,15 +672,10 @@ public class TopKAlgorithm {
 				logger.debug("currVisited >= nVisited");
 				terminationCondition = true;
 			}
-
-			// We check if we did not use the whole budget yet
-			/*else if ((this.nbILSocialAccesses + this.nbILSocialFastAccesses + this.nbILTextualFastAccesses + 
-					this.nbILTextualAccesses + this.nbPSpacesAccesses) >= Params.DISK_BUDGET) {
-				terminationCondition = true;
-				logger.debug("Budget consumed...");
-			}*/
 			if (Params.DEBUG == true)
 				System.out.println("f");
+			if (Params.DISK_ACCESS_EXPERIMENT && (currVisited + this.invertedListsUsed.size()) >= Params.DISK_BUDGET)
+				break;
 		} while(!terminationCondition && !finished && underTimeLimit);
 		this.numloops = loops;
 		this.numberUsersSeen = currVisited;
@@ -881,21 +876,9 @@ public class TopKAlgorithm {
 					unknown_tf.get(query.get(index)).remove(topReadingHead.get(query.get(index)).getItem()+"#"+completion);
 
 					if (index == (query.size()-1)) { //  prefix
-						// if the tag is not a leaf, we have a random access to the disk
-						// if (!this.invertedLists.containsKey(query.get(index)))
-						/* if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
-							this.nbILSocialAccesses += 1;
-						else
-							this.nbILSocialFastAccesses += 1;	// the tag is a complete word, we read the inverted list sequentially on disk */
 						advanceTextualList(query.get(index), index, false);
 					}
 					else {
-						// if the tag is not a leaf, we have a random access to the disk
-						// if (!this.invertedLists.containsKey(query.get(index)))
-						/*if (!this.topReadingHead.get(query.get(0)).equals(query.get(0)))
-							this.nbILSocialAccesses += 1;
-						else
-							this.nbILSocialFastAccesses += 1;	// the tag is a complete word, we read the inverted list sequentially on disk */
 						advanceTextualList(query.get(index), index, true);
 					}
 					candidates.addItem(item1);
@@ -1510,5 +1493,9 @@ public class TopKAlgorithm {
 		accesses.add("slow", new JsonPrimitive(this.nbILAccesses));
 		accesses.add("il_topks_asyt",  new JsonPrimitive(this.invertedListsUsed.size()));
 		return accesses;
+	}
+	
+	public double computeNDCG(int k) {
+		return NDCG.getNDCG(this.candidates.getListItems(k), oracleNDCG, k); // Compute NDCG with oracle list
 	}
 }
