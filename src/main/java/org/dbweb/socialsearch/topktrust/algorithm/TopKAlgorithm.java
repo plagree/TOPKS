@@ -488,6 +488,7 @@ public class TopKAlgorithm {
 			}
 		}
 		System.out.println(mergedList.size()+" size of merged list");
+		Params.NUMBER_ILS = nbInvertedListsForMerge;
 
 		List<DocumentNumTag> originalList = null;
 		if (this.invertedLists.containsKey(prefix))
@@ -504,6 +505,8 @@ public class TopKAlgorithm {
 		// Execute query with materialized list
 		long timeBeforeQuery = System.nanoTime();
 		this.executeQuery(seeker, query, k, t, newQuery, nVisited);
+		Params.NUMBER_ILS = 0;
+		
 		radixTreeNode.setBestDescendant(originalNode.getBestDescendant());
 		radixTreeNode.setReal(originalNode.isReal());
 		radixTreeNode.setWord(originalNode.getWord());
@@ -554,6 +557,8 @@ public class TopKAlgorithm {
 		if (Params.DEBUG == true)
 			System.out.println("aaa");
 		do {
+			if (Params.DISK_ACCESS_EXPERIMENT && (currVisited + this.invertedListsUsed.size() + Params.NUMBER_ILS) >= Params.DISK_BUDGET)
+				break;
 			docs_inserted = false;
 			boolean social = false;
 			if (Params.DEBUG == true)
@@ -674,8 +679,6 @@ public class TopKAlgorithm {
 			}
 			if (Params.DEBUG == true)
 				System.out.println("f");
-			if (Params.DISK_ACCESS_EXPERIMENT && (currVisited + this.invertedListsUsed.size()) >= Params.DISK_BUDGET)
-				break;
 		} while(!terminationCondition && !finished && underTimeLimit);
 		this.numloops = loops;
 		this.numberUsersSeen = currVisited;
@@ -1401,6 +1404,10 @@ public class TopKAlgorithm {
 
 	public void computeOracleNDCG(int k) {
 		this.oracleNDCG = this.candidates.getListItems(k);
+	}
+	
+	public List<Long> getOracle() {
+		return this.oracleNDCG;
 	}
 
 	public List<Long> getOrderedResponseList(int k) {

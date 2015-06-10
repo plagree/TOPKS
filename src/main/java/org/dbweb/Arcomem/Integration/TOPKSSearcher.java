@@ -172,18 +172,10 @@ public class TOPKSSearcher {
 		int res[] = topk_alg.executeSocialBaselineQuery(user, query, k, 30000, newQuery, 100000);
 		int mergedLists = res[2];
 		JsonObject obj_social_baseline = new JsonObject();
-		if (Params.DISK_BUDGET >= mergedLists) {
-			obj_social_baseline.add("users_visited", new JsonPrimitive(0));
-			obj_social_baseline.add("inverted_lists_algo", new JsonPrimitive(0));
-			obj_social_baseline.add("inverted_lists_merge", new JsonPrimitive(mergedLists));
-			obj_social_baseline.add("ndcg", new JsonPrimitive(0));
-		}
-		else {
-			obj_social_baseline.add("users_visited", new JsonPrimitive(topk_alg.getNumberUsersSeen()));
-			obj_social_baseline.add("inverted_lists_algo", new JsonPrimitive(topk_alg.getNumberInvertedListUsed()));
-			obj_social_baseline.add("inverted_lists_merge", new JsonPrimitive(mergedLists));
-			obj_social_baseline.add("ndcg", new JsonPrimitive(topk_alg.computeNDCG(k)));
-		}
+		obj_social_baseline.add("users_visited", new JsonPrimitive(topk_alg.getNumberUsersSeen()));
+		obj_social_baseline.add("inverted_lists_algo", new JsonPrimitive(topk_alg.getNumberInvertedListUsed()));
+		obj_social_baseline.add("inverted_lists_merge", new JsonPrimitive(mergedLists));
+		obj_social_baseline.add("ndcg", new JsonPrimitive(topk_alg.computeNDCG(k)));
 		//Params.EXACT_TOPK = false;
 		Params.DISK_ACCESS_EXPERIMENT = false;
 		this.setSkippedTests(500);
