@@ -34,4 +34,5 @@ public class Params {
 	public static boolean DEBUG = false;
 	public static int DUMB = 0;
 	public static int SIZE_OF_BLOCK = 512;
+	public static boolean SUPERNODE = false;
 }

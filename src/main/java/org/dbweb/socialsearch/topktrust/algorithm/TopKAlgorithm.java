@@ -745,7 +745,7 @@ public class TopKAlgorithm {
 				continue; // We don't need to analyse this word because it was already done previously
 			}
 			this.queryNbNeighbour.set(i, this.nbNeighbour+1);
-			if(currentUser!=null){
+			if (currentUser != null) {
 				boolean found_docs = false;
 
 				if((approxMethod&Methods.MET_APPR_MVAR) == Methods.MET_APPR_MVAR)
@@ -765,7 +765,7 @@ public class TopKAlgorithm {
 				if (!this.userSpaces.containsKey(currentUserId))
 					logger.debug("User with empty p-space");
 
-				if(this.userSpaces.containsKey(currentUserId) && !(currentUserId==seeker)){
+				if (this.userSpaces.containsKey(currentUserId) && (currentUserId != seeker || Params.SUPERNODE)) {
 					// HERE WE CHECK
 					// User space access
 					this.nbPSpacesAccesses += 1;
@@ -1481,15 +1481,15 @@ public class TopKAlgorithm {
 	public ItemList getCandidates() {
 		return this.candidates;
 	}
-	
+
 	public int getNumloops() {
 		return this.numloops;
 	}
-	
+
 	public int getNumberInvertedListUsed() {
 		return this.invertedListsUsed.size();
 	}
-	
+
 	public int getNumberUsersSeen() {
 		return this.numberUsersSeen;
 	}
@@ -1501,8 +1501,18 @@ public class TopKAlgorithm {
 		accesses.add("il_topks_asyt",  new JsonPrimitive(this.invertedListsUsed.size()));
 		return accesses;
 	}
-	
+
 	public double computeNDCG(int k) {
 		return NDCG.getNDCG(this.candidates.getListItems(k), oracleNDCG, k); // Compute NDCG with oracle list
+	}
+
+	public String getListTopK(int k) {
+		StringBuilder sb = new StringBuilder();
+		String delim = "";
+		for (Long i : candidates.getListItems(k)) {
+		    sb.append(delim).append(i);
+		    delim = ",";
+		}
+		return sb.toString();
 	}
 }

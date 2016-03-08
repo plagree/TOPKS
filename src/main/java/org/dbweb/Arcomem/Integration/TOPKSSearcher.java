@@ -189,6 +189,48 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}
 
+	public JsonObject executeSupernodes(String user, List<String> query, int k, boolean newQuery, float alpha, int budget, boolean supernode) throws SQLException {
+		Params.EXACT_TOPK = false;
+		Params.DISK_ACCESS_EXPERIMENT = false;
+		Params.DISK_BUDGET = budget;
+		Params.SUPERNODE = supernode;
+		topk_alg.setAlpha(alpha);
+		String oracle = "";
+
+		String[] words = new String[query.size()];
+		int i = 0;
+		for (String term: query) {
+			words[i] = term;
+			i++;
+		}
+
+		if (!Params.SUPERNODE) {
+			// Oracle computation (visit of whole graph)
+			topk_alg.executeQuery(user, query, k, 10000, newQuery, 100000);
+			topk_alg.computeOracleNDCG(k);
+			this.setSkippedTests(500); // No need to recompute everything too often
+			oracle = topk_alg.getListTopK(k);
+			topk_alg.reinitialize(words, 1);
+		}
+
+		Params.DISK_ACCESS_EXPERIMENT = true;
+		this.setSkippedTests(1);
+		topk_alg.executeQuery(user, query, k, 30000, newQuery, 100000);
+		String result = topk_alg.getListTopK(k);
+		topk_alg.reinitialize(words, 1);
+		this.setSkippedTests(500);
+		Params.DISK_ACCESS_EXPERIMENT = false;
+		Params.SUPERNODE = false;
+
+		// Create JSON Response
+		JsonObject jsonResult = new JsonObject();
+		jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
+		jsonResult.add("oracle", new JsonPrimitive(oracle));
+		jsonResult.add("result", new JsonPrimitive(result));
+
+		return jsonResult;
+	}
+
 	public JsonObject executeMixedBaseline(String user, List<String> query, int k, boolean newQuery, float alpha) throws SQLException {
 		Params.EXACT_TOPK = false;
 		// Oracle computation (visit of whole graph)
