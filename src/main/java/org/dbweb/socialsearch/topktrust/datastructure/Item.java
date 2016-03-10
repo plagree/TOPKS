@@ -68,15 +68,15 @@ public class Item<E> implements Comparable<Item<E>>{
 	public String getCompletion() {
 		return this.completion;
 	}
-	
+
 	public Map<E,Float> getUf() {
 		return this.uf;
 	}
-	
+
 	public Map<E,Integer> getR() {
 		return this.nbUsersSeen;
 	}
-	
+
 	public Map<E,Integer> getTdf() {
 		return this.tdf;
 	}
@@ -97,12 +97,13 @@ public class Item<E> implements Comparable<Item<E>>{
 	public void addTag(E tag, float idf){
 		this.tags.put(tag, 1);
 		this.idf.put(tag, new Float(idf));
+		this.nbUsersSeen.put(tag, 0);
 	}
 
 	public void updateIdf(E tag, float idf) {
 		this.idf.put(tag, idf);
 	}
-	
+
 	public void updateNewWord(List<E> query, RadixTreeImpl tag_idf, int approx) {
 		for (int i=0; i<query.size()-1; i++) {
 			this.idf.put(query.get(i), tag_idf.searchPrefix((String)query.get(i), true).getValue());
@@ -110,9 +111,9 @@ public class Item<E> implements Comparable<Item<E>>{
 		this.completion = "";
 		this.computeWorstScore(approx);
 	}
-	
-	public void copyValuesFirstWords(List<E >tagList, Item<E> itemToCopy) {
-		for (int i=0; i<tagList.size()-1;i++) {
+
+	public void copyValuesFirstWords(List<E> tagList, Item<E> itemToCopy) {
+		for (int i = 0; i < tagList.size() - 1; i++) {
 			E tag = tagList.get(i);
 			if (itemToCopy.getSocialContrib().containsKey(tag)) {
 				this.soccontrib.put(tag, itemToCopy.getSocialContrib().get(tag));
@@ -163,7 +164,7 @@ public class Item<E> implements Comparable<Item<E>>{
 		}
 	}
 
-	public int updateScore(E tag, float value, int pos, int approx){
+	public int updateScore(E tag, float value, int pos, int approx) {
 		float prevUFVal = 0;    	
 		if(this.uf.containsKey(tag))
 			prevUFVal = uf.get(tag);
@@ -176,7 +177,7 @@ public class Item<E> implements Comparable<Item<E>>{
 		return 0;
 	}
 
-	public int updateScoreDocs(E tag, int tdf, int approx){
+	public int updateScoreDocs(E tag, int tdf, int approx) {
 		if(!this.tdf.containsKey(tag))    		
 			this.tdf.put(tag, tdf);
 		computeWorstScore(approx);
@@ -265,7 +266,7 @@ public class Item<E> implements Comparable<Item<E>>{
 	public Map<E,Integer> returnTags(){
 		return this.tags;
 	}
-	
+
 	public void debugging() {
 		System.out.println("Number of users seen: "+this.nbUsersSeen.toString());	  // number of users seen
 		System.out.println("Tag in: "+this.tags.toString()); // 1 for tag in
@@ -275,7 +276,7 @@ public class Item<E> implements Comparable<Item<E>>{
 		System.out.println("alpha: "+this.alpha);
 		System.out.println("score: "+this.score.toString());
 	}
-	
+
 	public void computeWorstScore(int approx){
 		float wscore = 0;
 		for(E tag : this.idf.keySet()){
@@ -285,9 +286,9 @@ public class Item<E> implements Comparable<Item<E>>{
 			if(tdf.containsKey(tag)){
 				wnormal=tdf.get(tag);
 			}
-			else if((approx&Methods.MET_TOPKS)==Methods.MET_TOPKS){
-				if(nbUsersSeen.containsKey(tag))
-					wnormal=nbUsersSeen.get(tag);
+			else if ((approx&Methods.MET_TOPKS) == Methods.MET_TOPKS) {
+				if (nbUsersSeen.containsKey(tag))
+					wnormal = nbUsersSeen.get(tag);
 			}
 			if(uf.containsKey(tag)){
 				wsocial=uf.get(tag);
@@ -338,7 +339,7 @@ public class Item<E> implements Comparable<Item<E>>{
 			}
 			else if((approx&Methods.MET_TOPKS)==Methods.MET_TOPKS){
 				if(nbUsersSeen.containsKey(tag))
-					wnormal=nbUsersSeen.get(tag);
+					wnormal = nbUsersSeen.get(tag);
 			}    		
 			wpartial = alpha*wnormal + (1-alpha)*wsocial;
 			wpartial = (wpartial>wpart_est)?wpartial:wpart_est;
@@ -407,25 +408,26 @@ public class Item<E> implements Comparable<Item<E>>{
 	public void setPruned(boolean pruned) {
 		this.pruned = pruned;
 	}
-	
+
 	public float getSocialScore() {
-		
+
 		float socialScore = 0;
-		
+
 		for (E word: this.uf.keySet())
 			socialScore += this.score.getScore( this.idf.get(word), this.uf.get(word) );
 		return socialScore;
 	}
-	
+
 	public float getTextualScore() {
-		
 		float textualScore = 0;
-		
-		for (E word: this.tags.keySet())
-			if (this.tdf.containsKey(word)) // the item has been seen in IL
-				textualScore += this.score.getScore(this.idf.get(word), this.tdf.get(word) );
-			else // we haven't met this item in the IL of word yet
-				textualScore += this.score.getScore(this.idf.get(word), this.nbUsersSeen.get(word) );
+		for (E word : this.tags.keySet()) {
+			if (this.tdf.containsKey(word)) { // the item has been seen in IL
+				textualScore += this.score.getScore(this.idf.get(word), this.tdf.get(word));
+			}
+			else { // we haven't met this item in the IL of word yet
+				textualScore += this.score.getScore(this.idf.get(word), this.nbUsersSeen.get(word));
+			}
+		}
 		return textualScore;
 	}
 

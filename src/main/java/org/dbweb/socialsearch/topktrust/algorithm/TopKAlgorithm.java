@@ -109,7 +109,7 @@ public class TopKAlgorithm {
 	protected Map<String, Integer> positions;
 	protected Map<String, Float> userWeights;
 	protected Map<String, Integer> tagFreqs;
-	protected Map<String, ArrayList<UserView>> userviews;
+	protected Map<String, List<UserView>> userviews;
 	protected Map<String, HashSet<String>> unknown_tf;
 	protected List<Integer> vst;
 	protected Set<Integer> skr;
@@ -250,7 +250,8 @@ public class TopKAlgorithm {
 	 * @return
 	 * @throws SQLException
 	 */
-	public int executeQuery(String seeker, List<String> query, int k, int t, boolean newQuery, int nVisited) throws SQLException {
+	public int executeQuery(String seeker, List<String> query, int k, int t, boolean newQuery,
+			int nVisited) throws SQLException {
 		this.nVisited = nVisited;
 		this.max_pos_val = 1.0f;
 		this.d_distr = null;
@@ -260,30 +261,23 @@ public class TopKAlgorithm {
 		this.seeker = Integer.parseInt(seeker);
 		values = new ArrayList<Float>();
 		unknown_tf = new HashMap<String,HashSet<String>>();
-		for(String tag:query)
+		for(String tag : query)
 			unknown_tf.put(tag, new HashSet<String>());
 		this.optpath.setValues(values);
 		this.optpath.setDistFunc(distFunc);
-		if((this.approxMethod&Methods.MET_APPR_LAND)==Methods.MET_APPR_LAND){
-			landmark.setSeeker(this.seeker);
-			landmark.setPathFunction(this.distFunc);
-			currentUser = new UserEntry<Float>(this.seeker,1.0f);
-		}
-		else{
-			currentUser = optpath.initiateHeapCalculation(this.seeker, query);
-		}
+
+		// INITIATE HEAP
+		currentUser = optpath.initiateHeapCalculation(this.seeker);
 
 		userWeight = 1.0f;
 		terminationCondition = false;
-		PreparedStatement ps;
-		ResultSet result;
 		if (newQuery) {
 			topReadingHead = new HashMap<String, ReadingHead>();
 			userWeights = new HashMap<String, Float>();
 		}
 		pos = new int[query.size()];
 
-		String tag = query.get(query.size()-1);
+		String tag = query.get(query.size()-1); // tag is prefix
 		int index = 0;
 		boolean exact = false;
 		pos[index] = 0;
@@ -299,33 +293,6 @@ public class TopKAlgorithm {
 		//System.out.println("Initialization: "+rh);
 		topReadingHead.put(tag, rh);
 		index++;
-		userWeights.put(tag, userWeight);
-
-		if ((this.approxMethod&Methods.MET_APPR_MVAR) == Methods.MET_APPR_MVAR) {
-			String sqlGetDistribution = String.format(sqlGetDistributionTemplate, this.networkTable);
-			ps = connection.prepareStatement(sqlGetDistribution);
-			ps.setInt(1, Integer.parseInt(seeker));
-			ps.setString(2, this.distFunc.toString());
-			result = ps.executeQuery();
-			if(result.next()){
-				double mean = result.getDouble(1);
-				double variance = result.getDouble(2);
-				this.d_distr = new DataDistribution(mean, variance, Params.number_users, query);
-			}
-		}
-		if ((this.approxMethod&Methods.MET_APPR_HIST) == Methods.MET_APPR_HIST) {
-			String sqlGetHistogram = String.format(sqlGetHistogramTemplate, this.networkTable);
-			ps = connection.prepareStatement(sqlGetHistogram);
-			ps.setInt(1, Integer.parseInt(seeker));
-			ps.setString(2, this.distFunc.toString());
-			result = ps.executeQuery();
-			ArrayList<Integer> hist = new ArrayList<Integer>();
-			while(result.next()){
-				int num = result.getInt(2);
-				hist.add(num);
-			}
-			this.d_hist = new DataHistogram(Params.number_users, hist);
-		}
 
 		this.nbNeighbour = 0;
 		if (newQuery) {
@@ -338,7 +305,11 @@ public class TopKAlgorithm {
 			candidates.cleanForNewWord(query, this.tag_idf, completionTrie, this.approxMethod);
 		}
 
-		this.queryNbNeighbour.add(0);
+		for (String keyword : query) {
+			userWeights.put(keyword, userWeight);	// Initialize userWeights
+			this.queryNbNeighbour.add(0);
+		}
+
 		total_users = 0;        
 		total_lists_social = 0;
 		total_documents_social = 0;
@@ -376,7 +347,7 @@ public class TopKAlgorithm {
 
 				positions.put(completion, 0);
 				DocumentNumTag firstDoc = this.invertedLists.get(completion).get(0);
-				
+
 				RadixTreeNode current_best_leaf = completionTrie.searchPrefix(completion, true).getBestDescendant();
 				current_best_leaf.updatePreviousBestValue(firstDoc.getNum());
 				current_best_leaf = completionTrie.searchPrefix("res", false).getBestDescendant();
@@ -506,7 +477,7 @@ public class TopKAlgorithm {
 		long timeBeforeQuery = System.nanoTime();
 		this.executeQuery(seeker, query, k, t, newQuery, nVisited);
 		Params.NUMBER_ILS = 0;
-		
+
 		radixTreeNode.setBestDescendant(originalNode.getBestDescendant());
 		radixTreeNode.setReal(originalNode.isReal());
 		radixTreeNode.setWord(originalNode.getWord());
@@ -521,7 +492,7 @@ public class TopKAlgorithm {
 		long timeQuery = (System.nanoTime() - timeBeforeQuery) / 1000000;
 		int res[] = {(int)timeToMerge, (int)timeQuery, nbInvertedListsForMerge, this.invertedListsUsed.size()};
 		this.correspondingCompletions = null;
-		
+
 		return res;
 	}
 
@@ -557,7 +528,8 @@ public class TopKAlgorithm {
 		if (Params.DEBUG == true)
 			System.out.println("aaa");
 		do {
-			if (Params.DISK_ACCESS_EXPERIMENT && (currVisited + this.invertedListsUsed.size() + Params.NUMBER_ILS) >= Params.DISK_BUDGET)
+			if (Params.DISK_ACCESS_EXPERIMENT && (currVisited + this.invertedListsUsed.size() +
+					Params.NUMBER_ILS) >= Params.DISK_BUDGET)
 				break;
 			docs_inserted = false;
 			boolean social = false;
@@ -698,7 +670,7 @@ public class TopKAlgorithm {
 		double upper_social_score;
 		double upper_docs_score;
 		boolean textual = false;
-		
+
 		if (this.topReadingHead.get(query.get(query.size()-1)) == null)
 			return !textual;
 
@@ -738,13 +710,13 @@ public class TopKAlgorithm {
 		String tag;
 		int nbNeighbourTag = 0;
 		// for all tags in the query Q, triples Tagged(u,i,t_j)
-		for(int i=0; i<query.size(); i++) {
+		for(int i = 0; i < query.size(); i++) {
 			tag = query.get(i);
 			nbNeighbourTag = this.queryNbNeighbour.get(i);
-			if (nbNeighbourTag > this.nbNeighbour){
+			if (nbNeighbourTag > this.nbNeighbour) {
 				continue; // We don't need to analyse this word because it was already done previously
 			}
-			this.queryNbNeighbour.set(i, this.nbNeighbour+1);
+			this.queryNbNeighbour.set(i, this.nbNeighbour + 1);
 			if (currentUser != null) {
 				boolean found_docs = false;
 
@@ -760,6 +732,10 @@ public class TopKAlgorithm {
 				}
 
 				currentUserId = currentUser.getEntryId();
+				if (currentUserId == 11342) {
+					System.out.println("WOUAH");
+					System.out.println(tag);
+				}
 				long itemId = 0;
 
 				if (!this.userSpaces.containsKey(currentUserId))
@@ -769,40 +745,44 @@ public class TopKAlgorithm {
 					// HERE WE CHECK
 					// User space access
 					this.nbPSpacesAccesses += 1;
-					SortedMap<String, TLongSet> completions = userSpaces.get(currentUserId).prefixMap(tag);
-					if (completions.size()>0) {
-						Iterator<Entry<String, TLongSet>> iterator = completions.entrySet().iterator();
-						while(iterator.hasNext()){
-							Entry<String, TLongSet> currentEntry = iterator.next();
-							String completion = currentEntry.getKey();
+					if (i == query.size() - 1) { // We are at a prefix
+						SortedMap<String, TLongSet> completions = userSpaces.get(currentUserId).prefixMap(tag);
+						if (completions.size() > 0) {
+							Iterator<Entry<String, TLongSet>> iterator = completions.entrySet().iterator();
+							while (iterator.hasNext()) {
+								Entry<String, TLongSet> currentEntry = iterator.next();
+								String completion = currentEntry.getKey();
 
-							for(TLongIterator it = currentEntry.getValue().iterator(); it.hasNext(); ){
-								itemId = it.next();
-								found_docs = true;
-								Item<String> item = candidates.findItem(itemId, completion);
-								if (item==null) {
-									Item<String> item2 = candidates.findItem(itemId, "");
+								for (TLongIterator it = currentEntry.getValue().iterator(); it.hasNext(); ){
+									itemId = it.next();
+									found_docs = true;
+									Item<String> item = candidates.findItem(itemId, completion);
+									if (item == null) {
+										Item<String> item2 = candidates.findItem(itemId, "");
 
-									if (item2!=null) {
-										item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
+										if (item2 != null) {
+											item = this.createCopyCandidateItem(item2, itemId, query, item, completion);
+										}
+										else {
+											item = this.createNewCandidateItem(itemId, query,item, completion);
+										}
 									}
 									else {
-										item = this.createNewCandidateItem(itemId, query,item, completion);
+										candidates.removeItem(item);
 									}
-								}
-								else {
+									float userW = 0;
 
-									candidates.removeItem(item);
+									userW = userWeight;
+									item.updateScore(tag, userW, pos[index], approxMethod);
+									candidates.addItem(item);								
+									docs_inserted = true;
+									total_documents_social++;                            
 								}
-								float userW = 0;
-
-								userW = userWeight;
-								item.updateScore(tag, userW, pos[index], approxMethod);
-								candidates.addItem(item);								
-								docs_inserted = true;
-								total_documents_social++;                            
 							}
 						}
+					}
+					else { // the word is not a prefix
+						
 					}
 				}
 				if(found_docs){
@@ -873,7 +853,7 @@ public class TopKAlgorithm {
 						unknown_tf.get(query.get(index)).remove(topReadingHead.get(query.get(index)).getItem()+"#"+completion); // DON'T UNDERSTAND
 						continue;
 					}
-					
+
 					candidates.removeItem(item1);
 					item1.updateScoreDocs(query.get(index), topReadingHead.get(query.get(index)).getValue(), approxMethod);
 					unknown_tf.get(query.get(index)).remove(topReadingHead.get(query.get(index)).getItem()+"#"+completion);
@@ -1377,7 +1357,8 @@ public class TopKAlgorithm {
 
 		for (Item<String> item: this.candidates.getTopK(k)) {
 			n++;
-			//item.debugging();
+			if (item.getItemId() == 35397)
+				item.debugging();
 			currItem = new JsonObject();
 			currItem.add("id", new JsonPrimitive(item.getItemId()));					// id of the item
 			currItem.add("rank", new JsonPrimitive(n));									// position of item
@@ -1405,7 +1386,7 @@ public class TopKAlgorithm {
 	public void computeOracleNDCG(int k) {
 		this.oracleNDCG = this.candidates.getListItems(k);
 	}
-	
+
 	public List<Long> getOracle() {
 		return this.oracleNDCG;
 	}
@@ -1510,8 +1491,8 @@ public class TopKAlgorithm {
 		StringBuilder sb = new StringBuilder();
 		String delim = "";
 		for (Long i : candidates.getListItems(k)) {
-		    sb.append(delim).append(i);
-		    delim = ",";
+			sb.append(delim).append(i);
+			delim = ",";
 		}
 		return sb.toString();
 	}

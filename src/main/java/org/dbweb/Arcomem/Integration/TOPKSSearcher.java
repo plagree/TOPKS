@@ -60,7 +60,9 @@ public class TOPKSSearcher {
 			i++;
 		}
 		topk_alg.reinitialize(words, 1);
+		System.out.println("AQUI2");
 		JsonObject jsonResult = topk_alg.getJsonAnswer(k);
+		System.out.println("AQUI3");
 		return jsonResult;
 	}
 

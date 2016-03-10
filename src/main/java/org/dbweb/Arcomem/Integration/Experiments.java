@@ -134,7 +134,9 @@ public class Experiments {
 										topk_alg.executeQuery(user, query, k, t, newQuery, nNeigh);
 										newQuery = false;
 										ranking = topk_alg.getRankingItem(item, k);
-										bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+alpha+"\t"+Params.threshold+'\t'+ranking+"\t"+nbSeenWords+'\t'+nItemsForUserU+'\t'+nUsersForItemI+"\t"+nNeigh+"\n");
+										bw.write(user+"\t"+item+"\t"+tags+"\t"+numberUsersWhoTaggedThisItem+"\t"+t+"\t"+l+"\t"+
+												 alpha+"\t"+Params.threshold+'\t'+ranking+"\t"+nbSeenWords+'\t'+nItemsForUserU+
+												 '\t'+nUsersForItemI+"\t"+nNeigh+"\n");
 									}
 									else {
 										query.remove(nbSeenWords-1);
