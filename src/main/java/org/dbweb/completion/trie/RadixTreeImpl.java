@@ -273,7 +273,8 @@ public class RadixTreeImpl implements RadixTree, Formattable {
 			}
 			if (result == null)
 				result = node;
-		} else if (node.getKey().equals("") == true || (numberOfMatchingCharacters < key.length() && numberOfMatchingCharacters >= node.getKey().length())) {
+		} else if (node.getKey().equals("") == true || (numberOfMatchingCharacters < key.length() &&
+				numberOfMatchingCharacters >= node.getKey().length())) {
 			String newText = key.substring(numberOfMatchingCharacters, key.length());
 			for (RadixTreeNode child : node.getChildren()) {
 				if (child.getKey().startsWith(newText.charAt(0) + "")) {

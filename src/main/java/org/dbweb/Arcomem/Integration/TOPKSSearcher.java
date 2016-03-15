@@ -1,10 +1,10 @@
 package org.dbweb.Arcomem.Integration;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.dbweb.experiments.JsonBuilder;
 import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathCompositionFunction;
@@ -19,54 +19,39 @@ import com.google.gson.JsonPrimitive;
 
 public class TOPKSSearcher {
 
-	private static final boolean heap = true;
-	@SuppressWarnings("rawtypes")
-	private static final PathCompositionFunction pathFunction = new PathMultiplication();
-	private static double coeff = 2.0f;
-	public static final String network = "soc_snet_dt";
-	public static final String taggers = "soc_tag_80";
-	private static final int method = 1;
-	private TopKAlgorithm topk_alg;
+  private static final boolean heap = true;
+  @SuppressWarnings("rawtypes")
+  private static final PathCompositionFunction pathFunction = new PathMultiplication();
+  public static final String network = "network";
+  private TopKAlgorithm topk_alg;
 
-	public TOPKSSearcher(Score score) {
+  public TOPKSSearcher(Score score) {
+    OptimalPaths optpath = new OptimalPaths(network, heap);
+    this.topk_alg = new TopKAlgorithm(score, 0f, pathFunction, optpath);
+  }
 
-		OptimalPaths optpath;
-		try {
-			optpath = new OptimalPaths(network, null, heap, null, coeff);
-			topk_alg = new TopKAlgorithm(null, taggers, network, method, score, 0f, pathFunction, optpath, 1);
-		}
-		catch (SQLException ex) {
-			ex.printStackTrace();
-		}
-	}
+  /**
+   * Execute a normal query
+   * @param k number maximum of returned results
+   * @param t time given to compute an answer
+   * @param user id of the seeker
+   * @param newQuery true if new query, false if incremental query
+   * @param nNeigh 
+   * @return JsonObject containing the lower and upper score for every returned item
+   */
+  public JsonObject executeQuery(int seeker, List<String> query, int k,
+          int t, boolean newQuery, int nNeigh, float alpha) {
+    this.topk_alg.executeQuery(seeker, query, k, alpha, t, nNeigh);
+    System.out.println("AQUI_ALPHA");
+    this.topk_alg.reset(query, 1);
+    System.out.println("AQUI_BETA");
+    JsonObject jsonResult = JsonBuilder.getJsonAnswer(this.topk_alg, k);
+    System.out.println("AQUI_GAMMA");
+    return jsonResult;
+  }
 
-	/**
-	 * 
-	 * @param k number maximum of returned results
-	 * @param t time given to compute an answer
-	 * @param user id of the seeker
-	 * @param newQuery true if new query, false if incremental query
-	 * @param nNeigh 
-	 * @return JsonObject containing the lower and upper score for every returned item
-	 * @throws SQLException 
-	 */
-	public JsonObject executeQuery(String user, List<String> query, int k, int t, boolean newQuery, int nNeigh, float alpha) throws SQLException {
-		topk_alg.setAlpha(alpha);
-		topk_alg.executeQuery(user, query, k, t, newQuery, nNeigh);
-		String[] words = new String[query.size()];
-		int i = 0;
-		for (String term: query) {
-			words[i] = term;
-			i++;
-		}
-		topk_alg.reinitialize(words, 1);
-		System.out.println("AQUI2");
-		JsonObject jsonResult = topk_alg.getJsonAnswer(k);
-		System.out.println("AQUI3");
-		return jsonResult;
-	}
-
-	public JsonObject executeQueryNDCG_vs_time(String user, List<String> query, int k, int t, boolean newQuery, int nNeigh, float alpha) throws SQLException {
+  /*public JsonObject executeQueryNDCG_vs_time(String user, List<String> query,
+	        int k, int t, boolean newQuery, int nNeigh, float alpha) {
 		// Computation for infinity (oracle)
 		Params.NDCG_TIME = false;
 		topk_alg.setAlpha(alpha);
@@ -89,7 +74,8 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}
 
-	public JsonObject executeQueryNDCG_vs_nbusers(String user, List<String> query, int k, int t, boolean newQuery, int nNeigh, float alpha) throws SQLException {
+	public JsonObject executeQueryNDCG_vs_nbusers(String user, List<String> query,
+	        int k, int t, boolean newQuery, int nNeigh, float alpha) {
 		// Computation for infinity (oracle)
 		Params.NDCG_USERS = false;
 		topk_alg.setAlpha(alpha);
@@ -111,7 +97,8 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}
 
-	public JsonObject executeQueryExactTopK_vs_time(String user, List<String> query, int k, boolean newQuery, float alpha) throws SQLException {
+	public JsonObject executeQueryExactTopK_vs_time(String user,
+	        List<String> query, int k, boolean newQuery, float alpha) {
 		// Computation for infinity (oracle)
 		Params.EXACT_TOPK = false;
 		topk_alg.setAlpha(alpha);
@@ -133,7 +120,8 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}
 
-	public JsonObject executeSocialBaseline(String user, List<String> query, int k, boolean newQuery, float alpha, int budget) throws SQLException {
+	public JsonObject executeSocialBaseline(String user, List<String> query,
+	        int k, boolean newQuery, float alpha, int budget) {
 		Params.EXACT_TOPK = false;
 		Params.DISK_ACCESS_EXPERIMENT = false;
 		Params.DISK_BUDGET = budget;
@@ -191,7 +179,8 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}
 
-	public JsonObject executeSupernodes(String user, List<String> query, int k, boolean newQuery, float alpha, int budget, boolean supernode) throws SQLException {
+	public JsonObject executeSupernodes(String user, List<String> query, int k,
+	        boolean newQuery, float alpha, int budget, boolean supernode) {
 		Params.EXACT_TOPK = false;
 		Params.DISK_ACCESS_EXPERIMENT = false;
 		Params.DISK_BUDGET = budget;
@@ -226,14 +215,16 @@ public class TOPKSSearcher {
 
 		// Create JSON Response
 		JsonObject jsonResult = new JsonObject();
-		jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
+		// No problem appeared in TOPKS
+		jsonResult.add("status", new JsonPrimitive(1));
 		jsonResult.add("oracle", new JsonPrimitive(oracle));
 		jsonResult.add("result", new JsonPrimitive(result));
 
 		return jsonResult;
 	}
 
-	public JsonObject executeMixedBaseline(String user, List<String> query, int k, boolean newQuery, float alpha) throws SQLException {
+	public JsonObject executeMixedBaseline(String user, List<String> query,
+	        int k, boolean newQuery, float alpha) {
 		Params.EXACT_TOPK = false;
 		// Oracle computation (visit of whole graph)
 		topk_alg.setAlpha(alpha);
@@ -268,8 +259,8 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}
 
-	public JsonObject executeIncrementalVsNonincrementalQuery(String user, List<String> query, 
-			int k, float alpha, int lengthPrefixMinimum) throws SQLException {
+	public JsonObject executeIncrementalVsNonincrementalQuery(String user,
+	        List<String> query, int k, float alpha, int lengthPrefixMinimum) {
 		// Computation for infinity (oracle)
 		Params.EXACT_TOPK = false;
 		String keyword = query.get(0);
@@ -310,7 +301,7 @@ public class TOPKSSearcher {
 				topk_alg.executeQuery(user, currentQuery, k, 10000, true, 100000);
 			}
 			else {
-				topk_alg.executeQueryPlusLetter(user, currentQuery, k, 100000);
+				topk_alg.executeQueryNextLetter(user, currentQuery, k, 100000);
 			}
 			index++;
 
@@ -350,7 +341,8 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}
 
-	public JsonObject executeIncrementalQuery(String user, List<String> query, int k, int t, int nNeigh, float alpha, int lengthPrefixMin) throws SQLException {
+	public JsonObject executeIncrementalQuery(String user, List<String> query,
+	        int k, int t, int nNeigh, float alpha, int lengthPrefixMin) {
 		topk_alg.setAlpha(alpha);
 		JsonArray arrayResults = new JsonArray();
 		JsonObject currResult = null;
@@ -375,7 +367,7 @@ public class TOPKSSearcher {
 				else {
 					currQuery.remove(nbSeenWords-1);
 					currQuery.add(word.substring(0, l));
-					topk_alg.executeQueryPlusLetter(user, currQuery, l, t);
+					topk_alg.executeQueryNextLetter(user, currQuery, l, t);
 				}
 				currResult = new JsonObject();
 				currResult.add("l",  new JsonPrimitive(l));
@@ -397,10 +389,10 @@ public class TOPKSSearcher {
 		JsonObject jsonResult = new JsonObject();
 		jsonResult.add("results", arrayResults);
 		return jsonResult;
-	}
+	}*/
 
-	public void setSkippedTests(int skippedTests) {
-		this.topk_alg.setSkippedTests(skippedTests);
-	}
+  public void setSkippedTests(int skippedTests) {
+    this.topk_alg.setSkippedTests(skippedTests);
+  }
 
 }

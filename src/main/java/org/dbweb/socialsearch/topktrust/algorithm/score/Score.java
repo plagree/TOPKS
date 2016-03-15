@@ -1,6 +1,6 @@
 package org.dbweb.socialsearch.topktrust.algorithm.score;
 
 public abstract class Score {
-	public abstract double getScore(double tf, double idf);
-	public abstract String toString();
+    public abstract float getScore(float tf, float idf);
+    public abstract String toString();
 }

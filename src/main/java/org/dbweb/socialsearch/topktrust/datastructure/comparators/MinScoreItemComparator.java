@@ -16,11 +16,11 @@ import java.util.Comparator;
 public class MinScoreItemComparator implements Comparator<Item> {
 
     public int compare(Item o1, Item o2) {
-        if(o1.getComputedScore()<o2.getComputedScore())
+        if(o1.getComputedWorstScore()<o2.getComputedWorstScore())
             return -1;
-        else if(o1.getComputedScore()>o2.getComputedScore())
+        else if(o1.getComputedWorstScore()>o2.getComputedWorstScore())
             return 1;
-        else if(o1.getComputedScore()==o2.getComputedScore()){
+        else if(o1.getComputedWorstScore()==o2.getComputedWorstScore()){
         	if(o1.getBestscore()<o2.getBestscore())
         		return -1;
         	else if(o1.getBestscore()>o2.getBestscore())

@@ -2,9 +2,9 @@ package org.dbweb.socialsearch.topktrust.datastructure;
 
 import java.util.Comparator;
 
-public class ItemBestScoreComparator implements Comparator<Item<String>> {
+public class ItemBestScoreComparator implements Comparator<Item> {
 	
-	public int compare(Item<String> a, Item<String> b)
+	public int compare(Item a, Item b)
 	{
 		if (a.getBestscore() > b.getBestscore())
             return -1;

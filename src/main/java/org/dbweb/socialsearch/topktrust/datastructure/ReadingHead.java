@@ -1,40 +1,36 @@
 package org.dbweb.socialsearch.topktrust.datastructure;
 
-public class ReadingHead implements Comparable<ReadingHead> {
-	/**
-	 * Reading head on an inverted list
-	 */
+import org.dbweb.socialsearch.topktrust.algorithm.Pair;
 
-	private String completion;
-	private long item;
+/**
+ * Reading head on an inverted list
+ */
+public class ReadingHead implements Comparable<ReadingHead> {
+
 	private int value;
-	
+	private Pair<Long, String> itemKeywordPair;
+
 	/**
 	 * 
-	 * @param completion : inverted list term
-	 * @param item : item of the reading head
-	 * @param value : value of the reading head
+	 * @param completion Inverted list term
+	 * @param item Item of the reading head
+	 * @param value Value of the reading head
 	 */
 	public ReadingHead(String completion, long item, int value) {
-		this.completion = completion;
-		this.item = item;
+		this.itemKeywordPair = new Pair<Long, String>(item, completion);
 		this.value = value;
 	}
 
 	public String getCompletion() {
-		return completion;
+		return this.itemKeywordPair.getRight();
 	}
 
-	public void setCompletion(String completion) {
-		this.completion = completion;
+	public long getItemId() {
+		return this.itemKeywordPair.getLeft();
 	}
 
-	public long getItem() {
-		return item;
-	}
-
-	public void setItem(long item) {
-		this.item = item;
+	public Pair<Long, String> getItemKeywordPair() {
+		return this.itemKeywordPair;
 	}
 
 	public int getValue() {
@@ -44,19 +40,20 @@ public class ReadingHead implements Comparable<ReadingHead> {
 	public void setValue(int value) {
 		this.value = value;
 	}
-	
+
 	@Override
 	public int compareTo(ReadingHead obj) {
 		return -(this.value - obj.value);
 	}
-	
+
     @Override
     public int hashCode() {
-        return (this.value+this.item+this.completion).hashCode();
+        return this.itemKeywordPair.hashCode();
     }
-    
+
     @Override
     public String toString() {
-    	return "Reading head of term " + this.completion + " with value " + this.value + " and item " + this.item; 
+    	return "Reading head of term " + this.itemKeywordPair.getRight() + " with value " + 
+				this.value + " and item " + this.itemKeywordPair.getLeft(); 
     }
 }

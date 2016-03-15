@@ -17,14 +17,15 @@ public class LoadIntoMemory {
 		return Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 	}
 	
-	public static void loadData(Connection conn) {
+	public static void loadData() {
 		final long start = getUsedMemory();
 		long beforeLoadData = System.currentTimeMillis();
 		Network net = Network.getInstance();
 		long afterLoadData = System.currentTimeMillis();
 		final long size = ( getUsedMemory() - start) / 1024 / 1024;
 		System.out.println("Network file = " + size + "M");
-		System.out.println("Data load in memory in "+(afterLoadData-beforeLoadData)+" ms...");
+		System.out.println("Data load in memory in "
+		        + (afterLoadData - beforeLoadData) + " ms...");
 		
 		return;
 	}

@@ -2,16 +2,16 @@ package org.dbweb.socialsearch.topktrust.datastructure;
 
 import java.util.Comparator;
 
-public class ItemAverageScoreComparator implements Comparator<Item<String>> {
+public class ItemAverageScoreComparator implements Comparator<Item> {
 
-	public int compare(Item<String> a, Item<String> b)
-	{
-		if((a.getBestscore()+a.getComputedScore()) > (b.getBestscore()+b.getComputedScore()))
+    public int compare(Item a, Item b)
+    {
+        if(a.getBestscore() + a.getComputedWorstScore() > b.getBestscore()+b.getComputedWorstScore())
             return -1;
-        else if((a.getBestscore()+a.getComputedScore()) < (b.getBestscore()+b.getComputedScore()))
+        else if(a.getBestscore()+a.getComputedWorstScore() < b.getBestscore()+b.getComputedWorstScore())
             return 1;
         else 
-        	return 0;
-	}
-	
+            return 0;
+    }
+
 }
