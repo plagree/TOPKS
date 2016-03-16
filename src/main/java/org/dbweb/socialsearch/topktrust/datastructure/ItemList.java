@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.dbweb.completion.trie.RadixTreeImpl;
+import org.dbweb.socialsearch.topktrust.algorithm.Pair;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 
 /**
@@ -151,17 +152,18 @@ public class ItemList {
    * @param trie
    */
   public void filterNextWord(List<String> query, RadixTreeImpl tag_idf,
-      RadixTreeImpl trie) {
+      RadixTreeImpl trie, Set<Pair<Long, String>> unknownTf) {
     Item item;
     String previousWord = query.get(query.size() - 2);
     this.sorted_items = new TreeSet<Item>(); // Reset candidate sorted structure
     // We filter over all items in the hash map
     for (long itemId: this.items.keySet()) {
       item = this.items.get(itemId);
-      if (item.filterNextWord(previousWord) == true) // Item is still relevant
+      if (item.filterNextWord(previousWord, unknownTf) == true) // Item is still relevant
         this.sorted_items.add(item);
-      else
+      else {
         this.items.remove(itemId);
+      }
     }
     this.addWordBranchHeuristic(query.get(query.size() - 1), trie);
   }
@@ -235,8 +237,8 @@ public class ItemList {
    * @return true if we can stop exploring the graph / ILs, false otherwise
    */
   public boolean terminationCondition(List<String> query, int k, float alpha,
-      RadixTreeImpl idf, Map<Integer, ReadingHead> topReadingHead,
-      Map<Integer, Float> userWeights, Set<Long> possible) {
+      RadixTreeImpl idf, List<ReadingHead> topReadingHead,
+      List<Float> userWeights, Set<Long> possible) {
 
     this.max_unseen = 0;  // Value of the upper bound estimation of unseen items
     float high_value = 0, uw = 0, textualpart = 0, socialpart = 0, total = 0;

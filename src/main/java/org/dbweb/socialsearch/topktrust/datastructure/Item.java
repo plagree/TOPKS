@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.dbweb.socialsearch.topktrust.algorithm.Pair;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 
 /**
@@ -39,14 +41,20 @@ public class Item implements Comparable<Item> {
    * @param previousWord Final keyword of the last prefix
    * @return true if the Item is still relevant, false otherwise
    */
-  public boolean filterNextWord(String previousWord) {
-    if (!this.mapWordsData.containsKey(previousWord))
+  public boolean filterNextWord(String previousWord,
+          Set<Pair<Long, String>> unknownTf) {
+    if (!this.mapWordsData.containsKey(previousWord)) {
+      for (String tag: this.mapWordsData.keySet())
+        unknownTf.remove(new Pair<Long, String>(this.itemId, tag));
       return false;
+    }
     for (String tag: this.mapWordsData.keySet()) {
       if (tag.equals(previousWord))
         this.mapWordsData.get(tag).setCompletion(false);
-      else if (this.mapWordsData.get(tag).isCompletion())
+      else if (this.mapWordsData.get(tag).isCompletion()) {
         this.mapWordsData.remove(tag);
+        unknownTf.remove(new Pair<Long, String>(this.itemId, tag));
+      }
     }
     this.computeWorstScore();
     return true;
@@ -125,8 +133,8 @@ public class Item implements Comparable<Item> {
    * @param userWeights
    * @return Best score (upper bound)
    */
-  public float computeBestScore(Map<Integer, ReadingHead> topReadingHead,
-      Map<Integer, Float> userWeights) {
+  public float computeBestScore(List<ReadingHead> topReadingHead,
+          List<Float> userWeights) {
 
     this.bestscore = 0;
     float best_score_completion = 0, current_score_completion = 0, uw = 0;
@@ -135,14 +143,12 @@ public class Item implements Comparable<Item> {
     for(String tag : this.mapWordsData.keySet()) {
       uw = 0;
       position = this.mapWordsData.get(tag).getPosition();
-      if (userWeights.containsKey(position))
-        uw = userWeights.get(position);
+      uw = userWeights.get(position);
       tf = 0;
       if (this.mapWordsData.get(tag).receivedTDFValue()) {
         tf = this.mapWordsData.get(tag).getTdf();
       }
-      else if(topReadingHead.containsKey(position) &&
-          (topReadingHead.get(position) != null)) {
+      else if (topReadingHead.get(position) != null) {
         tf = topReadingHead.get(position).getValue();  // top value IL
       }
       // Social score (so far)
@@ -153,14 +159,14 @@ public class Item implements Comparable<Item> {
       comb = this.alpha * tf + (1 - this.alpha) * social;
       if (this.mapWordsData.get(tag).isCompletion()) {
         current_score_completion = this.score.getScore(comb,
-            this.mapWordsData.get(tag).getIdf());
+                this.mapWordsData.get(tag).getIdf());
         if (current_score_completion > best_score_completion) {
           best_score_completion = current_score_completion;
           this.bestCompletion = tag;
         }
       } else {
         this.bestscore += this.score.getScore(comb,
-            this.mapWordsData.get(tag).getIdf());
+                this.mapWordsData.get(tag).getIdf());
       }
     }
     this.bestscore += best_score_completion;
@@ -174,9 +180,9 @@ public class Item implements Comparable<Item> {
     float wscore_without_completion = 0, wscore_best_completion = 0;
     for (String tag : this.mapWordsData.keySet()) {
       float wpartial = this.mapWordsData.get(tag)
-          .computeWorstScore(this.alpha, this.score);
+              .computeWorstScore(this.alpha, this.score);
       if (this.mapWordsData.get(tag).isCompletion()
-          && wpartial > wscore_best_completion)
+              && wpartial > wscore_best_completion)
         wscore_best_completion = wpartial;
       else
         wscore_without_completion += wpartial;
@@ -192,7 +198,7 @@ public class Item implements Comparable<Item> {
   private void updateWorstScore(String tag) {
     float old_wscore = this.mapWordsData.get(tag).getWorstScore();
     float new_wscore = this.mapWordsData.get(tag)
-        .computeWorstScore(this.alpha, this.score);
+            .computeWorstScore(this.alpha, this.score);
     // We update only if the total worst score increased
     if (this.mapWordsData.get(tag).isCompletion()) {
       if (this.worstscore < this.worstscore_without_prefix + new_wscore)
@@ -212,7 +218,7 @@ public class Item implements Comparable<Item> {
     for (String word: this.mapWordsData.keySet()) {
       if (this.mapWordsData.get(word).isCompletion()) { // the word is a prefix
         currentPrefixScore = this.mapWordsData.get(word)
-            .computeWorstScore(this.alpha, this.score);
+                .computeWorstScore(this.alpha, this.score);
         if (currentPrefixScore >= bestPrefixScore) {
           bestPrefixScore = currentPrefixScore;
           bestPrefix = word;
@@ -239,7 +245,7 @@ public class Item implements Comparable<Item> {
     for (String word: this.mapWordsData.keySet()) {
       if (this.mapWordsData.get(word).isCompletion()) { // the word is a prefix
         currentPrefixScore = this.mapWordsData.get(word)
-            .computeWorstScore(this.alpha, this.score);
+                .computeWorstScore(this.alpha, this.score);
         if (currentPrefixScore >= bestPrefixScore) {
           bestPrefixScore = currentPrefixScore;
           bestPrefix = word;
@@ -263,7 +269,7 @@ public class Item implements Comparable<Item> {
    * @return List of the textual heuristic for each word
    */
   public List<Float> getTextualBranchHeuristic(int nbWord,
-      Map<Integer,ReadingHead> topReadingHead) {
+          List<ReadingHead> topReadingHead) {
     List<Float> res = new ArrayList<Float>();
     int pos = 0;
     for (pos = 0; pos < nbWord; pos++)
@@ -271,10 +277,10 @@ public class Item implements Comparable<Item> {
     float curContrib = 0;
     for (String tag: this.mapWordsData.keySet()) {
       if (!this.mapWordsData.get(tag).isCompletion()
-          || tag.equals(this.bestCompletion)) {
+              || tag.equals(this.bestCompletion)) {
         pos = this.mapWordsData.get(tag).getPosition();
         curContrib = this.mapWordsData.get(tag).getTextualBranchHeuristic(
-            this.alpha, topReadingHead.get(pos).getValue());
+                this.alpha, topReadingHead.get(pos).getValue());
         res.set(pos, curContrib);
       }
     }
@@ -289,8 +295,8 @@ public class Item implements Comparable<Item> {
    * @return List of the social heuristic for each word
    */
   public List<Float> getSocialBranchHeuristic(int nbWord,
-      Map<Integer,ReadingHead> topReadingHead,
-      Map<Integer, Float> userWeights) {
+          List<ReadingHead> topReadingHead,
+          List<Float> userWeights) {
     List<Float> res = new ArrayList<Float>();
     int pos = 0;
     for (pos = 0; pos < nbWord; pos++)
@@ -298,11 +304,11 @@ public class Item implements Comparable<Item> {
     float curContrib = 0;
     for (String tag: this.mapWordsData.keySet()) {
       if (!this.mapWordsData.get(tag).isCompletion()
-          || tag.equals(this.bestCompletion)) {
+              || tag.equals(this.bestCompletion)) {
         pos = this.mapWordsData.get(tag).getPosition();
         curContrib = this.mapWordsData.get(tag).getSocialBranchHeuristic(
-            this.alpha, topReadingHead.get(pos).getValue(),
-            userWeights.get(pos));
+                this.alpha, topReadingHead.get(pos).getValue(),
+                userWeights.get(pos));
         res.set(pos, curContrib);
       }
     }

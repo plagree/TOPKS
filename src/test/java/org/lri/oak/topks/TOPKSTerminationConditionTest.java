@@ -19,12 +19,11 @@ public class TOPKSTerminationConditionTest {
 
   public TOPKSTerminationConditionTest() {
     // Parameters test dataset
-    Params.dir = System.getProperty("user.dir")+"/test/test2/";
+    Params.dir = System.getProperty("user.dir") + "/test/test2/";
     Params.number_documents = 1638;
     Params.networkFile = "network.txt";
     Params.triplesFile = "triples.txt";
     Params.ILFile = "tag-inverted.txt";
-    Params.tagFreqFile = "tag-freq.txt";
     Params.threshold = 0f;
 
     this.searcher = new TOPKSSearcher(new TfIdfScore());

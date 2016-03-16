@@ -27,12 +27,11 @@ public class  TOPKSServerTest {
     @Test
     public void testServerReceiveJSON() {    	
     	// Parameters dataset
-    	Params.dir = System.getProperty("user.dir")+"/test/test/";
+    	Params.dir = System.getProperty("user.dir") + "/test/test/";
 		Params.number_documents = 6;
 		Params.networkFile = "network.txt";
 		Params.triplesFile = "triples.txt";
 		Params.ILFile = "tag-inverted.txt";
-		Params.tagFreqFile = "tag-freq.txt";
 		Params.threshold = 0f;
 		
 		TOPKSSearcher searcher = new TOPKSSearcher(new TfIdfScore());

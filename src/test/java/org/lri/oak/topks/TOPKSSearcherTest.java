@@ -20,12 +20,11 @@ public class TOPKSSearcherTest {
 
   public TOPKSSearcherTest() {
     // Parameters test dataset
-    Params.dir = System.getProperty("user.dir")+"/test/test/";
+    Params.dir = System.getProperty("user.dir") + "/test/test/";
     Params.number_documents = 6;
     Params.networkFile = "network.txt";
     Params.triplesFile = "triples.txt";
     Params.ILFile = "tag-inverted.txt";
-    Params.tagFreqFile = "tag-freq.txt";
     Params.threshold = 0f;
 
     searcher = new TOPKSSearcher(new TfIdfScore());
@@ -42,7 +41,7 @@ public class TOPKSSearcherTest {
     query.add("style");
 
     JsonObject jsonResults = searcher.executeQuery(
-        1, query, 2, 200, true, 200, 0f);
+            1, query, 2, 200, true, 200, 0f);
 
     Assert.assertEquals(jsonResults.get("status").getAsInt(), 1);
     Assert.assertEquals(jsonResults.get("n").getAsInt(), 2);
@@ -53,17 +52,17 @@ public class TOPKSSearcherTest {
     // textualScore = log(2) * 1 ( only user 2 tagged item 6 with tag "style" )
     Assert.assertEquals(results.get(0).getAsJsonObject().get("id").getAsLong(), 6l);
     Assert.assertEquals(results.get(0).getAsJsonObject().get("socialScore").getAsFloat(),
-        (float)(Math.log(2) * 0.9), DELTA);
+            (float)(Math.log(2) * 0.9), DELTA);
     Assert.assertEquals(results.get(0).getAsJsonObject().get("textualScore").getAsFloat(),
-        (float)(Math.log(2) * 1), DELTA);
+            (float)(Math.log(2) * 1), DELTA);
 
     // Second item for q="style": item 4, socialScore log(2) * 0.7782
     // textualScore = log(2) * 3 ( 3 users tagged item 4 with tag "style" )
     Assert.assertEquals(results.get(1).getAsJsonObject().get("id").getAsLong(), 4l);
     Assert.assertEquals(results.get(1).getAsJsonObject().get("socialScore").getAsFloat(),
-        (float)(Math.log(2) * 0.7782), DELTA); // only user 3 is visited
+            (float)(Math.log(2) * 0.7782), DELTA); // only user 3 is visited
     Assert.assertEquals(results.get(1).getAsJsonObject().get("textualScore").getAsFloat(),
-        (float)(Math.log(2) * 3), DELTA);
+            (float)(Math.log(2) * 3), DELTA);
   }
 
   @Test
@@ -86,17 +85,17 @@ public class TOPKSSearcherTest {
     // textualScore = log(2) * 1 ( only user 2 tagged item 6 with tag "style" )
     Assert.assertEquals(results.get(0).getAsJsonObject().get("id").getAsLong(), 6l);
     Assert.assertEquals(results.get(0).getAsJsonObject().get("socialScore").getAsFloat(),
-        (float)(Math.log(2) * 0.9), DELTA);
+            (float)(Math.log(2) * 0.9), DELTA);
     Assert.assertEquals(results.get(0).getAsJsonObject().get("textualScore").getAsFloat(),
-        (float)(Math.log(2) * 1), DELTA);
+            (float)(Math.log(2) * 1), DELTA);
 
     // Second item for q="style": item 4, socialScore log(2) * 0.7782
     // textualScore = log(2) * 3 ( 3 users tagged item 4 with tag "style" )
     Assert.assertEquals(results.get(1).getAsJsonObject().get("id").getAsLong(), 4l);
     Assert.assertEquals(results.get(1).getAsJsonObject().get("socialScore").getAsFloat(),
-        (float)(Math.log(2) * 0.6), DELTA); // only user 3 is visited
+            (float)(Math.log(2) * 0.6), DELTA); // only user 3 is visited
     Assert.assertEquals(results.get(1).getAsJsonObject().get("textualScore").getAsFloat(),
-        (float)(Math.log(2) * 3), DELTA);
+            (float)(Math.log(2) * 3), DELTA);
   }
 
   @Test
@@ -123,51 +122,51 @@ public class TOPKSSearcherTest {
     Assert.assertEquals(results.get(0).getAsJsonObject().get("id").getAsInt(), 6);
     Assert.assertEquals(results.get(0).getAsJsonObject().get("rank").getAsInt(), 1);
     Assert.assertEquals(
-        results.get(0).getAsJsonObject().get("completion").getAsString(), "glasses");
+            results.get(0).getAsJsonObject().get("completion").getAsString(), "glasses");
     Assert.assertEquals(results.get(0).getAsJsonObject().get("socialScore").getAsFloat(),
-        (float)1.6479185, DELTA);
+            (float)1.6479185, DELTA);
     Assert.assertEquals(results.get(0).getAsJsonObject().get("textualScore").getAsFloat(),
-        (float)2.1972246, DELTA);
+            (float)2.1972246, DELTA);
 
     // id: 4 completion: "goth"
     Assert.assertEquals(results.get(1).getAsJsonObject().get("id").getAsInt(), 4);
     Assert.assertEquals(results.get(1).getAsJsonObject().get("rank").getAsInt(), 2);
     Assert.assertEquals(
-        results.get(1).getAsJsonObject().get("completion").getAsString(), "goth");
+            results.get(1).getAsJsonObject().get("completion").getAsString(), "goth");
     Assert.assertEquals(results.get(1).getAsJsonObject().get("socialScore").getAsFloat(),
-        (float)Math.log( 6 / 2 ) * 0.4212, DELTA);
+            (float)Math.log( 6 / 2 ) * 0.4212, DELTA);
     Assert.assertEquals(results.get(1).getAsJsonObject().get("textualScore").getAsFloat(),
-        (float)Math.log( 6 / 2 ) * 2, DELTA);
+            (float)Math.log( 6 / 2 ) * 2, DELTA);
 
     // id: 1 completion: "gloomy"
     Assert.assertEquals(results.get(2).getAsJsonObject().get("id").getAsInt(), 1);
     Assert.assertEquals(results.get(2).getAsJsonObject().get("rank").getAsInt(), 3);
     Assert.assertEquals(
-        results.get(2).getAsJsonObject().get("completion").getAsString(), "gloomy");
+            results.get(2).getAsJsonObject().get("completion").getAsString(), "gloomy");
     Assert.assertEquals(results.get(2).getAsJsonObject().get("socialScore").getAsFloat(),
-        (float)Math.log( 6 / 2 ) * 0.405, DELTA);
+            (float)Math.log( 6 / 2 ) * 0.405, DELTA);
     Assert.assertEquals(results.get(2).getAsJsonObject().get("textualScore").getAsFloat(),
-        (float)Math.log( 6 / 2 ) * 1, DELTA);
+            (float)Math.log( 6 / 2 ) * 1, DELTA);
 
     // id: 2 completion: "grunge"
     Assert.assertEquals(results.get(3).getAsJsonObject().get("id").getAsInt(), 2);
     Assert.assertEquals(results.get(3).getAsJsonObject().get("rank").getAsInt(), 4);
     Assert.assertEquals(
-        results.get(3).getAsJsonObject().get("completion").getAsString(), "grunge");
+            results.get(3).getAsJsonObject().get("completion").getAsString(), "grunge");
     Assert.assertEquals(results.get(3).getAsJsonObject().get("socialScore").getAsFloat(),
-        (float)Math.log( 6f / 5 ) * 1.491, DELTA);
+            (float)Math.log( 6f / 5 ) * 1.491, DELTA);
     Assert.assertEquals(results.get(3).getAsJsonObject().get("textualScore").getAsFloat(),
-        (float)Math.log( 6f / 5 ) * 3, DELTA);
+            (float)Math.log( 6f / 5 ) * 3, DELTA);
 
     // id: 5 completion: "grunge"
     Assert.assertEquals(results.get(4).getAsJsonObject().get("id").getAsInt(), 5);
     Assert.assertEquals(results.get(4).getAsJsonObject().get("rank").getAsInt(), 5);
     Assert.assertEquals(
-        results.get(4).getAsJsonObject().get("completion").getAsString(), "grunge");
+            results.get(4).getAsJsonObject().get("completion").getAsString(), "grunge");
     Assert.assertEquals(results.get(4).getAsJsonObject().get("socialScore").getAsFloat(),
-        (float)Math.log( 6f / 5 ) * 0.162, DELTA);
+            (float)Math.log( 6f / 5 ) * 0.162, DELTA);
     Assert.assertEquals(results.get(4).getAsJsonObject().get("textualScore").getAsFloat(),
-        (float)Math.log( 6f / 5 ) * 1, DELTA);
+            (float)Math.log( 6f / 5 ) * 1, DELTA);
 
   }
   //TODO test on multiple words
@@ -182,7 +181,7 @@ public class TOPKSSearcherTest {
     query.add("style");
 
     JsonObject jsonResults = searcher.executeQuery(
-        8, query, 5, 100, true, 200, 0.44444444f);
+            8, query, 5, 100, true, 200, 0.44444444f);
     System.out.println(jsonResults.toString());
     Assert.assertEquals(jsonResults.get("status").getAsInt(), 1);
     Assert.assertEquals(jsonResults.get("n").getAsInt(), 3);
@@ -191,15 +190,15 @@ public class TOPKSSearcherTest {
 
     Assert.assertEquals(results.get(0).getAsJsonObject().get("id").getAsLong(), 4l);
     Assert.assertEquals(results.get(0).getAsJsonObject().get("socialScore").getAsFloat(), 
-        (float)(Math.log(2) * 0.124), DELTA);
+            (float)(Math.log(2) * 0.124), DELTA);
     Assert.assertEquals(results.get(0).getAsJsonObject().get("textualScore").getAsFloat(),
-        (float)(Math.log(2) * 3), DELTA);
+            (float)(Math.log(2) * 3), DELTA);
 
     Assert.assertEquals(results.get(1).getAsJsonObject().get("id").getAsLong(), 2l);
     Assert.assertEquals(results.get(1).getAsJsonObject().get("socialScore").getAsFloat(),
-        (float)(Math.log(2) * 0.02), DELTA); // only user 3 is visited
+            (float)(Math.log(2) * 0.02), DELTA); // only user 3 is visited
     Assert.assertEquals(results.get(1).getAsJsonObject().get("textualScore").getAsFloat(),
-        (float)(Math.log(2) * 1), DELTA);
+            (float)(Math.log(2) * 1), DELTA);
 
   }
 }

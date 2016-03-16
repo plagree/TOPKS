@@ -20,8 +20,8 @@ import com.google.gson.JsonPrimitive;
 public class TOPKSSearcher {
 
   private static final boolean heap = true;
-  @SuppressWarnings("rawtypes")
-  private static final PathCompositionFunction pathFunction = new PathMultiplication();
+  private static final PathCompositionFunction<Float> pathFunction =
+          new PathMultiplication();
   public static final String network = "network";
   private TopKAlgorithm topk_alg;
 

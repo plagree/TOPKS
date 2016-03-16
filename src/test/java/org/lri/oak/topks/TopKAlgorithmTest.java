@@ -1,6 +1,5 @@
 package org.lri.oak.topks;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -21,7 +20,6 @@ public class TopKAlgorithmTest {
 
   public static void main(String[] args) {
     Params.dir = System.getProperty("user.dir") + "/test/yelp/TOPZIP/small/";
-    Params.number_documents = 18149;
     Params.networkFile = "network.txt";
     Params.triplesFile = "triples.txt";
     // Index files and load data in memory
@@ -30,7 +28,7 @@ public class TopKAlgorithmTest {
     TopKAlgorithm algo = new TopKAlgorithm(score, 0f, new PathMultiplication(), optpath);
     List<String> query = new ArrayList<String>();
     query.add("restaurant");
-    algo.executeQuery(1, query, 10, 0f, 2000, 200000);
+    algo.executeQuery(1, query, 3, 0f, 2000, 200000);
     JsonObject jsonResult = JsonBuilder.getJsonAnswer(algo, 1000);
     try (PrintWriter out = new PrintWriter("/home/paul/output.json", "UTF-8")){
       out.print(jsonResult.toString());

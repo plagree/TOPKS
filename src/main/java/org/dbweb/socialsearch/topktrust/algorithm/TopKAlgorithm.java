@@ -9,25 +9,19 @@ import org.dbweb.socialsearch.topktrust.datastructure.Item;
 import org.dbweb.socialsearch.topktrust.datastructure.ItemList;
 import org.dbweb.socialsearch.topktrust.datastructure.ReadingHead;
 import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
+import org.dbweb.topktrust.socialsearch.importer.CSVFileImporter;
 import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.completion.trie.RadixTreeNode;
 import org.externals.Tools.NDCG;
 import org.externals.Tools.NDCGResults;
 
-import gnu.trove.iterator.TIntObjectIterator;
 import gnu.trove.iterator.TLongIterator;
-import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.set.TLongSet;
-import gnu.trove.set.hash.TLongHashSet;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -47,80 +41,84 @@ import com.google.gson.JsonPrimitive;
  */
 public class TopKAlgorithm {
 
-  protected ItemList candidates;				// Buffer of candidates
-  protected TIntObjectMap<PatriciaTrie<TLongSet>> userSpaces;	// p-spaces
-  protected TIntIntMap sizeUserSpaces;		// Useless?
-  protected Set<String> invertedListsUsed;	// Statistics on ILs used
-  protected Map<String, Integer> sizeInvertedLists;	// Useless?
-  protected RadixTreeImpl tag_idf;			// Index of TF-IDFs
-  protected List<Float> values;				// Useless
-  protected Map<Integer, ReadingHead> topReadingHead;
-  protected Map<String, Integer> invertedListPositions;
-  protected Map<Integer, Float> userWeights;	// Social score (similarity) of the current visited user
-  protected Map<String, Integer> tagFreqs;
-  protected Set<Pair<Long,String>> unknown_tf;
-  protected PatriciaTrie<String> dictionaryTrie;	// Trie containing all the words
-  protected RadixTreeImpl completionTrie; 		// Completion trie
-  protected List<String> correspondingCompletions;// TODO: What does it mean?
-  protected Map<String, List<DocumentNumTag>> invertedLists;	// Index - inverted lists
+  /* 1. Index of the considered dataset */
+  private Map<String, Integer> invertedListPositions = new HashMap<String, Integer>();
+  // TF-IDF index
+  private RadixTreeImpl tagIdf = new RadixTreeImpl();
+  // P-spaces
+  private TIntObjectMap<PatriciaTrie<TLongSet>> userSpaces =
+          new TIntObjectHashMap<PatriciaTrie<TLongSet>>();
+  // Trie on the dictionary of words (contains all words)
+  private PatriciaTrie<String> dictionaryTrie = new PatriciaTrie<String>();
+  // Completion trie
+  private RadixTreeImpl completionTrie = new RadixTreeImpl();
+  // Index - inverted lists
+  private Map<String, List<DocumentNumTag>> invertedLists = new HashMap<String,
+          List<DocumentNumTag>>();
+  private OptimalPaths optpath;
+
+  /* 2. Session-dependent structures */
+  private ItemList candidates;			// Buffer of candidates
+  private Set<String> invertedListsUsed;// Statistics on ILs used
+  private List<Float> values;
+  private List<ReadingHead> topReadingHead;
+  private List<Float> userWeights;  // Social score (similarity) of the current visited user
+  private Set<Pair<Long,String>> unknownTf;
+  private List<String> correspondingCompletions;// TODO: What does it mean?
   private Set<Long> guaranteed;
   private Set<Long> possible; // Set of items which are still candidates for the final topk
-  protected float userWeight;
-  protected UserEntry<Float> currentUser;
-  protected PathCompositionFunction distFunc;
-  private OptimalPaths optpath;
+  private float userWeight;
+  private UserEntry<Float> currentUser;
+  private PathCompositionFunction<Float> distFunc;
   private Score score;
 
   // NDCG lists
-  protected List<Long> oracleNDCG;
-  protected NDCGResults ndcgResults;
+  private List<Long> oracleNDCG;
+  private NDCGResults ndcgResults;
   // Time for exact top k
-  protected long time_topk = 0;
-  protected Set<Long> topk_infinity;
+  private long time_topk = 0;
+  private Set<Long> topk_infinity;
 
   //debug purpose
   public double bestscore;
   public List<Integer> visitedNodes;
   private int nbNeighbour;
   private List<Integer> queryNbNeighbour;
-  protected boolean terminationCondition;
-  protected long time_loop;
-  protected int number_documents;
-  protected int number_users;
-  protected float alpha = 0;
-  protected int nbPSpacesAccesses;// Accesses of p-spaces
-  protected int nbILFastAccesses;
-  protected int nbILAccesses;
+  private boolean terminationCondition;
+  private float alpha = 0;
+  private int nbPSpacesAccesses; // Accesses of p-spaces
+  private int nbILFastAccesses;
+  private int nbILAccesses;
   private int numloops = 0;
-  private int skippedTests; 		// Number of loops before testing the exit condition
-  private int maximumNodeVisited;	// Maximum number of users to visit
-  private int numberUsersSeen;	// Current number of users seen
+  private int skippedTests = 1;  // Number of loops before testing the exit condition
+  private int maximumNodeVisited;// Maximum number of users to visit
+  private int numberUsersSeen;	 // Current number of users seen
 
 
   /**
-   * TODO
+   * Constructor
    * @param itemScore
    * @param scoreAlpha
    * @param distFunc
    * @param optPathClass
    */
   public TopKAlgorithm(Score itemScore, float scoreAlpha,
-          PathCompositionFunction distFunc, OptimalPaths optPathClass) {
+          PathCompositionFunction<Float> distFunc, OptimalPaths optPathClass) {
     this.distFunc = distFunc;
     this.alpha = scoreAlpha;
     this.optpath = optPathClass;
     this.score = itemScore;
-    this.skippedTests = 10000;
     this.correspondingCompletions = null;
-    long time_before_loading = System.currentTimeMillis();
+    long before = System.currentTimeMillis();
     try {
-      this.fileLoadingInMemory();
+      CSVFileImporter.loadInMemory(this.completionTrie, this.tagIdf,
+              this.invertedListPositions, this.invertedLists,
+              this.dictionaryTrie, this.userSpaces);
     } catch (IOException e) {
       e.printStackTrace();
     }
-    long time_after_loading = System.currentTimeMillis();
-    System.out.println("File loading in "+(float)(time_after_loading - time_before_loading)
-            / 1000 +" sec...");
+    long after = System.currentTimeMillis();
+    System.out.println("File loading: " + (float)(after - before) / 1000 + "s");
   }
 
   /**
@@ -128,6 +126,7 @@ public class TopKAlgorithm {
    * to run algorithm. This query method must be called for the first query.
    * When iterating to next letter, use method executeQueryNextLetter. When
    * starting a new word, use method executeQueryNextWord.
+   * 
    * @param alpha   Parameter to balance textual and social contributions
    * @param seeker  Id of the seeker
    * @param query   List of keywords (last is considered as prefix)
@@ -142,43 +141,32 @@ public class TopKAlgorithm {
     this.alpha = alpha;
     this.maximumNodeVisited = maximumNodeVisited;
     this.values = new ArrayList<Float>();		// TO REMOVE
-    this.unknown_tf = new HashSet<Pair<Long,String>>();
+    this.unknownTf = new HashSet<Pair<Long,String>>();
     this.optpath.setValues(values);
     this.optpath.setDistFunc(distFunc);
     this.userWeight = 1.0f;
     this.terminationCondition = false;
     this.invertedListsUsed = new HashSet<String>();
-    this.topReadingHead = new HashMap<Integer, ReadingHead>();
-    this.userWeights = new HashMap<Integer, Float>();
+    this.topReadingHead = new ArrayList<ReadingHead>();
+    this.userWeights = new ArrayList<Float>();
     this.nbNeighbour = 0;
     this.queryNbNeighbour = new ArrayList<Integer>();
-    this.candidates = new ItemList(this.score);	// New buffer because new query
+    // New buffer because new query
+    this.candidates = new ItemList(this.score);
     // Initialise the heap for Dijkstra
     this.currentUser = optpath.initiateHeapCalculation(seeker);
     // Initialise ChooseBranch heuristics
     this.candidates.setBranchHeuristics(query, this.completionTrie);
     for (int i = 0; i < query.size(); i++) {
-      userWeights.put(i, this.userWeight);
+      this.userWeights.add(this.userWeight);
       this.queryNbNeighbour.add(0);
     }
 
-    // Step 1: Initialise index of prefix
-    String prefix = query.get(query.size() - 1);
-    // Get best index completion of the prefix
-    String completion = completionTrie.searchPrefix(prefix, false)
-            .getBestDescendant().getWord();
-    this.invertedListsUsed.add(completion);
-    // Get corresponding value and item id
-    int value = (int)completionTrie.searchPrefix(prefix, false).getValue();
-    long itemId = this.invertedLists.get(completion).get(0).getDocId();
-    ReadingHead rh = new ReadingHead(completion, itemId, value);
-    if (this.correspondingCompletions != null) {
-      // rh.setCompletion(this.correspondingCompletions.get(0)); TODO
-      return;
-    }
-    topReadingHead.put(query.size() - 1, rh);
+    int value;
+    long itemId;
+    ReadingHead rh;
 
-    // Step 2: Initialise indices of words before prefix
+    // Step 1: Initialise indices of words before prefix
     String keyword;
     for (int pos = 0; pos < query.size() - 1; pos++) {
       keyword = query.get(pos);
@@ -187,8 +175,24 @@ public class TopKAlgorithm {
       value = this.invertedLists.get(keyword).get(0).getNum();
       itemId = this.invertedLists.get(keyword).get(0).getDocId();
       rh = new ReadingHead(keyword, itemId, value);
-      topReadingHead.put(pos, rh);
+      topReadingHead.add(rh);
     }
+
+    // Step 2: Initialise index of prefix
+    String prefix = query.get(query.size() - 1);
+    // Get best index completion of the prefix
+    String completion = this.completionTrie.searchPrefix(prefix, false)
+            .getBestDescendant().getWord();
+    this.invertedListsUsed.add(completion);
+    // Get corresponding value and item id
+    value = (int)completionTrie.searchPrefix(prefix, false).getValue();
+    itemId = this.invertedLists.get(completion).get(0).getDocId();
+    rh = new ReadingHead(completion, itemId, value);
+    if (this.correspondingCompletions != null) {
+      // rh.setCompletion(this.correspondingCompletions.get(0)); TODO
+      return;
+    }
+    topReadingHead.add(rh);
 
     // Step 4: Run the algorithm
     mainLoop(k, seeker, query, t);
@@ -219,13 +223,13 @@ public class TopKAlgorithm {
     List<DocumentNumTag> arr = this.invertedLists.get(bestCompletion);
 
     if (this.invertedListPositions.get(bestCompletion) < arr.size()) {
-      topReadingHead.put(
+      topReadingHead.set(
               position,
               new ReadingHead(bestCompletion, 
                       arr.get(this.invertedListPositions.get(bestCompletion)).getDocId(),
                       arr.get(this.invertedListPositions.get(bestCompletion)).getNum()));
     } else {
-      topReadingHead.put(position, null);
+      topReadingHead.set(position, null);
     }
 
     this.candidates.filterNextLetter(query);
@@ -252,6 +256,7 @@ public class TopKAlgorithm {
    * @param t Maximum time to compute the answer
    */
   public void executeQueryNextWord(int seeker, List<String> query, int k, int t) {
+
     // We check that the new query has one more word than in previous execution
     if (this.topReadingHead.size() + 1 != query.size())
       System.out.println("executeQueryNextWord used with wrong number of params");
@@ -261,7 +266,8 @@ public class TopKAlgorithm {
     this.terminationCondition = false;
     this.nbNeighbour = 0;
     // Clean previous prefix for new word
-    this.candidates.filterNextWord(query, this.tag_idf, this.completionTrie);
+    this.candidates.filterNextWord(query, this.tagIdf, this.completionTrie,
+            this.unknownTf);
 
     // Add a new reading head for the new word
     String prefix = query.get(query.size() - 1);
@@ -276,8 +282,8 @@ public class TopKAlgorithm {
     if (this.correspondingCompletions != null) {
       return;
     }
-    this.topReadingHead.put(query.size() - 1, rh);
-    // TODO Update the unknown_tf map
+    this.userWeights.add(this.userWeight);
+    this.topReadingHead.set(query.size() - 1, rh);
     mainLoop(k, seeker, query, t);
   }
 
@@ -298,7 +304,6 @@ public class TopKAlgorithm {
       Iterator<Entry<String, String>> iterator = completions
               .entrySet().iterator();
       Entry<String, String> currentEntry = null;
-      userWeight = 1;
       while (iterator.hasNext()) {
         currentEntry = iterator.next();
         String completion = currentEntry.getKey();
@@ -326,7 +331,7 @@ public class TopKAlgorithm {
    * @param query List of the words in the query (last is a prefix)
    * @param max_t Maximum time to give a response
    */
-  protected void mainLoop(int k, int seeker, List<String> query, int max_t) {
+  private void mainLoop(int k, int seeker, List<String> query, int max_t) {
     // General attribute initialisations
     this.guaranteed = new HashSet<Long>();
     this.possible = new HashSet<Long>();
@@ -343,46 +348,33 @@ public class TopKAlgorithm {
     int steps = 1;
     boolean underTimeLimit = true;
     long currentTime = 0;
-    long time_NDCG = 0;
+    long timeNDCG = 0;
     long timeThresholdNDCG = Params.TIME_NDCG;
     int currVisited = 0;
     long before_main_loop = System.currentTimeMillis();
-    if (Params.DEBUG == true)
-      System.out.println("aaa");
 
     do {
       if (Params.DISK_ACCESS_EXPERIMENT && (currVisited + this.invertedListsUsed.size() +
               Params.NUMBER_ILS) >= Params.DISK_BUDGET)
         break;
-      if (Params.DEBUG == true)
-        System.out.println("bbbb");
       boolean socialBranch = chooseBranch(query);
-      if (Params.DEBUG == true)
-        System.out.println("ccc");
       if(socialBranch) {
         if (this.alpha == 1 || this.currentUser == null) {
-          System.out.println("SHORT BREAK");
           break;
         }
         if (this.currentUser.getEntryId() != seeker)
           currVisited += 1;
-        if (Params.DEBUG == true)
-          System.out.println("a");
         processSocial(query, seeker);
-        if (Params.DEBUG == true)
-          System.out.println("b");
         lookIntoList(query);   //the "peek at list" procedure
-        if (Params.DEBUG == true)
-          System.out.println("c");
       } else {
         System.out.println("Process textual");
         processTextual(query);
       }
 
-      steps = (steps + 1) % skippedTests;
+      steps = (steps + 1) % this.skippedTests;
       if (steps == 0) {
         terminationCondition = candidates.terminationCondition(
-                query, k, this.alpha, this.tag_idf, this.topReadingHead,
+                query, k, this.alpha, this.tagIdf, this.topReadingHead,
                 this.userWeights, this.possible);
 
         //long time_1 = System.currentTimeMillis();
@@ -401,7 +393,7 @@ public class TopKAlgorithm {
         }
         if (Params.NDCG_TIME) {
           // Analysis for NDCG vs t plot
-          currentTime = (System.currentTimeMillis() - before_main_loop) - time_NDCG / 1000000;
+          currentTime = (System.currentTimeMillis() - before_main_loop) - timeNDCG / 1000000;
           if (Params.NDCG_TIME && (currentTime >= timeThresholdNDCG)) {
             long bef = System.nanoTime();
             double ndcg = NDCG.getNDCG(this.candidates.getLongListTopk(k), 
@@ -412,7 +404,7 @@ public class TopKAlgorithm {
                       + ",   "+oracleNDCG.toString());
             }
             this.ndcgResults.addPoint(currentTime, ndcg);
-            time_NDCG += (System.nanoTime() - bef);
+            timeNDCG += (System.nanoTime() - bef);
             timeThresholdNDCG += Params.TIME_NDCG;
           }
           if (currentTime >= max_t && Params.NDCG_TIME) {
@@ -429,18 +421,17 @@ public class TopKAlgorithm {
           }
         }
         else if (Params.EXACT_TOPK && (currVisited % 100 == 0)) {
-          currentTime = (System.currentTimeMillis() - before_main_loop) - time_NDCG / 1000000;
+          currentTime = (System.currentTimeMillis() - before_main_loop) - timeNDCG / 1000000;
           long bef = System.nanoTime();
           if (this.topk_infinity.equals(this.candidates.getSetTopk(k))) {
             this.time_topk = currentTime;
             break;
           }
-          time_NDCG += (System.nanoTime() - bef);
+          timeNDCG += (System.nanoTime() - bef);
         }
         terminationCondition = false;
-        if (Params.DEBUG == true)
-          System.out.println("e");
       } // End experiments
+
       long time_1 = System.currentTimeMillis();
       if ((time_1-before_main_loop) > Math.max(max_t + 25, max_t)) {
         System.out.println("time not under limit");
@@ -453,8 +444,6 @@ public class TopKAlgorithm {
       if (currVisited >= this.maximumNodeVisited) {	// We visited enough users
         terminationCondition = true;
       }
-      if (Params.DEBUG == true)
-        System.out.println("f");
     } while(!terminationCondition && underTimeLimit);
 
     this.numloops = loops;
@@ -468,21 +457,16 @@ public class TopKAlgorithm {
    * @param query
    * @return true (social) , false (textual)
    */
-  protected boolean chooseBranch(List<String> query) {
+  private boolean chooseBranch(List<String> query) {
 
     float upper_social_score;
     float upper_textual_score;
     boolean textual = false;
 
-    if (this.topReadingHead.get(query.get(query.size() - 1)) == null)
+    if (this.topReadingHead.get(query.size() - 1) == null)
       return !textual;
 
     for(int pos = 0; pos < query.size(); pos++) {
-      if (userWeights.get(pos) == null) {
-        System.out.println("WHY HERE? "+this.numloops);
-        System.exit(0);
-        return false; // (choose textual)
-      }
       // OK but strange if skipped_tests != 0
       upper_social_score = (1 - this.alpha) * this.userWeights.get(pos)
               * this.candidates.getSocialBranchHeuristic(pos);
@@ -500,12 +484,12 @@ public class TopKAlgorithm {
    * Social process of the TOPKS algorithm
    * @param query
    */
-  protected void processSocial(List<String> query, int seeker) {
+  private void processSocial(List<String> query, int seeker) {
     // We check that haven't finished visiting the network yet
     if (this.currentUser == null) {
       this.userWeight = 0;
       for (int i = 0; i < query.size(); i++)
-        userWeights.put(i, this.userWeight);
+        this.userWeights.set(i, this.userWeight);
       return;
     }
 
@@ -521,7 +505,7 @@ public class TopKAlgorithm {
         continue; // We don't need to analyse this word because it was already done previously
       }
       this.queryNbNeighbour.set(pos, this.nbNeighbour + 1);
-      userWeights.put(pos, this.userWeight);
+      this.userWeights.set(pos, this.userWeight);
       currentUserId = currentUser.getEntryId();
       if (this.userSpaces.containsKey(currentUserId) &&
               (currentUserId != seeker || Params.SUPERNODE)) {
@@ -548,11 +532,11 @@ public class TopKAlgorithm {
                 }
                 // Add the tag if not seen for this item yet
                 if (!this.candidates.getItem(itemId).containsTag(completion)) {
-                  float idf = tag_idf.searchPrefix(completion, true).getValue();
+                  float idf = tagIdf.searchPrefix(completion, true).getValue();
                   this.candidates.getItem(itemId).addTag(
                           completion, true, idf, pos);
                   // TF for (itemId, tag) is unknown
-                  this.unknown_tf.add(new Pair<Long,String>(itemId, completion));
+                  this.unknownTf.add(new Pair<Long,String>(itemId, completion));
                 }
                 // Update the social score
                 this.candidates.updateSocialScore(
@@ -571,11 +555,11 @@ public class TopKAlgorithm {
             }
             // Add the tag if not seen for this item yet
             if (!this.candidates.getItem(itemId).containsTag(tag)) {
-              float idf = tag_idf.searchPrefix(tag, true).getValue();
+              float idf = tagIdf.searchPrefix(tag, true).getValue();
               // Add new tag to the corresponding Item
               this.candidates.getItem(itemId).addTag(tag, false, idf, pos);
               // TF for (itemId, tag) is unknown
-              this.unknown_tf.add(new Pair<Long,String>(itemId, tag));
+              this.unknownTf.add(new Pair<Long,String>(itemId, tag));
             }
             // Update the social score
             this.candidates.updateSocialScore(itemId, tag, userWeight);
@@ -585,7 +569,7 @@ public class TopKAlgorithm {
     }
 
     this.nbNeighbour++;
-    // Sometimes, this code runs really slowly TODO
+    // Sometimes, this code runs really slowly
     long time_loading_before = System.currentTimeMillis();
     currentUser = optpath.advanceFriendsList(currentUser);
     long time_loading_after = System.currentTimeMillis();
@@ -616,14 +600,14 @@ public class TopKAlgorithm {
           break;
         found = false;
         keyword = currentReadingHead.getCompletion();
-        if (unknown_tf.contains(currentReadingHead.getItemKeywordPair())) {
+        if (this.unknownTf.contains(currentReadingHead.getItemKeywordPair())) {
           found = true;	// The entry has been discovered in the graph
           if (this.candidates.containsItemId(currentReadingHead.getItemId())) {
             this.candidates.getItem(currentReadingHead.getItemId()).updateTDFScore(
                     keyword, currentReadingHead.getValue());
           }
           // We found the entry in IL
-          this.unknown_tf.remove(currentReadingHead.getItemKeywordPair());
+          this.unknownTf.remove(currentReadingHead.getItemKeywordPair());
           if (pos == query.size() - 1)	//  prefix
             advanceTextualList(query.get(pos), pos, false);
           else
@@ -637,7 +621,7 @@ public class TopKAlgorithm {
    * We chose the textual branch (alpha > 0), we advance in inverted lists
    * @param query List of words in the query
    */
-  protected void processTextual(List<String> query) {
+  private void processTextual(List<String> query) {
     ReadingHead currentEntry;
     long itemId;
     String keyword;
@@ -660,7 +644,7 @@ public class TopKAlgorithm {
       }
       // Add the tag if not seen for this item yet
       if (!this.candidates.getItem(itemId).containsTag(keyword)) {
-        float idf = tag_idf.searchPrefix(keyword, true).getValue();
+        float idf = tagIdf.searchPrefix(keyword, true).getValue();
         // Add new tag to the corresponding Item
         if (pos == query.size() - 1)	// prefix
           this.candidates.getItem(itemId).addTag(keyword, true, idf, pos);
@@ -670,8 +654,8 @@ public class TopKAlgorithm {
       // Update TF value
       this.candidates.getItem(itemId).updateTDFScore(keyword, currentEntry.getValue());
       // TF for (itemId, tag) is now known
-      if (this.unknown_tf.contains(currentEntry.getItemKeywordPair()))
-        this.unknown_tf.remove(currentEntry.getItemKeywordPair());
+      if (this.unknownTf.contains(currentEntry.getItemKeywordPair()))
+        this.unknownTf.remove(currentEntry.getItemKeywordPair());
       if (pos == query.size() - 1)	// prefix, we don't search for exact match
         advanceTextualList(query.get(pos), pos, false);
       else
@@ -684,10 +668,12 @@ public class TopKAlgorithm {
    * Used both in Social and Textual branches.
    * @param tag Word from the query
    * @param pos Position of the tag in the query
-   * @param exact True if we want the exact word (not prefix), false otherwise (prefix)
+   * @param exact True if we want the exact word (not prefix), false otherwise
+   *  (prefix)
    */
-  protected void advanceTextualList(String tag, int pos, boolean exact) {
-    RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact).getBestDescendant();
+  private void advanceTextualList(String tag, int pos, boolean exact) {
+    RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact)
+            .getBestDescendant();
     if (current_best_leaf.getWord().equals(tag)) {	// Statistics
       this.nbILFastAccesses += 1;
     } else {
@@ -707,7 +693,7 @@ public class TopKAlgorithm {
     current_best_leaf = this.completionTrie.searchPrefix(tag, exact).getBestDescendant();	// TODO: analyse
     // Check if we finished reading the entries of the IL
     if (current_best_leaf.getValue() == 0) {
-      this.topReadingHead.put(pos, null);
+      this.topReadingHead.set(pos, null);
       return;
     }
     keyword = current_best_leaf.getWord();
@@ -719,7 +705,7 @@ public class TopKAlgorithm {
     else	// TODO: Analyse when it happens
       new_top_rh = new ReadingHead(this.correspondingCompletions.get(ILposition),
               current_read.getDocId(), current_read.getNum());
-    this.topReadingHead.put(pos, new_top_rh);
+    this.topReadingHead.set(pos, new_top_rh);
   }
 
   /**
@@ -734,150 +720,6 @@ public class TopKAlgorithm {
 
   public Set<Long> getSetTopk(int k){
     return candidates.getSetTopk(k);
-  }
-
-  private static long getUsedMemory() {
-    return Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-  }
-
-  /**
-   * Method to load file with triples in memory
-   * @throws IOException
-   */
-  private void fileLoadingInMemory() throws IOException {
-    final long start = getUsedMemory();
-    this.completionTrie = new RadixTreeImpl(); //
-    // positions for a given keyword in the graph (useful for multiple words)
-    this.invertedListPositions = new HashMap<String, Integer>(16, 0.85f);
-    this.tagFreqs = new HashMap<String,Integer>(16, 0.85f); //DONE BUT NOT USED
-    this.tag_idf = new RadixTreeImpl(); //DONE
-    this.invertedLists = new HashMap<String, List<DocumentNumTag>>(16, 0.85f); //DONE
-    this.userSpaces = new TIntObjectHashMap<PatriciaTrie<TLongSet>>(16, 0.85f);
-    this.dictionaryTrie = new PatriciaTrie<String>(); // trie on the dictionary of words
-    this.sizeUserSpaces = new TIntIntHashMap();
-    this.sizeInvertedLists = new HashMap<String, Integer>();
-    this.userWeight = 1.0f;
-
-    BufferedReader br;
-    String line;
-    String[] data;
-
-    if (Params.VERBOSE)
-      System.out.println("Beginning of file loading...");
-
-    // Tag Inverted lists processing
-    br = new BufferedReader(new FileReader(Params.dir+Params.ILFile));
-    List<DocumentNumTag> currIL;
-    int counter = 0;
-    while ((line = br.readLine()) != null) {
-      data = line.split("\t");
-      if (data.length < 2)
-        continue;
-      String tag = data[0];
-      if (!this.invertedLists.containsKey(data[0]))
-        this.invertedLists.put(tag, new ArrayList<DocumentNumTag>());
-      currIL = this.invertedLists.get(data[0]);
-      for (int i=1; i<data.length; i++) {
-        String[] tuple = data[i].split(":");
-        if (tuple.length != 2)
-          continue;
-        currIL.add(new DocumentNumTag(Long.parseLong(tuple[0]),
-                Integer.parseInt(tuple[1])));
-      }
-      Collections.sort(currIL, Collections.reverseOrder());
-      DocumentNumTag firstDoc = currIL.get(0);
-      this.completionTrie.insert(tag, firstDoc.getNum());
-      this.invertedListPositions.put(tag, 0);
-      this.tagFreqs.put(tag, firstDoc.getNum());
-      counter++;
-      if ((counter%50000) == 0 && Params.VERBOSE)
-        System.out.println("\t"+counter+" tag ILs loaded");
-    }
-    br.close();
-    final long size = ( getUsedMemory() - start) / 1024 / 1024;
-    if (Params.VERBOSE) {
-      System.out.println("Inverted List file = " + size + "M");
-      System.out.println("Inverted List file loaded...");
-    }
-
-    // Triples processing
-    int userId;
-    long itemId;
-    String tag;
-    final long start2 = getUsedMemory();
-    br = new BufferedReader(new FileReader(Params.dir+Params.triplesFile));
-    counter = 0;
-
-    if (Params.VERBOSE)
-      System.out.println("Loading of triples");
-
-    while ((line = br.readLine()) != null) {
-      data = line.split("\t");
-
-      if (data.length != 3)
-        continue;
-      userId = Integer.parseInt(data[0]);
-      itemId = Long.parseLong(data[1]);
-      tag = data[2];
-      if (!dictionaryTrie.containsKey(tag))
-        this.dictionaryTrie.put(tag, ""); // This trie has no value
-      if(!this.userSpaces.containsKey(userId)){
-        this.userSpaces.put(userId, new PatriciaTrie<TLongSet>());
-      }
-      if(!this.userSpaces.get(userId).containsKey(tag))
-        this.userSpaces.get(userId).put(tag, new TLongHashSet());
-      this.userSpaces.get(userId).get(tag).add(itemId);
-      counter++;
-      if ((counter % 1000000) == 0 && Params.VERBOSE)
-        System.out.println("\t" + counter + " triples loaded");
-    }
-    br.close();
-    final long size2 = (getUsedMemory() - start2) / 1024 / 1024;
-
-    // Computation of the space of user spaces and inverted lists
-    TIntObjectIterator<PatriciaTrie<TLongSet>> it = this.userSpaces.iterator();
-    while (it.hasNext()) { // Loop on userSpaces
-      it.advance();
-      int user = it.key();
-      PatriciaTrie<TLongSet> patricia = this.userSpaces.get(user);
-      Set<String> keys = patricia.keySet();
-      int current_size = 0;
-      for (String key: keys)
-        current_size += key.length() + 1;
-      Iterator<TLongSet> it2 = patricia.values().iterator();
-      while (it2.hasNext()) {
-        current_size += it2.next().size() * 8;
-      }
-      this.sizeUserSpaces.put(user, current_size);
-    }
-    Set<String> keys = this.invertedLists.keySet();
-    for (String key: keys) {
-      this.sizeInvertedLists.put(key, this.invertedLists.get(key).size()*8);
-    }
-
-    if (Params.VERBOSE)
-      System.out.println("User spaces file = " + size2 + "M");
-    Params.number_users = this.userSpaces.size();
-
-    // Tag Freq processing
-    final long start3 = getUsedMemory();
-    br = new BufferedReader(new FileReader(Params.dir+Params.tagFreqFile));
-    int tagfreq;
-    while ((line = br.readLine()) != null) {
-      data = line.split("\t");
-      if (data.length != 2)
-        continue;
-      tag = data[0];
-      tagfreq = Integer.parseInt(data[1]);
-      //float tagidf = (float) Math.log(((float)Params.number_documents - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
-      float tagidf = (float) Math.log(0.5 + (float)Params.number_documents / ((float) tagfreq) ); // Old tf-idf
-      tag_idf.insert(tag, tagidf);
-    }
-    br.close();
-    final long size3 = (getUsedMemory() - start3) / 1024 / 1024;
-
-    if (Params.VERBOSE)
-      System.out.println("TagFreq file = " + size3 + "M");
   }
 
   public void setSkippedTests(int skippedTests) {
