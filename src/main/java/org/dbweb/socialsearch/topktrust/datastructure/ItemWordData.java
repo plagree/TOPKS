@@ -4,13 +4,13 @@ import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 
 public class ItemWordData {
 
-  private float idf; 			      // idf for each term of the query
-  private float uf; 				    // sum of user similarities found (social score?)
-  private int tdf; 				      // number of users who tagged this item for each term (found in IL)
-  private int nbUsersSeen; 		  // number of users seen who tagged this item for each term
-  private boolean isCompletion;	// Is it a completion?
+  private float idf; 			      // idf of the word
+  private float uf; 				  // sum of user similarities found (social score?)
+  private int tdf; 				      // number of users who tagged this item with this term (found in IL)
+  private int nbUsersSeen; 		      // number of users seen who tagged this item with this term
+  private boolean isCompletion;	      // Is it a completion?
   private float worstScore;
-  private int position;			    // Position of the word in the query
+  private int position;			      // Position of the word in the query
 
   public ItemWordData(boolean isCompletion, float idf, int pos) {
     this.idf = idf;
@@ -95,10 +95,6 @@ public class ItemWordData {
     return this.tdf >= 0;
   }
 
-  public void setWorstScore(float ws) {
-    this.worstScore = ws;
-  }
-
   public float getWorstScore() {
     return this.worstScore;
   }
@@ -131,7 +127,8 @@ public class ItemWordData {
    * @param userWeight Value of the current visited user
    * @return Social heuristic
    */
-  public float getSocialBranchHeuristic(float alpha, int topIL, float userWeight) {
+  public float getSocialBranchHeuristic(float alpha, int topIL,
+          float userWeight) {
     if (this.tdf < 0)   // We haven't read the IL yet
       return (1 - alpha) * topIL * userWeight;
     else

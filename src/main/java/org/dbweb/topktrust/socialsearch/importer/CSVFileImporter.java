@@ -16,6 +16,7 @@ import org.apache.commons.collections4.trie.PatriciaTrie;
 import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.DocumentNumTag;
+import org.dbweb.socialsearch.topktrust.algorithm.score.InverseDocumentFrequency;
 
 import gnu.trove.iterator.TIntObjectIterator;
 import gnu.trove.map.TIntObjectMap;
@@ -162,12 +163,10 @@ public class CSVFileImporter {
     // 3. Tag Freq processing
     final long start3 = getUsedMemory();
     int tagpop;
+    float tagidf;
     for (String tag2: tagPopularity.keySet()) {
       tagpop = tagPopularity.get(tag2).size();
-      //float tagidf = (float) Math.log(((float)Params.number_documents
-      //        - (float)tagfreq + 0.5)/((float)tagfreq+0.5));
-      float tagidf = (float) Math.log(0.5 + (float)Params.number_documents
-              / ((float) tagpop) ); // Old tf-idf
+      tagidf = InverseDocumentFrequency.classic(tagpop, Params.number_documents);
       tagIdf.insert(tag2, tagidf);
     }
     final long size3 = (getUsedMemory() - start3) / 1024 / 1024;

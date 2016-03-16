@@ -532,7 +532,8 @@ public class TopKAlgorithm {
                 }
                 // Add the tag if not seen for this item yet
                 if (!this.candidates.getItem(itemId).containsTag(completion)) {
-                  float idf = tagIdf.searchPrefix(completion, true).getValue();
+                  float idf = this.tagIdf.searchPrefix(
+                          completion, false).getValue();
                   this.candidates.getItem(itemId).addTag(
                           completion, true, idf, pos);
                   // TF for (itemId, tag) is unknown
@@ -555,11 +556,11 @@ public class TopKAlgorithm {
             }
             // Add the tag if not seen for this item yet
             if (!this.candidates.getItem(itemId).containsTag(tag)) {
-              float idf = tagIdf.searchPrefix(tag, true).getValue();
+              float idf = this.tagIdf.searchPrefix(tag, true).getValue();
               // Add new tag to the corresponding Item
               this.candidates.getItem(itemId).addTag(tag, false, idf, pos);
               // TF for (itemId, tag) is unknown
-              this.unknownTf.add(new Pair<Long,String>(itemId, tag));
+              this.unknownTf.add(new Pair<Long, String>(itemId, tag));
             }
             // Update the social score
             this.candidates.updateSocialScore(itemId, tag, userWeight);
@@ -644,7 +645,7 @@ public class TopKAlgorithm {
       }
       // Add the tag if not seen for this item yet
       if (!this.candidates.getItem(itemId).containsTag(keyword)) {
-        float idf = tagIdf.searchPrefix(keyword, true).getValue();
+        float idf = this.tagIdf.searchPrefix(keyword, true).getValue();
         // Add new tag to the corresponding Item
         if (pos == query.size() - 1)	// prefix
           this.candidates.getItem(itemId).addTag(keyword, true, idf, pos);

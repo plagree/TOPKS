@@ -30,6 +30,16 @@ public class Item implements Comparable<Item> {
     this.score = score;
   }
 
+  /**
+   * Adds a word to the Item. This word can be a new word from the query
+   * (<code>isCompletion</code> is <code>false</code>) or a completion of the
+   * last tag in the query that corresponds to a prefix (<code>true</code>)
+   * 
+   * @param tag New word added to the Item
+   * @param isCompletion <code>true</code> if the word is a prefix completion
+   * @param idf Idf of the word
+   * @param pos Position of the word in the query
+   */
   public void addTag(String tag, boolean isCompletion, float idf, int pos) {
     ItemWordData itemWordData = new ItemWordData(isCompletion, idf, pos);
     this.mapWordsData.put(tag, itemWordData);
@@ -101,13 +111,13 @@ public class Item implements Comparable<Item> {
 
   /**
    * Update social score of a given existing tag
-   * @param tag
-   * @param value
+   * @param tag Tag considered
+   * @param userWeight Similarity of current visited user
    */
-  public void updateSocialScore(String tag, float value) {
+  public void updateSocialScore(String tag, float userWeight) {
     float prevUFVal = this.mapWordsData.get(tag).getUF();
     int prevR = this.mapWordsData.get(tag).getNbUsersSeen();
-    this.mapWordsData.get(tag).setUF(prevUFVal + value);
+    this.mapWordsData.get(tag).setUF(prevUFVal + userWeight);
     this.mapWordsData.get(tag).setNbUsersSeen(prevR + 1);
     this.updateWorstScore(tag);
   }
@@ -227,10 +237,6 @@ public class Item implements Comparable<Item> {
         socialScore += this.mapWordsData.get(word).computeSocialScore(this.score);
       }
     }
-    if (bestPrefix == null) {
-      System.out.println("Erreur de null pointeur l435 Item");
-      System.exit(1);
-    }
     socialScore += this.mapWordsData.get(bestPrefix).computeSocialScore(this.score);
     return socialScore;
   }
@@ -251,14 +257,16 @@ public class Item implements Comparable<Item> {
           bestPrefix = word;
         }
       } else { // the word is not a prefix
-        textualScore += this.mapWordsData.get(word).computeTextualScore(this.score);
+        textualScore += this.mapWordsData.get(word)
+                .computeTextualScore(this.score);
       }
     }
     if (bestPrefix == null) {
       System.out.println("Erreur de null pointeur l457 Item");
       System.exit(1);
     }
-    textualScore += this.mapWordsData.get(bestPrefix).computeTextualScore(this.score);
+    textualScore += this.mapWordsData.get(bestPrefix)
+            .computeTextualScore(this.score);
     return textualScore;
   }
 
@@ -348,8 +356,15 @@ public class Item implements Comparable<Item> {
   }
 
   @Override
-  public String toString(){
-    return String.valueOf(itemId);
+  public String toString() {
+    String res = "Item: " + String.valueOf(this.itemId) + "; ";
+    for (String word: this.mapWordsData.keySet()) {
+      res += word + " = (" + this.mapWordsData.get(word)
+        .computeSocialScore(this.score) + ", " + this.mapWordsData.get(word)
+        .computeTextualScore(this.score) + ", " +
+        this.mapWordsData.get(word).getWorstScore() + "), ";
+    }
+    return res;
   }
 
   // Getters and Setters
@@ -376,6 +391,7 @@ public class Item implements Comparable<Item> {
       if (!this.mapWordsData.get(tag).isCompletion())
         continue;
       if (this.mapWordsData.get(tag).getWorstScore() > bestScore) {
+        bestScore = this.mapWordsData.get(tag).getWorstScore();
         completion = tag;
       }
     }
@@ -391,4 +407,5 @@ public class Item implements Comparable<Item> {
     //System.out.println("alpha: "+this.alpha);
     //System.out.println("score: "+this.score.toString());TODO
   }
+
 }

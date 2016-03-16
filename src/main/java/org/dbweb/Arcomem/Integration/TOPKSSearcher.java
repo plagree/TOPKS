@@ -42,11 +42,8 @@ public class TOPKSSearcher {
   public JsonObject executeQuery(int seeker, List<String> query, int k,
           int t, boolean newQuery, int nNeigh, float alpha) {
     this.topk_alg.executeQuery(seeker, query, k, alpha, t, nNeigh);
-    System.out.println("AQUI_ALPHA");
     this.topk_alg.reset(query, 1);
-    System.out.println("AQUI_BETA");
     JsonObject jsonResult = JsonBuilder.getJsonAnswer(this.topk_alg, k);
-    System.out.println("AQUI_GAMMA");
     return jsonResult;
   }
 

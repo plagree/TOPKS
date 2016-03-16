@@ -1,7 +1,5 @@
 package org.dbweb.Arcomem.Integration;
 
-import java.sql.Connection;
-
 import org.dbweb.socialsearch.topktrust.algorithm.paths.Network;
 
 public class LoadIntoMemory {
