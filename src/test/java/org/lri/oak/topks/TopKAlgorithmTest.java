@@ -13,6 +13,7 @@ import org.dbweb.socialsearch.topktrust.datastructure.Item;
 import org.junit.Assert;
 import org.junit.Test;
 
+
 public class TopKAlgorithmTest {
 
   // TODO: chooseBranch, reset, incremental
@@ -21,6 +22,7 @@ public class TopKAlgorithmTest {
   private TopKAlgorithm algo;
 
   public TopKAlgorithmTest() {
+    Params.TEST = true;
     // Parameters test dataset
     Params.dir = System.getProperty("user.dir") + "/test/test/";
     Params.number_documents = 6;
@@ -167,14 +169,9 @@ public class TopKAlgorithmTest {
     float alpha = 0f;
 
     this.algo.executeQuery(seeker, query, k, alpha, t, nNeigh);
-    for (Item e: this.algo.getCandidates().getListTopk(5)) {
-      System.out.println(e);
-      System.out.println(e.getItemId()+", "+e.getComputedWorstScore());
-      e.computeWorstScore();
-      System.out.println(e.getItemId()+", "+e.getComputedWorstScore());
-    }
 
-    Assert.assertEquals(this.algo.getNumloops(), 10);
+    Assert.assertEquals(this.algo.getNumloops(), 9);
+    Assert.assertEquals(this.algo.getCandidates().getMaxRest(), 0.5832979679107666f, DELTA);
   }
 
   @Test
@@ -183,7 +180,7 @@ public class TopKAlgorithmTest {
     // Query q="style" by seeker s=8 with skippedTests=1 (termination test at every iteration)
     List<String> query = new ArrayList<String>();
     query.add("style");
-    this.algo.executeQuery(8, query, 5, 0.44444444f, 100, 200);
+    this.algo.executeQuery(8, query, 2, 0.44444444f, 100, 200);
 
     List<Item> results = this.algo.getTopk(2);
 

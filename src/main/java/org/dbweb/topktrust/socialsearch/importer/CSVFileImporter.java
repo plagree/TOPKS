@@ -166,7 +166,10 @@ public class CSVFileImporter {
     float tagidf;
     for (String tag2: tagPopularity.keySet()) {
       tagpop = tagPopularity.get(tag2).size();
-      tagidf = InverseDocumentFrequency.classic(tagpop, Params.number_documents);
+      if (Params.TEST)
+        tagidf = InverseDocumentFrequency.classic(tagpop, Params.number_documents);
+      else
+        tagidf = InverseDocumentFrequency.halfSmooth(tagpop, Params.number_documents);
       tagIdf.insert(tag2, tagidf);
     }
     final long size3 = (getUsedMemory() - start3) / 1024 / 1024;

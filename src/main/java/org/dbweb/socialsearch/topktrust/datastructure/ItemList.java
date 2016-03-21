@@ -252,7 +252,7 @@ public class ItemList {
       textualpart = alpha * high_value;
       socialpart = (1 - alpha) * high_value * uw;
       total = textualpart + socialpart;
-      if (pos == query.size() - 1)    // Prefix
+      if (pos == query.size() - 1) // Prefix
         this.max_unseen += this.score.getScore(total,
                 idf.searchPrefix(query.get(pos), false).getValue());
       else
@@ -275,7 +275,7 @@ public class ItemList {
       else if (i == k)
         scoremin = item.getComputedWorstScore();
       else if (possible.contains(itemId)) {
-        currentUB = item.computeBestScore(topReadingHead, userWeights);
+        currentUB = item.computeBestScore(query, topReadingHead, userWeights, idf);
         if (currentUB < scoremin)   // This item can't be in the final list
           possible.remove(itemId);
         if(scoremax < currentUB) {
@@ -287,7 +287,6 @@ public class ItemList {
 
     // Step 3: Compute heuristics for ChooseBranch routine
     if (this.bestSuboptimal > 0 && alpha != 0f && alpha != 1f) {
-      System.out.println(this.bestSuboptimal);
       this.textualBranchHeuristic = this.items.get(this.bestSuboptimal)
               .getTextualBranchHeuristic(query.size(), topReadingHead);
       this.socialBranchHeuristic = this.items.get(this.bestSuboptimal)
@@ -296,14 +295,6 @@ public class ItemList {
     this.number_of_candidates = i;
     this.min_topk = scoremin;
     this.max_rest = Math.max(this.max_unseen, scoremax);
-    if (this.number_of_candidates == 4 && userWeights.get(0) == 0.3f) {
-      System.out.println("TERMINATION CONDITION");
-      System.out.println("nb candidates: "+this.number_of_candidates);
-      System.out.println("mintopk: "+this.min_topk);
-      System.out.println("maxrest: "+this.max_rest);
-      System.out.println("maxunseen: "+this.max_unseen);
-      System.out.println("subopt: "+this.bestSuboptimal);
-    }
 
     if ((this.max_rest <= this.min_topk) && (this.number_of_candidates >= k))
       return true;
@@ -354,7 +345,7 @@ public class ItemList {
     return this.sorted_items.size();
   }
 
-  public double getmax_rest() {
+  public double getMaxRest() {
     return max_rest;
   }
 

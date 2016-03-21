@@ -29,6 +29,7 @@ public class Params {
   public static boolean DISK_ACCESS_EXPERIMENT = false;
   public static int SIZE_OF_BLOCK = 512;
   public static boolean SUPERNODE = false;
+  public static boolean TEST = false;
 
   public static boolean DEBUG = false;
   public static boolean VERBOSE = false;

@@ -71,6 +71,7 @@ public class TopKAlgorithm {
   private UserEntry<Float> currentUser;
   private PathCompositionFunction<Float> distFunc;
   private Score score;
+  private Set<String> plainTerms; // Set of complete words (each word except prefix)
 
   // NDCG lists
   private List<Long> oracleNDCG;
@@ -151,6 +152,7 @@ public class TopKAlgorithm {
     this.userWeights = new ArrayList<Float>();
     this.nbNeighbour = 0;
     this.queryNbNeighbour = new ArrayList<Integer>();
+    this.plainTerms = new HashSet<String>();
     // New buffer because new query
     this.candidates = new ItemList(this.score);
     // Initialise the heap for Dijkstra
@@ -175,7 +177,8 @@ public class TopKAlgorithm {
       value = this.invertedLists.get(keyword).get(0).getNum();
       itemId = this.invertedLists.get(keyword).get(0).getDocId();
       rh = new ReadingHead(keyword, itemId, value);
-      topReadingHead.add(rh);
+      this.topReadingHead.add(rh);
+      this.plainTerms.add(query.get(pos));
     }
 
     // Step 2: Initialise index of prefix
@@ -192,7 +195,9 @@ public class TopKAlgorithm {
       // rh.setCompletion(this.correspondingCompletions.get(0)); TODO
       return;
     }
-    topReadingHead.add(rh);
+    this.topReadingHead.add(rh);
+    if (this.plainTerms.contains(completion))
+      this.advanceTextualList(prefix, query.size() - 1, false);
 
     // Step 4: Run the algorithm
     mainLoop(k, seeker, query, t);
@@ -284,6 +289,7 @@ public class TopKAlgorithm {
     }
     this.userWeights.add(this.userWeight);
     this.topReadingHead.set(query.size() - 1, rh);
+    this.plainTerms.add(query.get(query.size() - 2));
     mainLoop(k, seeker, query, t);
   }
 
@@ -367,7 +373,6 @@ public class TopKAlgorithm {
         processSocial(query, seeker);
         lookIntoList(query);   //the "peek at list" procedure
       } else {
-        System.out.println("Process textual");
         processTextual(query);
       }
 
@@ -612,10 +617,6 @@ public class TopKAlgorithm {
           break;
         found = false;
         keyword = currentReadingHead.getCompletion();
-        if (pos == 1) {
-          System.out.println(this.nbNeighbour);
-          System.out.println(this.unknownTf);
-        }
         if (this.unknownTf.contains(currentReadingHead.getItemKeywordPair())) {
           found = true;	// The entry has been discovered in the graph
           if (this.candidates.containsItemId(currentReadingHead.getItemId())) {
@@ -689,10 +690,6 @@ public class TopKAlgorithm {
    *  (prefix)
    */
   private void advanceTextualList(String tag, int pos, boolean exact) {
-    if (pos == 1) {
-      System.out.println("loop: "+this.numloops);
-      System.out.println("tag: "+tag);
-    }
     if (exact) { // Not a prefix, read directly in inverted lists
       this.nbILFastAccesses += 1;
       this.invertedListsUsed.add(tag);
@@ -716,7 +713,8 @@ public class TopKAlgorithm {
         new_top_rh = new ReadingHead(this.correspondingCompletions.get(ILposition),
                 current_read.getDocId(), current_read.getNum());
       this.topReadingHead.set(pos, new_top_rh);
-    } else { // Prefix, use the completion trie
+    }
+    else { // Prefix, use the completion trie
       RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact)
               .getBestDescendant();
       if (current_best_leaf.getWord().equals(tag)) {  // Statistics
@@ -724,27 +722,37 @@ public class TopKAlgorithm {
       } else {
         this.nbILAccesses += 1;
       }
-      String keyword = current_best_leaf.getWord();
-      this.invertedListsUsed.add(keyword);
-      // Get inverted list of keyword
-      List<DocumentNumTag> invertedList = this.invertedLists.get(keyword);
-      // Read one position
-      this.invertedListPositions.put(keyword, this.invertedListPositions
-              .get(keyword) + 1);
-      int ILposition = this.invertedListPositions.get(keyword);
-      if (ILposition < invertedList.size())
-        current_best_leaf.updatePreviousBestValue(
-                invertedList.get(ILposition).getNum());
-      else
-        current_best_leaf.updatePreviousBestValue(0);
-      current_best_leaf = this.completionTrie.searchPrefix(tag, exact)
-              .getBestDescendant();
-      // Check if we finished reading the entries of the IL
-      if (current_best_leaf.getValue() == 0) {
-        this.topReadingHead.set(pos, null);
-        return;
-      }
-      keyword = current_best_leaf.getWord();
+      String keyword;
+      int ILposition;
+      do {
+        keyword = current_best_leaf.getWord();
+        if (this.plainTerms.contains(keyword)) {
+          current_best_leaf.updatePreviousBestValue(0);
+        } else {
+          this.invertedListsUsed.add(keyword);
+          // Get inverted list of keyword
+          List<DocumentNumTag> invertedList = this.invertedLists.get(keyword);
+          // Read one position
+          this.invertedListPositions.put(keyword, this.invertedListPositions
+                  .get(keyword) + 1);
+          ILposition = this.invertedListPositions.get(keyword);
+          if (ILposition < invertedList.size())
+            current_best_leaf.updatePreviousBestValue(
+                    invertedList.get(ILposition).getNum());
+          else
+            current_best_leaf.updatePreviousBestValue(0);
+        }
+        current_best_leaf = this.completionTrie.searchPrefix(tag, exact)
+                .getBestDescendant();
+        // Check if we finished reading the entries of the IL
+        if (current_best_leaf.getValue() == 0) {
+          this.topReadingHead.set(pos, null);
+          return;
+        }
+        keyword = current_best_leaf.getWord();
+        if (!this.plainTerms.contains(keyword))
+          break;
+      } while (true);
       ILposition = this.invertedListPositions.get(keyword);
       DocumentNumTag current_read = this.invertedLists.get(keyword).get(ILposition);
       ReadingHead new_top_rh = null;

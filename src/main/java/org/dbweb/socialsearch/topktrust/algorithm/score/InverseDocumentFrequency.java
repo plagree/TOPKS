@@ -17,9 +17,8 @@ public class InverseDocumentFrequency {
   public static float halfSmooth(int tagPopularity, int numberDocuments) {
     return (float)Math.log(0.5 + (double)numberDocuments / tagPopularity);
   }
-  
+
   public static float unknown(int tagpop, int D) {
-    
     return (float)Math.log(((float)D - (float)tagpop + 0.5)
             / ((float)tagpop + 0.5));
   }
