@@ -116,9 +116,9 @@ public class Item implements Comparable<Item> {
    */
   public void updateSocialScore(String tag, float userWeight) {
     float prevUFVal = this.mapWordsData.get(tag).getUF();
-    int prevR = this.mapWordsData.get(tag).getNbUsersSeen();
+    int prevNbUsersSeen = this.mapWordsData.get(tag).getNbUsersSeen();
     this.mapWordsData.get(tag).setUF(prevUFVal + userWeight);
-    this.mapWordsData.get(tag).setNbUsersSeen(prevR + 1);
+    this.mapWordsData.get(tag).setNbUsersSeen(prevNbUsersSeen + 1);
     this.updateWorstScore(tag);
   }
 
@@ -129,7 +129,6 @@ public class Item implements Comparable<Item> {
    */
   public void updateTDFScore(String tag, int tdf) {
     this.mapWordsData.get(tag).setTdf(tdf);
-    this.updateWorstScore(tag);
   }
 
   /**
@@ -151,7 +150,6 @@ public class Item implements Comparable<Item> {
     float social = 0, tf = 0, comb = 0; // Social, textual and combined values
     int position;
     for(String tag : this.mapWordsData.keySet()) {
-      uw = 0;
       position = this.mapWordsData.get(tag).getPosition();
       uw = userWeights.get(position);
       tf = 0;
@@ -167,6 +165,12 @@ public class Item implements Comparable<Item> {
       float nbUsersSeen = this.mapWordsData.get(tag).getNbUsersSeen();
       social += (tf - nbUsersSeen) * uw;
       comb = this.alpha * tf + (1 - this.alpha) * social;
+      if (uw == 0.3f && this.itemId == 1) {
+        System.out.println("tag: "+tag);
+        System.out.println("tf: "+topReadingHead.get(position).getValue());
+        System.out.println("users seen: "+nbUsersSeen);
+        System.out.println("social: "+social);
+      }
       if (this.mapWordsData.get(tag).isCompletion()) {
         current_score_completion = this.score.getScore(comb,
                 this.mapWordsData.get(tag).getIdf());
@@ -188,13 +192,13 @@ public class Item implements Comparable<Item> {
    */
   public void computeWorstScore() {
     float wscore_without_completion = 0, wscore_best_completion = 0;
-    for (String tag : this.mapWordsData.keySet()) {
+    for (String tag: this.mapWordsData.keySet()) {
       float wpartial = this.mapWordsData.get(tag)
               .computeWorstScore(this.alpha, this.score);
       if (this.mapWordsData.get(tag).isCompletion()
               && wpartial > wscore_best_completion)
         wscore_best_completion = wpartial;
-      else
+      else if (!this.mapWordsData.get(tag).isCompletion())
         wscore_without_completion += wpartial;
     }
     this.worstscore = wscore_without_completion + wscore_best_completion;
@@ -215,6 +219,7 @@ public class Item implements Comparable<Item> {
         this.worstscore = this.worstscore_without_prefix + new_wscore;
     } else {
       this.worstscore += (new_wscore - old_wscore);
+      this.worstscore_without_prefix += (new_wscore - old_wscore);
     }
   }
 

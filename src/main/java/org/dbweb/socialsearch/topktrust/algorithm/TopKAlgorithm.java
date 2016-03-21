@@ -481,7 +481,8 @@ public class TopKAlgorithm {
 
 
   /**
-   * Social process of the TOPKS algorithm
+   * Social process of the TOPKS algorithm. Note: The algorithm does not allow
+   * a completion to be equal to a previous term in the query.
    * @param query
    */
   private void processSocial(List<String> query, int seeker) {
@@ -496,6 +497,7 @@ public class TopKAlgorithm {
     int currentUserId = 0, nbNeighbourTag = 0;
     long  itemId = 0;
     String tag;
+    boolean badCompletion; // True if the completion corresponds to a previous query term
 
     // for all tags in the query Q, triples Tagged(u,i,t_j)
     for(int pos = 0; pos < query.size(); pos++) {
@@ -513,15 +515,22 @@ public class TopKAlgorithm {
         this.nbPSpacesAccesses += 1;
 
         if (pos == query.size() - 1) { // Case 1: we are at a prefix
-          SortedMap<String, TLongSet> completions = userSpaces
+          SortedMap<String, TLongSet> completions = this.userSpaces
                   .get(currentUserId).prefixMap(tag);
           if (completions.size() > 0) {
             Iterator<Entry<String, TLongSet>> iterator = completions
                     .entrySet().iterator();
             // Iteration over every possible completion
             while (iterator.hasNext()) {
+              badCompletion = false;
               Entry<String, TLongSet> currentEntry = iterator.next();
               String completion = currentEntry.getKey();
+              for (int i = 0; i < query.size() - 1; i++) {
+                if (completion.equals(query.get(i)))
+                  badCompletion = true;
+              }
+              if (badCompletion)
+                continue;
               for (TLongIterator it = currentEntry.getValue()
                       .iterator(); it.hasNext(); ) {
                 itemId = it.next();
@@ -533,7 +542,7 @@ public class TopKAlgorithm {
                 // Add the tag if not seen for this item yet
                 if (!this.candidates.getItem(itemId).containsTag(completion)) {
                   float idf = this.tagIdf.searchPrefix(
-                          completion, false).getValue();
+                          completion, true).getValue();
                   this.candidates.getItem(itemId).addTag(
                           completion, true, idf, pos);
                   // TF for (itemId, tag) is unknown
@@ -547,23 +556,25 @@ public class TopKAlgorithm {
           }
         } else { // Case 2: the word is not a prefix
           TLongSet taggedItems = this.userSpaces.get(currentUserId).get(tag);
-          for (TLongIterator it = taggedItems.iterator(); it.hasNext(); ){
-            itemId = it.next();
-            // Add the item if not discovered yet
-            if (!this.candidates.containsItemId(itemId)) {
-              this.candidates.addItem(itemId, this.alpha);
-              this.possible.add(itemId);
+          if (taggedItems != null) { // The user tagged items with this tag
+            for (TLongIterator it = taggedItems.iterator(); it.hasNext(); ) {
+              itemId = it.next();
+              // Add the item if not discovered yet
+              if (!this.candidates.containsItemId(itemId)) {
+                this.candidates.addItem(itemId, this.alpha);
+                this.possible.add(itemId);
+              }
+              // Add the tag if not seen for this item yet
+              if (!this.candidates.getItem(itemId).containsTag(tag)) {
+                float idf = this.tagIdf.searchPrefix(tag, true).getValue();
+                // Add new tag to the corresponding Item
+                this.candidates.getItem(itemId).addTag(tag, false, idf, pos);
+                // TF for (itemId, tag) is unknown
+                this.unknownTf.add(new Pair<Long, String>(itemId, tag));
+              }
+              // Update the social score
+              this.candidates.updateSocialScore(itemId, tag, userWeight);
             }
-            // Add the tag if not seen for this item yet
-            if (!this.candidates.getItem(itemId).containsTag(tag)) {
-              float idf = this.tagIdf.searchPrefix(tag, true).getValue();
-              // Add new tag to the corresponding Item
-              this.candidates.getItem(itemId).addTag(tag, false, idf, pos);
-              // TF for (itemId, tag) is unknown
-              this.unknownTf.add(new Pair<Long, String>(itemId, tag));
-            }
-            // Update the social score
-            this.candidates.updateSocialScore(itemId, tag, userWeight);
           }
         }
       }
@@ -601,6 +612,10 @@ public class TopKAlgorithm {
           break;
         found = false;
         keyword = currentReadingHead.getCompletion();
+        if (pos == 1) {
+          System.out.println(this.nbNeighbour);
+          System.out.println(this.unknownTf);
+        }
         if (this.unknownTf.contains(currentReadingHead.getItemKeywordPair())) {
           found = true;	// The entry has been discovered in the graph
           if (this.candidates.containsItemId(currentReadingHead.getItemId())) {
@@ -665,48 +680,82 @@ public class TopKAlgorithm {
   }
 
   /**
-   * Method to advance in inverted lists (using the trie).
-   * Used both in Social and Textual branches.
+   * Method to advance in inverted lists (using the trie). Used both in Social
+   * and Textual branches. Note: two identical terms in the query are counted
+   * only once.
    * @param tag Word from the query
    * @param pos Position of the tag in the query
    * @param exact True if we want the exact word (not prefix), false otherwise
    *  (prefix)
    */
   private void advanceTextualList(String tag, int pos, boolean exact) {
-    RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact)
-            .getBestDescendant();
-    if (current_best_leaf.getWord().equals(tag)) {	// Statistics
+    if (pos == 1) {
+      System.out.println("loop: "+this.numloops);
+      System.out.println("tag: "+tag);
+    }
+    if (exact) { // Not a prefix, read directly in inverted lists
       this.nbILFastAccesses += 1;
-    } else {
-      this.nbILAccesses += 1;
+      this.invertedListsUsed.add(tag);
+      // Get inverted list of keyword
+      List<DocumentNumTag> invertedList = this.invertedLists.get(tag);
+      // Read one position
+      this.invertedListPositions.put(tag, this.invertedListPositions
+              .get(tag) + 1);
+      int ILposition = this.invertedListPositions.get(tag);
+      if (ILposition == invertedList.size()) {
+        this.topReadingHead.set(pos, null);
+        return;
+      }
+      ILposition = this.invertedListPositions.get(tag);
+      DocumentNumTag current_read = this.invertedLists.get(tag).get(ILposition);
+      ReadingHead new_top_rh = null;
+      if (this.correspondingCompletions == null)
+        new_top_rh = new ReadingHead(
+                tag, current_read.getDocId(), current_read.getNum());
+      else    // TODO: Analyse when it happens
+        new_top_rh = new ReadingHead(this.correspondingCompletions.get(ILposition),
+                current_read.getDocId(), current_read.getNum());
+      this.topReadingHead.set(pos, new_top_rh);
+    } else { // Prefix, use the completion trie
+      RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, exact)
+              .getBestDescendant();
+      if (current_best_leaf.getWord().equals(tag)) {  // Statistics
+        this.nbILFastAccesses += 1;
+      } else {
+        this.nbILAccesses += 1;
+      }
+      String keyword = current_best_leaf.getWord();
+      this.invertedListsUsed.add(keyword);
+      // Get inverted list of keyword
+      List<DocumentNumTag> invertedList = this.invertedLists.get(keyword);
+      // Read one position
+      this.invertedListPositions.put(keyword, this.invertedListPositions
+              .get(keyword) + 1);
+      int ILposition = this.invertedListPositions.get(keyword);
+      if (ILposition < invertedList.size())
+        current_best_leaf.updatePreviousBestValue(
+                invertedList.get(ILposition).getNum());
+      else
+        current_best_leaf.updatePreviousBestValue(0);
+      current_best_leaf = this.completionTrie.searchPrefix(tag, exact)
+              .getBestDescendant();
+      // Check if we finished reading the entries of the IL
+      if (current_best_leaf.getValue() == 0) {
+        this.topReadingHead.set(pos, null);
+        return;
+      }
+      keyword = current_best_leaf.getWord();
+      ILposition = this.invertedListPositions.get(keyword);
+      DocumentNumTag current_read = this.invertedLists.get(keyword).get(ILposition);
+      ReadingHead new_top_rh = null;
+      if (this.correspondingCompletions == null)
+        new_top_rh = new ReadingHead(
+                keyword, current_read.getDocId(), current_read.getNum());
+      else    // TODO: Analyse when it happens
+        new_top_rh = new ReadingHead(this.correspondingCompletions.get(ILposition),
+                current_read.getDocId(), current_read.getNum());
+      this.topReadingHead.set(pos, new_top_rh);
     }
-    String keyword = current_best_leaf.getWord();
-    this.invertedListsUsed.add(keyword);
-    // Get inverted list of keyword
-    List<DocumentNumTag> invertedList = this.invertedLists.get(keyword);
-    // Read one position
-    this.invertedListPositions.put(keyword, this.invertedListPositions.get(keyword) + 1);
-    int ILposition = this.invertedListPositions.get(keyword);
-    if (ILposition < invertedList.size())
-      current_best_leaf.updatePreviousBestValue(invertedList.get(ILposition).getNum());
-    else
-      current_best_leaf.updatePreviousBestValue(0);
-    current_best_leaf = this.completionTrie.searchPrefix(tag, exact).getBestDescendant();	// TODO: analyse
-    // Check if we finished reading the entries of the IL
-    if (current_best_leaf.getValue() == 0) {
-      this.topReadingHead.set(pos, null);
-      return;
-    }
-    keyword = current_best_leaf.getWord();
-    ILposition = this.invertedListPositions.get(keyword);
-    DocumentNumTag current_read = this.invertedLists.get(keyword).get(ILposition);
-    ReadingHead new_top_rh = null;
-    if (this.correspondingCompletions == null)
-      new_top_rh = new ReadingHead(keyword, current_read.getDocId(), current_read.getNum());
-    else	// TODO: Analyse when it happens
-      new_top_rh = new ReadingHead(this.correspondingCompletions.get(ILposition),
-              current_read.getDocId(), current_read.getNum());
-    this.topReadingHead.set(pos, new_top_rh);
   }
 
   /**

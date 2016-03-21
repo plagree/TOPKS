@@ -102,14 +102,14 @@ public class ItemList {
     for(int pos = 0; pos < query.size(); pos++){
       if (pos == query.size() - 1) { // Prefix
         this.textualBranchHeuristic.add(
-            trie.searchPrefix(query.get(pos), false).getValue());
+                trie.searchPrefix(query.get(pos), false).getValue());
         this.socialBranchHeuristic.add(
-            trie.searchPrefix(query.get(pos), false).getValue());
+                trie.searchPrefix(query.get(pos), false).getValue());
       } else {
         this.textualBranchHeuristic.add(
-            trie.searchPrefix(query.get(pos), true).getValue());
+                trie.searchPrefix(query.get(pos), true).getValue());
         this.socialBranchHeuristic.add(
-            trie.searchPrefix(query.get(pos), true).getValue());
+                trie.searchPrefix(query.get(pos), true).getValue());
       }
     }
   }
@@ -122,9 +122,9 @@ public class ItemList {
    */
   public void addWordBranchHeuristic(String prefix, RadixTreeImpl trie) {
     this.textualBranchHeuristic.add(
-        trie.searchPrefix(prefix, false).getValue());
+            trie.searchPrefix(prefix, false).getValue());
     this.socialBranchHeuristic.add(
-        trie.searchPrefix(prefix, false).getValue());
+            trie.searchPrefix(prefix, false).getValue());
   }
 
   /**
@@ -152,7 +152,7 @@ public class ItemList {
    * @param trie
    */
   public void filterNextWord(List<String> query, RadixTreeImpl tag_idf,
-      RadixTreeImpl trie, Set<Pair<Long, String>> unknownTf) {
+          RadixTreeImpl trie, Set<Pair<Long, String>> unknownTf) {
     Item item;
     String previousWord = query.get(query.size() - 2);
     this.sorted_items = new TreeSet<Item>(); // Reset candidate sorted structure
@@ -237,8 +237,8 @@ public class ItemList {
    * @return true if we can stop exploring the graph / ILs, false otherwise
    */
   public boolean terminationCondition(List<String> query, int k, float alpha,
-      RadixTreeImpl idf, List<ReadingHead> topReadingHead,
-      List<Float> userWeights, Set<Long> possible) {
+          RadixTreeImpl idf, List<ReadingHead> topReadingHead,
+          List<Float> userWeights, Set<Long> possible) {
 
     this.max_unseen = 0;  // Value of the upper bound estimation of unseen items
     float high_value = 0, uw = 0, textualpart = 0, socialpart = 0, total = 0;
@@ -253,11 +253,11 @@ public class ItemList {
       socialpart = (1 - alpha) * high_value * uw;
       total = textualpart + socialpart;
       if (pos == query.size() - 1)    // Prefix
-      this.max_unseen += this.score.getScore(total,
-          idf.searchPrefix(query.get(pos), false).getValue());
+        this.max_unseen += this.score.getScore(total,
+                idf.searchPrefix(query.get(pos), false).getValue());
       else
         this.max_unseen += this.score.getScore(total,
-            idf.searchPrefix(query.get(pos), true).getValue());
+                idf.searchPrefix(query.get(pos), true).getValue());
       this.socialBranchHeuristic.set(pos, high_value);
       this.textualBranchHeuristic.set(pos, high_value);
     }
@@ -286,18 +286,26 @@ public class ItemList {
     }
 
     // Step 3: Compute heuristics for ChooseBranch routine
-    if (this.bestSuboptimal > 0 && alpha != 0 && alpha !=1) {
+    if (this.bestSuboptimal > 0 && alpha != 0f && alpha != 1f) {
       System.out.println(this.bestSuboptimal);
       this.textualBranchHeuristic = this.items.get(this.bestSuboptimal)
-          .getTextualBranchHeuristic(query.size(), topReadingHead);
+              .getTextualBranchHeuristic(query.size(), topReadingHead);
       this.socialBranchHeuristic = this.items.get(this.bestSuboptimal)
-          .getSocialBranchHeuristic(query.size(), topReadingHead, userWeights);
+              .getSocialBranchHeuristic(query.size(), topReadingHead, userWeights);
     }
     this.number_of_candidates = i;
     this.min_topk = scoremin;
     this.max_rest = Math.max(this.max_unseen, scoremax);
+    if (this.number_of_candidates == 4 && userWeights.get(0) == 0.3f) {
+      System.out.println("TERMINATION CONDITION");
+      System.out.println("nb candidates: "+this.number_of_candidates);
+      System.out.println("mintopk: "+this.min_topk);
+      System.out.println("maxrest: "+this.max_rest);
+      System.out.println("maxunseen: "+this.max_unseen);
+      System.out.println("subopt: "+this.bestSuboptimal);
+    }
 
-    if ((this.max_rest <= this.min_topk) && (number_of_candidates >= k))
+    if ((this.max_rest <= this.min_topk) && (this.number_of_candidates >= k))
       return true;
     else
       return false;

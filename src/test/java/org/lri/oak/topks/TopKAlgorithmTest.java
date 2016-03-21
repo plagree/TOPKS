@@ -15,6 +15,8 @@ import org.junit.Test;
 
 public class TopKAlgorithmTest {
 
+  // TODO: chooseBranch, reset, incremental
+
   private static final float DELTA = 1e-7f;
   private TopKAlgorithm algo;
 
@@ -151,19 +153,36 @@ public class TopKAlgorithmTest {
             (float)Math.log(6f / 5) * 1, DELTA);
   }
 
+  /**
+   * Used to test both prefix early top-k stopping and multiple words
+   */
   @Test
   public void testMultipleWords() {
-    
+    this.algo.setSkippedTests(1);
+    // Query q="g" by seeker s=1 with skippedTests=15 (no termination test)
+    List<String> query = new ArrayList<String>();
+    query.add("grunge");
+    query.add("g");
+    int seeker = 1, k = 2, t = 200, nNeigh = 20;
+    float alpha = 0f;
+
+    this.algo.executeQuery(seeker, query, k, alpha, t, nNeigh);
+    for (Item e: this.algo.getCandidates().getListTopk(5)) {
+      System.out.println(e);
+      System.out.println(e.getItemId()+", "+e.getComputedWorstScore());
+      e.computeWorstScore();
+      System.out.println(e.getItemId()+", "+e.getComputedWorstScore());
+    }
+
+    Assert.assertEquals(this.algo.getNumloops(), 10);
   }
 
   @Test
   public void testAlphaNonZero() {
-
     this.algo.setSkippedTests(1);
-    //Query q="style" by seeker s=8 with skippedTests=1 (termination test at every iteration)
+    // Query q="style" by seeker s=8 with skippedTests=1 (termination test at every iteration)
     List<String> query = new ArrayList<String>();
     query.add("style");
-
     this.algo.executeQuery(8, query, 5, 0.44444444f, 100, 200);
 
     List<Item> results = this.algo.getTopk(2);
