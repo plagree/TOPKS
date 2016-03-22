@@ -36,7 +36,7 @@ public class TOPKSTerminationConditionTest {
     List<String> query = new ArrayList<String>();
     query.add("jika");
 
-    JsonObject jsonResults = searcher.executeQuery(100146521, query, 1, 10000, true, 100000, 0f);
+    JsonObject jsonResults = searcher.executeQuery(100146521, query, 1, 10000, 100000, 0f);
 
     //Assert.assertEquals(jsonResults.get("status").getAsInt(), 1); not with maven
     //Assert.assertEquals(jsonResults.get("n").getAsInt(), 1);

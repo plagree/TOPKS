@@ -48,6 +48,7 @@ public class JsonBuilder {
     jsonResult.add("n", new JsonPrimitive(n));
     // Array of the results
     jsonResult.add("results", arrayResults);
+    System.out.println("7");
     //System.out.println(jsonResult.toString());
     return jsonResult;
   }

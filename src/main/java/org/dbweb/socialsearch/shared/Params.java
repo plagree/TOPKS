@@ -16,7 +16,7 @@ public class Params {
   public static Map<String, Integer> numberOfNeighbours;
   public static float threshold = 0.05f;
   public static int numberLinks = 0;
-  public static int number_documents = 1570866;
+  public static int number_documents = 0;
   public static int number_users = 0;
   public static int DISK_BUDGET = 0;
   public static int NUMBER_ILS = 0;
@@ -33,5 +33,4 @@ public class Params {
 
   public static boolean DEBUG = false;
   public static boolean VERBOSE = false;
-  public static int DUMB = 0;
 }
