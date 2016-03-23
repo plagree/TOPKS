@@ -1,8 +1,6 @@
 package org.dbweb.Arcomem.Integration;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.dbweb.experiments.JsonBuilder;
 import org.dbweb.socialsearch.shared.Params;
@@ -11,9 +9,8 @@ import org.dbweb.socialsearch.topktrust.algorithm.functions.PathCompositionFunct
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
-import org.externals.Tools.NDCG;
+import org.dbweb.socialsearch.topktrust.datastructure.Item;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
@@ -122,7 +119,6 @@ public class TOPKSSearcher {
           int k, float alpha, int budget) {
 
     Params.DISK_BUDGET = budget;
-
     // Oracle computation (visit of whole graph)
     this.topk_alg.setSkippedTests(100000);
     this.topk_alg.executeQuery(seeker, query, k, alpha, 10000, 100000,
@@ -146,6 +142,7 @@ public class TOPKSSearcher {
     // Computation for top-k exact: baseline
     this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha,
             30000, 100000, Experiment.NDCG_DISK_ACCESS);
+    this.topk_alg.reset(query, 1);
     JsonObject obj_baseline = new JsonObject();
     obj_baseline.add("users_visited", new JsonPrimitive(
             this.topk_alg.getNumberUsersSeen()));

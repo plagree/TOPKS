@@ -3,13 +3,10 @@ package org.dbweb.Arcomem.Integration;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.dbweb.socialsearch.shared.Params;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

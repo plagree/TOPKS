@@ -377,7 +377,7 @@ public class TopKAlgorithm {
         switch (this.type) {
           case NDCG_TIME: // Analysis for NDCG vs t plot
             currentTime = (System.currentTimeMillis() - before_main_loop)
-                    - timeNDCG / 1000000;
+            - timeNDCG / 1000000;
             if (currentTime >= timeThresholdNDCG) {
               long bef = System.nanoTime();
               double ndcg = NDCG.getNDCG(this.candidates.getLongListTopk(k), 
@@ -644,7 +644,7 @@ public class TopKAlgorithm {
           this.candidates.getItem(itemId).addTag(keyword, false, idf, pos);
       }
       // Update TF value
-      this.candidates.getItem(itemId).updateTDFScore(keyword, currentEntry.getValue());
+      this.candidates.updateTextualScore(itemId, keyword, currentEntry.getValue());
       // TF for (itemId, tag) is now known
       if (this.unknownTf.contains(currentEntry.getItemKeywordPair()))
         this.unknownTf.remove(currentEntry.getItemKeywordPair());

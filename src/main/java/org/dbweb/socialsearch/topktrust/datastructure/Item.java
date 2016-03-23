@@ -45,6 +45,7 @@ public class Item implements Comparable<Item> {
   public void addTag(String tag, boolean isCompletion, float idf, int pos) {
     ItemWordData itemWordData = new ItemWordData(isCompletion, idf, pos);
     this.mapWordsData.put(tag, itemWordData);
+    this.updateWorstScore(tag);
   }
 
   /**
@@ -131,6 +132,7 @@ public class Item implements Comparable<Item> {
    */
   public void updateTDFScore(String tag, int tdf) {
     this.mapWordsData.get(tag).setTdf(tdf);
+    this.updateWorstScore(tag);
   }
 
   /**
@@ -397,6 +399,7 @@ public class Item implements Comparable<Item> {
       .computeTextualScore(this.score) + ", " +
       this.mapWordsData.get(word).getWorstScore() + "), ";
     }
+    res += "ws: " + this.worstscore + " bs: " + this.bestscore;
     return res;
   }
 

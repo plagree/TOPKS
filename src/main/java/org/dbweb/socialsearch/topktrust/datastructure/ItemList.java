@@ -44,12 +44,27 @@ public class ItemList {
    * Updates social score of itemId for the specified tag. They both must exist.
    * @param itemId
    * @param tag
-   * @param completion
+   * @param userWeight
    */
   public void updateSocialScore(long itemId, String tag, float userWeight) {
     Item item = this.items.get(itemId);
     this.sorted_items.remove(item);
     item.updateSocialScore(tag, userWeight);
+    // After update, it must be re-added to the TreeSet
+    this.sorted_items.add(item);
+  }
+  
+  /**
+   * Updates textual (and sometimes social) score of itemId for the specified
+   * tag. They both must exist.
+   * @param itemId
+   * @param tag
+   * @param completion
+   */
+  public void updateTextualScore(long itemId, String tag, int tdf) {
+    Item item = this.items.get(itemId);
+    this.sorted_items.remove(item);
+    item.updateTDFScore(tag, tdf);
     // After update, it must be re-added to the TreeSet
     this.sorted_items.add(item);
   }
@@ -322,8 +337,12 @@ public class ItemList {
    */
   public List<Long> getLongListTopk(int k) {
     List<Long> topk = new ArrayList<Long>();
+    int i = 0;
     for (Item item: this.sorted_items) {
       topk.add(item.getItemId());
+      i++;
+      if (i == k)
+        break;
     }
     return topk;
   }
