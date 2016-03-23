@@ -3,6 +3,7 @@ package org.lri.oak.topks;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.dbweb.Arcomem.Integration.Experiment;
 import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
@@ -43,7 +44,7 @@ public class TopKAlgorithmTest {
     // Query q="style" by seeker s=1 with skippedTests=20 (visit the whole graph)
     List<String> query = new ArrayList<String>();
     query.add("style");
-    this.algo.executeQuery(1, query, 2, 0f, 200, 200);
+    this.algo.executeQuery(1, query, 2, 0f, 200, 200, Experiment.DEFAULT);
 
     Assert.assertEquals(this.algo.getNumloops(), 10);
 
@@ -74,7 +75,7 @@ public class TopKAlgorithmTest {
     // Query q="style" by seeker s=1 with skippedTests=1 (termination test at every iteration)
     List<String> query = new ArrayList<String>();
     query.add("style");
-    this.algo.executeQuery(1, query, 2, 0f, 200, 200);
+    this.algo.executeQuery(1, query, 2, 0f, 200, 200, Experiment.DEFAULT);
 
     Assert.assertEquals(this.algo.getNumloops(), 4);
 
@@ -108,7 +109,8 @@ public class TopKAlgorithmTest {
     int nNeigh = 200;
     float alpha = 0f;
 
-    this.algo.executeQuery(seeker, query, k, alpha, t, nNeigh);
+    this.algo.executeQuery(seeker, query, k, alpha, t, nNeigh,
+            Experiment.DEFAULT);
 
     Assert.assertEquals(this.algo.getNumloops(), 10);
 
@@ -168,7 +170,8 @@ public class TopKAlgorithmTest {
     int seeker = 1, k = 2, t = 200, nNeigh = 20;
     float alpha = 0f;
 
-    this.algo.executeQuery(seeker, query, k, alpha, t, nNeigh);
+    this.algo.executeQuery(seeker, query, k, alpha, t, nNeigh,
+            Experiment.DEFAULT);
 
     Assert.assertEquals(this.algo.getNumloops(), 9);
     Assert.assertEquals(this.algo.getCandidates().getMaxRest(), 0.5832979679107666f, DELTA);
@@ -180,7 +183,8 @@ public class TopKAlgorithmTest {
     // Query q="style" by seeker s=8 with skippedTests=1 (termination test at every iteration)
     List<String> query = new ArrayList<String>();
     query.add("style");
-    this.algo.executeQuery(8, query, 2, 0.44444444f, 100, 200);
+    this.algo.executeQuery(8, query, 2, 0.44444444f, 100, 200,
+            Experiment.DEFAULT);
 
     List<Item> results = this.algo.getTopk(2);
 

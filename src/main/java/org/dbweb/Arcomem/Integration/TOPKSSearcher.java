@@ -40,7 +40,9 @@ public class TOPKSSearcher {
    */
   public JsonObject executeQuery(int seeker, List<String> query, int k,
           int t, int nNeigh, float alpha) {
-    this.topk_alg.executeQuery(seeker, query, k, alpha, t, nNeigh);
+    this.topk_alg.setSkippedTests(1);
+    this.topk_alg.executeQuery(seeker, query, k, alpha, t, nNeigh,
+            Experiment.DEFAULT);
     this.topk_alg.reset(query, 1);
     JsonObject jsonResult = JsonBuilder.getJsonAnswer(this.topk_alg, k);
     return jsonResult;
@@ -116,59 +118,51 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}*/
 
-	public JsonObject executeSocialBaseline(int seeker, List<String> query,
-	        int k, float alpha, int budget) {
-		Params.EXACT_TOPK = false;
-		Params.DISK_ACCESS_EXPERIMENT = false;
-		Params.DISK_BUDGET = budget;
-		this.topk_alg.setSkippedTests(100000);
+  public JsonObject executeBaseline(int seeker, List<String> query,
+          int k, float alpha, int budget) {
 
-		// Oracle computation (visit of whole graph)
-		this.topk_alg.executeQuery(seeker, query, k, alpha, 10000, 100000);
-		//topk_alg.computeTopkInfinity(k);
-		this.topk_alg.computeOracleNDCG(k);
-		this.topk_alg.reset(query, 1);
+    Params.DISK_BUDGET = budget;
 
-		// Computation for topk exact : normal version
-		//Params.EXACT_TOPK = true;
-		Params.DISK_ACCESS_EXPERIMENT = true;
-		this.setSkippedTests(1);
-		//long timeBeforeQuery = System.nanoTime();
-		topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000);
-		//long time_topks_asyt_before = (System.nanoTime() - timeBeforeQuery) / 1000000;
-		topk_alg.reset(query, 1);
-		//long time_topks_asyt_all = (System.nanoTime() - timeBeforeQuery) / 1000000;
-		//JsonObject topks_asyt_il_accesses = topk_alg.getILaccesses();
+    // Oracle computation (visit of whole graph)
+    this.topk_alg.setSkippedTests(100000);
+    this.topk_alg.executeQuery(seeker, query, k, alpha, 10000, 100000,
+            Experiment.DEFAULT);
+    this.topk_alg.computeOracleNDCG(k);
+    this.topk_alg.reset(query, 1);
 
-		JsonObject obj_topk_asyt = new JsonObject();
-		obj_topk_asyt.add("users_visited", new JsonPrimitive(
-		    this.topk_alg.getNumberUsersSeen()));
-		obj_topk_asyt.add("inverted_lists_algo", new JsonPrimitive(
-		    this.topk_alg.getNumberInvertedListUsed()));
-		obj_topk_asyt.add("ndcg", new JsonPrimitive(this.topk_alg.computeNDCG(k)));
+    // Computation for top-k exact: normal version
+    this.setSkippedTests(1);
+    this.topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000,
+            Experiment.NDCG_DISK_ACCESS);
+    this.topk_alg.reset(query, 1);
 
-		// Computation for topk exact : baseline with union of ILs
-		int res[] = this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha, 30000, 100000);
-		int mergedLists = res[2];
-		JsonObject obj_social_baseline = new JsonObject();
-		obj_social_baseline.add("users_visited", new JsonPrimitive(topk_alg.getNumberUsersSeen()));
-		obj_social_baseline.add("inverted_lists_algo", new JsonPrimitive(topk_alg.getNumberInvertedListUsed()));
-		obj_social_baseline.add("inverted_lists_merge", new JsonPrimitive(mergedLists));
-		obj_social_baseline.add("ndcg", new JsonPrimitive(topk_alg.computeNDCG(k)));
-		//Params.EXACT_TOPK = false;
-		Params.DISK_ACCESS_EXPERIMENT = false;
-		this.setSkippedTests(500);
+    JsonObject obj_topk_asyt = new JsonObject();
+    obj_topk_asyt.add("users_visited", new JsonPrimitive(
+            this.topk_alg.getNumberUsersSeen()));
+    obj_topk_asyt.add("inverted_lists_algo", new JsonPrimitive(
+            this.topk_alg.getNumberInvertedListUsed()));
+    obj_topk_asyt.add("ndcg", new JsonPrimitive(this.topk_alg.computeNDCG(k)));
 
-		// Create JSON Response
-		JsonObject jsonResult = new JsonObject();
-		jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
-		jsonResult.add("topks_asyt", obj_topk_asyt);
-		jsonResult.add("baseline", obj_social_baseline);
+    // Computation for top-k exact: baseline
+    this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha,
+            30000, 100000, Experiment.NDCG_DISK_ACCESS);
+    JsonObject obj_baseline = new JsonObject();
+    obj_baseline.add("users_visited", new JsonPrimitive(
+            this.topk_alg.getNumberUsersSeen()));
+    obj_baseline.add("inverted_lists_algo", new JsonPrimitive(
+            this.topk_alg.getNumberInvertedListUsed()));
+    obj_baseline.add("ndcg", new JsonPrimitive(topk_alg.computeNDCG(k)));
 
-		return jsonResult;
-	}
+    // Create JSON Response
+    JsonObject jsonResult = new JsonObject();
+    jsonResult.add("status", new JsonPrimitive(1));
+    jsonResult.add("topks_asyt", obj_topk_asyt);
+    jsonResult.add("baseline", obj_baseline);
 
-	/*public JsonObject executeSupernodes(String user, List<String> query, int k,
+    return jsonResult;
+  }
+
+  /*public JsonObject executeSupernodes(String user, List<String> query, int k,
 	        boolean newQuery, float alpha, int budget, boolean supernode) {
 		Params.EXACT_TOPK = false;
 		Params.DISK_ACCESS_EXPERIMENT = false;
@@ -212,7 +206,7 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}*/
 
-	/*public JsonObject executeMixedBaseline(int seeker, List<String> query,
+  /*public JsonObject executeMixedBaseline(int seeker, List<String> query,
 	        int k, float alpha) {
 		Params.EXACT_TOPK = false;
 		// Oracle computation (visit of whole graph)
@@ -242,7 +236,7 @@ public class TOPKSSearcher {
 		return jsonResult;
 	}*/
 
-	/*public JsonObject executeIncrementalVsNonincrementalQuery(String user,
+  /*public JsonObject executeIncrementalVsNonincrementalQuery(String user,
 	        List<String> query, int k, float alpha, int lengthPrefixMinimum) {
 		// Computation for infinity (oracle)
 		Params.EXACT_TOPK = false;

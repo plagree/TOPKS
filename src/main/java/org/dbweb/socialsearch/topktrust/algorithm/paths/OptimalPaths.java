@@ -26,7 +26,7 @@ public class OptimalPaths {
   private Map<Integer,FibonacciHeapNode<Integer>> nodes;
   private FibonacciHeap<Integer> prioQueue;
   private float max_pos_val;
-  private PathCompositionFunction distFunc;
+  private PathCompositionFunction<Float> distFunc;
 
   private String networkTable;
   int total_sum = 0;
@@ -43,7 +43,7 @@ public class OptimalPaths {
     this.values = values;
   }
 
-  public void setDistFunc(PathCompositionFunction distFunc){
+  public void setDistFunc(PathCompositionFunction<Float> distFunc){
     this.distFunc = distFunc;
   }
 
@@ -93,7 +93,6 @@ public class OptimalPaths {
   }
 
   private void calculateHeap(FibonacciHeapNode<Integer> currentUser) {
-    boolean foundFirst = false;
     List<UserLink<Integer,Float>> neighbl = getNeighbList(currentUser.getData());
     if(neighbl!=null){
       for(UserLink<Integer, Float> neighb: neighbl) {
@@ -120,7 +119,7 @@ public class OptimalPaths {
     val_u = (val_u == Float.POSITIVE_INFINITY) ? 0 : max_pos_val / val_u;
     float val_v = (float)v.getKey();
     val_v = (val_v == Float.POSITIVE_INFINITY) ? 0 : max_pos_val / val_v;
-    Comparable result = this.distFunc.compute(val_u, w);
+    Comparable<Float> result = this.distFunc.compute(val_u, w);
     if(result.compareTo(val_v) > 0) {
       prioQueue.decreaseKey(v, (Float)max_pos_val/(Float)result);
     }

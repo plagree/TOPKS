@@ -10,6 +10,7 @@ import org.dbweb.socialsearch.topktrust.datastructure.ItemList;
 import org.dbweb.socialsearch.topktrust.datastructure.ReadingHead;
 import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
 import org.dbweb.topktrust.socialsearch.importer.CSVFileImporter;
+import org.dbweb.Arcomem.Integration.Experiment;
 import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.completion.trie.RadixTreeNode;
 import org.externals.Tools.NDCG;
@@ -30,10 +31,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 
 /**
  *
@@ -64,7 +61,6 @@ public class TopKAlgorithm {
   private List<ReadingHead> topReadingHead;
   private List<Float> userWeights;  // Social score (similarity) of the current visited user
   private Set<Pair<Long,String>> unknownTf;
-  private List<String> correspondingCompletions;// TODO: What does it mean?
   private Set<Long> guaranteed;
   private Set<Long> possible; // Set of items which are still candidates for the final topk
   private float userWeight;
@@ -79,6 +75,7 @@ public class TopKAlgorithm {
   // Time for exact top k
   private long time_topk = 0;
   private Set<Long> topk_infinity;
+  private Experiment type;
 
   //debug purpose
   public double bestscore;
@@ -88,7 +85,7 @@ public class TopKAlgorithm {
   private boolean terminationCondition;
   private float alpha = 0;
   private int nbPSpacesAccesses; // Accesses of p-spaces
-  private int nbILFastAccesses;
+  private int nbILFastAccesses; // Do we really care? TODO
   private int nbILAccesses;
   private int numloops = 0;
   private int skippedTests = 1;  // Number of loops before testing the exit condition
@@ -109,7 +106,7 @@ public class TopKAlgorithm {
     this.alpha = scoreAlpha;
     this.optpath = optPathClass;
     this.score = itemScore;
-    this.correspondingCompletions = null;
+    this.type = Experiment.DEFAULT;
     long before = System.currentTimeMillis();
     try {
       CSVFileImporter.loadInMemory(this.completionTrie, this.tagIdf,
@@ -136,17 +133,17 @@ public class TopKAlgorithm {
    * @param maximumNodeVisited Maximum number of users to visit in the graph
    */
   public void executeQuery(int seeker, List<String> query, int k, float alpha,
-          int t, int maximumNodeVisited) {
+          int t, int maximumNodeVisited, Experiment type) {
 
     // Step 0: Basic initialisations
+    this.type = type;
     this.alpha = alpha;
     this.maximumNodeVisited = maximumNodeVisited;
-    this.values = new ArrayList<Float>();		// TO REMOVE
+    this.values = new ArrayList<Float>();
     this.unknownTf = new HashSet<Pair<Long,String>>();
     this.optpath.setValues(values);
     this.optpath.setDistFunc(distFunc);
     this.userWeight = 1.0f;
-    this.terminationCondition = false;
     this.invertedListsUsed = new HashSet<String>();
     this.topReadingHead = new ArrayList<ReadingHead>();
     this.userWeights = new ArrayList<Float>();
@@ -191,10 +188,6 @@ public class TopKAlgorithm {
     value = (int)completionTrie.searchPrefix(prefix, false).getValue();
     itemId = this.invertedLists.get(completion).get(0).getDocId();
     rh = new ReadingHead(completion, itemId, value);
-    if (this.correspondingCompletions != null) {
-      // rh.setCompletion(this.correspondingCompletions.get(0)); TODO
-      return;
-    }
     this.topReadingHead.add(rh);
     if (this.plainTerms.contains(completion))
       this.advanceTextualList(prefix, query.size() - 1, false);
@@ -268,7 +261,6 @@ public class TopKAlgorithm {
     // Initialise the heap for Dijkstra (start from origin again)
     this.currentUser = optpath.initiateHeapCalculation(seeker);
     this.userWeight = 1.0f;
-    this.terminationCondition = false;
     this.nbNeighbour = 0;
     // Clean previous prefix for new word
     this.candidates.filterNextWord(query, this.tagIdf, this.completionTrie,
@@ -284,9 +276,6 @@ public class TopKAlgorithm {
     int value = (int)completionTrie.searchPrefix(prefix, false).getValue();
     long itemId = this.invertedLists.get(completion).get(0).getDocId();
     ReadingHead rh = new ReadingHead(completion, itemId, value);
-    if (this.correspondingCompletions != null) {
-      return;
-    }
     this.userWeights.add(this.userWeight);
     this.topReadingHead.set(query.size() - 1, rh);
     this.plainTerms.add(query.get(query.size() - 2));
@@ -346,6 +335,7 @@ public class TopKAlgorithm {
     this.numberUsersSeen = 0;
     this.ndcgResults = new NDCGResults();
     this.time_topk = 0;
+    this.terminationCondition = false;
     // Reset counter of IL accesses and p-spaces accesses
     this.nbILAccesses = 0;
     this.nbILFastAccesses = 0;
@@ -354,7 +344,6 @@ public class TopKAlgorithm {
     // Local Variables
     int loops = 0;
     int steps = 1;
-    boolean underTimeLimit = true;
     long currentTime = 0;
     long timeNDCG = 0;
     long timeThresholdNDCG = Params.TIME_NDCG;
@@ -362,8 +351,8 @@ public class TopKAlgorithm {
     long before_main_loop = System.currentTimeMillis();
 
     do {
-      if (Params.DISK_ACCESS_EXPERIMENT && (currVisited + this.invertedListsUsed.size() +
-              Params.NUMBER_ILS) >= Params.DISK_BUDGET)
+      if (this.type == Experiment.NDCG_DISK_ACCESS && (currVisited
+              + this.invertedListsUsed.size()) >= Params.DISK_BUDGET)
         break;
       boolean socialBranch = chooseBranch(query);
       if(socialBranch) {
@@ -380,71 +369,67 @@ public class TopKAlgorithm {
 
       steps = (steps + 1) % this.skippedTests;
       if (steps == 0) {
-        terminationCondition = candidates.terminationCondition(
+        this.terminationCondition = this.candidates.terminationCondition(
                 query, k, this.alpha, this.tagIdf, this.topReadingHead,
                 this.userWeights, this.possible);
 
-      } else { // Analysis for NDCG experiments
-        // Curve NDCG vs time
-        if (Params.DEBUG) {
-          System.out.println(Params.EXACT_TOPK + ", " +
-                  currVisited+", "+Params.NDCG_TIME+", "+Params.NDCG_USERS);
-          System.out.println(Params.EXACT_TOPK && (currVisited%10 == 0));
-        }
-        if (Params.NDCG_TIME) {
-          // Analysis for NDCG vs t plot
-          currentTime = (System.currentTimeMillis() - before_main_loop) - timeNDCG / 1000000;
-          if (Params.NDCG_TIME && (currentTime >= timeThresholdNDCG)) {
-            long bef = System.nanoTime();
-            double ndcg = NDCG.getNDCG(this.candidates.getLongListTopk(k), 
-                    this.oracleNDCG, k);
-            if (ndcg > 1) {
-              System.out.println(ndcg);
-              System.out.println(this.candidates.getLongListTopk(k).toString()
-                      + ",   "+oracleNDCG.toString());
+      } else { // Experiments
+        switch (this.type) {
+          case NDCG_TIME: // Analysis for NDCG vs t plot
+            currentTime = (System.currentTimeMillis() - before_main_loop)
+                    - timeNDCG / 1000000;
+            if (currentTime >= timeThresholdNDCG) {
+              long bef = System.nanoTime();
+              double ndcg = NDCG.getNDCG(this.candidates.getLongListTopk(k), 
+                      this.oracleNDCG, k);
+              if (ndcg > 1) {
+                System.out.println(ndcg);
+                System.out.println(this.candidates.getLongListTopk(k).toString()
+                        + ",   " + oracleNDCG.toString());
+              }
+              this.ndcgResults.addPoint(currentTime, ndcg);
+              timeNDCG += (System.nanoTime() - bef);
+              timeThresholdNDCG += Params.TIME_NDCG;
             }
-            this.ndcgResults.addPoint(currentTime, ndcg);
-            timeNDCG += (System.nanoTime() - bef);
-            timeThresholdNDCG += Params.TIME_NDCG;
-          }
-          if (currentTime >= max_t && Params.NDCG_TIME) {
-            System.out.println("Time: " + max_t);
+            if (currentTime >= max_t) {
+              System.out.println("Time: " + max_t);
+              break;
+            }
             break;
-          }
-        }
-        // Curve NDCG vs #users visited in the social graph
-        else if (Params.NDCG_USERS) {
-          if (currVisited%Params.STEP_NEIGH == 0) {
-            double ndcg = NDCG.getNDCG(
-                    this.candidates.getLongListTopk(k), oracleNDCG, k);
-            this.ndcgResults.addPoint(currVisited, ndcg);
-          }
-        }
-        else if (Params.EXACT_TOPK && (currVisited % 100 == 0)) {
-          currentTime = (System.currentTimeMillis() - before_main_loop) - timeNDCG / 1000000;
-          long bef = System.nanoTime();
-          if (this.topk_infinity.equals(this.candidates.getSetTopk(k))) {
-            this.time_topk = currentTime;
+          case NDCG_USERS: // Curve NDCG vs #users visited in the social graph
+            if (currVisited%Params.STEP_NEIGH == 0) {
+              double ndcg = NDCG.getNDCG(
+                      this.candidates.getLongListTopk(k), oracleNDCG, k);
+              this.ndcgResults.addPoint(currVisited, ndcg);
+            }
             break;
-          }
-          timeNDCG += (System.nanoTime() - bef);
+          case EXACT_TOPK:
+            if (currVisited % 100 == 0) {
+              currentTime = (System.currentTimeMillis() - before_main_loop)
+                      - timeNDCG / 1000000;
+              long bef = System.nanoTime();
+              if (this.topk_infinity.equals(this.candidates.getSetTopk(k))) {
+                this.time_topk = currentTime;
+                break;
+              }
+              timeNDCG += (System.nanoTime() - bef);
+            }
+            break;
+          default: ;
         }
         terminationCondition = false;
       } // End experiments
 
+      loops++;
       long time_1 = System.currentTimeMillis();
       if ((time_1-before_main_loop) > Math.max(max_t + 25, max_t)) {
         System.out.println("time not under limit");
-        underTimeLimit = false;
+        break;
       }
-      if (userWeight == 0) {
-        terminationCondition = true;
+      if (userWeight == 0 || currVisited >= this.maximumNodeVisited) {
+        break;
       }
-      loops++;
-      if (currVisited >= this.maximumNodeVisited) {	// We visited enough users
-        terminationCondition = true;
-      }
-    } while(!terminationCondition && underTimeLimit);
+    } while(!this.terminationCondition);
 
     this.numloops = loops;
     this.numberUsersSeen = currVisited;
@@ -498,6 +483,7 @@ public class TopKAlgorithm {
     long  itemId = 0;
     String tag;
     boolean badCompletion; // True if the completion corresponds to a previous query term
+    boolean pspaceExploration = false; // Did we explore the p-space of the current user?
 
     // for all tags in the query Q, triples Tagged(u,i,t_j)
     for(int pos = 0; pos < query.size(); pos++) {
@@ -509,11 +495,9 @@ public class TopKAlgorithm {
       this.queryNbNeighbour.set(pos, this.nbNeighbour + 1);
       this.userWeights.set(pos, this.userWeight);
       currentUserId = currentUser.getEntryId();
-      if (this.userSpaces.containsKey(currentUserId) &&
-              (currentUserId != seeker || Params.SUPERNODE)) {
-        // Here we check user space access
-        this.nbPSpacesAccesses += 1;
-
+      if (this.userSpaces.containsKey(currentUserId) && (currentUserId != seeker
+              || this.type == Experiment.SUPERNODE)) {
+        pspaceExploration = true;
         if (pos == query.size() - 1) { // Case 1: we are at a prefix
           SortedMap<String, TLongSet> completions = this.userSpaces
                   .get(currentUserId).prefixMap(tag);
@@ -580,14 +564,10 @@ public class TopKAlgorithm {
       }
     }
 
+    if (pspaceExploration) // Here we check user space access
+      this.nbPSpacesAccesses += 1;
     this.nbNeighbour++;
-    // Sometimes, this code runs really slowly
-    long time_loading_before = System.currentTimeMillis();
-    currentUser = optpath.advanceFriendsList(currentUser);
-    long time_loading_after = System.currentTimeMillis();
-    long tl = (time_loading_after - time_loading_before) / 1000;
-    if (tl > 1)
-      System.out.println("Loading in : "+tl);
+    currentUser = optpath.advanceFriendsList(currentUser); // Go to next user
     if(currentUser != null)
       this.userWeight = currentUser.getDist().floatValue();
     else
@@ -701,12 +681,8 @@ public class TopKAlgorithm {
       ILposition = this.invertedListPositions.get(tag);
       DocumentNumTag current_read = this.invertedLists.get(tag).get(ILposition);
       ReadingHead new_top_rh = null;
-      if (this.correspondingCompletions == null)
-        new_top_rh = new ReadingHead(
-                tag, current_read.getDocId(), current_read.getNum());
-      else    // TODO: Analyse when it happens
-        new_top_rh = new ReadingHead(this.correspondingCompletions.get(ILposition),
-                current_read.getDocId(), current_read.getNum());
+      new_top_rh = new ReadingHead(
+              tag, current_read.getDocId(), current_read.getNum());
       this.topReadingHead.set(pos, new_top_rh);
     }
     else { // Prefix, use the completion trie
@@ -751,12 +727,8 @@ public class TopKAlgorithm {
       ILposition = this.invertedListPositions.get(keyword);
       DocumentNumTag current_read = this.invertedLists.get(keyword).get(ILposition);
       ReadingHead new_top_rh = null;
-      if (this.correspondingCompletions == null)
-        new_top_rh = new ReadingHead(
-                keyword, current_read.getDocId(), current_read.getNum());
-      else    // TODO: Analyse when it happens
-        new_top_rh = new ReadingHead(this.correspondingCompletions.get(ILposition),
-                current_read.getDocId(), current_read.getNum());
+      new_top_rh = new ReadingHead(
+              keyword, current_read.getDocId(), current_read.getNum());
       this.topReadingHead.set(pos, new_top_rh);
     }
   }
@@ -875,103 +847,47 @@ public class TopKAlgorithm {
     return this.nbPSpacesAccesses;
   }
 
-  public JsonObject getILaccesses() {
+  /*public JsonObject getILaccesses() {
     JsonObject accesses = new JsonObject();
     accesses.add("fast", new JsonPrimitive(this.nbILFastAccesses));
     accesses.add("slow", new JsonPrimitive(this.nbILAccesses));
     accesses.add("il_topks_asyt",  new JsonPrimitive(this.invertedListsUsed.size()));
     return accesses;
-  }
+  }*/
 
+  /**
+   * Compute NDCG with oracle list
+   * @param k
+   * @return NDCG measure between last top-k and oracle.
+   */
   public double computeNDCG(int k) {
     return NDCG.getNDCG(this.candidates.getLongListTopk(k),
-            this.oracleNDCG, k); // Compute NDCG with oracle list
+            this.oracleNDCG, k);
   }
-  
-  public int[] executeJournalBaselineQuery(int seeker, List<String> query, int k,
-      float alpha, int t, int nVisited) {
-    String prefix = query.get(0);
-    RadixTreeNode radixTreeNode = completionTrie.searchPrefix(prefix, false);
-    RadixTreeNode originalNode = radixTreeNode.clone();
-    radixTreeNode.setBestDescendant(radixTreeNode);
-    radixTreeNode.setReal(true);
-    radixTreeNode.setWord(prefix);
 
-    // Union of inverted lists of possible completions
-    long timeBefore = System.nanoTime();
-    Map<String, Integer> indexPosition = new HashMap<String, Integer>();
-    Queue<ReadingHead> queue = new PriorityQueue<ReadingHead>();
+  public void executeJournalBaselineQuery(int seeker, List<String> query,
+          int k, float alpha, int t, int nVisited, Experiment type) {
+    // Step 1: Fully textual
+    this.skippedTests = 100000;
+    this.executeQuery(seeker, query, k, 1, t, nVisited, type);
 
-    Map<String, String> completions = this.dictionaryTrie.prefixMap(prefix);
-    Iterator<Entry<String, String>> iterator = completions.entrySet().iterator();
-    Entry<String, String> currentEntry = null;
-    DocumentNumTag firstDoc = null;
-    //int nbLoadedBlocksFromDisk = 0;
-    int nbInvertedListsForMerge = 0;
-    while (iterator.hasNext()) {
-      currentEntry = iterator.next();
-      String completion = currentEntry.getKey();
-      indexPosition.put(completion, 0);
-      firstDoc = this.invertedLists.get(completion).get(0);
-      //nbLoadedBlocksFromDisk += this.sizeInvertedLists.get(completion) / Params.SIZE_OF_BLOCK + 1;
-      nbInvertedListsForMerge += 1;
-      queue.add(new ReadingHead(completion, firstDoc.getDocId(), firstDoc.getNum()));
+    // Step 2: Fully social now
+    this.alpha = alpha;
+    this.values = new ArrayList<Float>();
+    this.optpath.setValues(values);
+    this.optpath.setDistFunc(distFunc);
+    this.userWeight = 1.0f;
+    this.userWeights = new ArrayList<Float>();
+    this.nbNeighbour = 0;
+    this.queryNbNeighbour = new ArrayList<Integer>();
+    // Initialise the heap for Dijkstra
+    this.currentUser = optpath.initiateHeapCalculation(seeker);
+    for (int i = 0; i < query.size(); i++) {
+      this.userWeights.add(this.userWeight);
+      this.queryNbNeighbour.add(0);
     }
-
-    List<DocumentNumTag> mergedList = new ArrayList<DocumentNumTag>(); // Output of the merge of inverted lists
-    ReadingHead currentHead = null;
-    String completion = null;
-    this.correspondingCompletions = new ArrayList<String>();
-    while (!queue.isEmpty()) {
-      currentHead = queue.poll();
-      mergedList.add(new DocumentNumTag(currentHead.getItem(), currentHead.getValue()));
-      completion = currentHead.getCompletion();
-      this.correspondingCompletions.add(completion); // NO MAX
-      int count = indexPosition.get(completion);
-      indexPosition.put(completion, count+1);
-      if (count + 1 < this.invertedLists.get(completion).size()) {
-        firstDoc = this.invertedLists.get(completion).get(count + 1);
-        currentHead.setValue(firstDoc.getNum());
-        currentHead.setItem(firstDoc.getDocId());
-        queue.add(currentHead);
-      }
-    }
-    System.out.println(mergedList.size()+" size of merged list");
-    Params.NUMBER_ILS = nbInvertedListsForMerge;
-
-    List<DocumentNumTag> originalList = null;
-    if (this.invertedLists.containsKey(prefix))
-      originalList = this.invertedLists.get(prefix);
-
-    this.invertedLists.put(prefix, mergedList);
-    boolean prefix_not_a_word = false;
-    if (!this.invertedListPositions.containsKey(prefix)) {
-      this.invertedListPositions.put(prefix, 0);
-      prefix_not_a_word = true;
-    }
-    long timeToMerge = (System.nanoTime() - timeBefore) / 1000000;
-
-    // Execute query with materialised list
-    long timeBeforeQuery = System.nanoTime();
-    this.executeQuery(seeker, query, k, t, nVisited);
-    Params.NUMBER_ILS = 0;
-
-    radixTreeNode.setBestDescendant(originalNode.getBestDescendant());
-    radixTreeNode.setReal(originalNode.isReal());
-    radixTreeNode.setWord(originalNode.getWord());
-    radixTreeNode.setChildren(originalNode.getChildren());
-    radixTreeNode.updatePreviousBestValue(originalNode.getValue());
-    if (originalList != null)
-      this.invertedLists.put(prefix, originalList);
-    if (prefix_not_a_word)
-      this.invertedListPositions.remove(prefix);
-    else
-      this.invertedListPositions.put(prefix, 0);
-    long timeQuery = (System.nanoTime() - timeBeforeQuery) / 1000000;
-    int res[] = {(int)timeToMerge, (int)timeQuery, nbInvertedListsForMerge, this.invertedListsUsed.size()};
-    this.correspondingCompletions = null;
-
-    return res;
+    this.candidates.updateAlpha(alpha);
+    this.mainLoop(k, seeker, query, 2000);
   }
 
 }

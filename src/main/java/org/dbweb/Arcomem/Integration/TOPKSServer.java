@@ -37,6 +37,7 @@ import com.sun.net.httpserver.HttpServer;
 @SuppressWarnings("restriction")
 public class TOPKSServer {
 
+  private static enum Query {TOPKS, INCREMENTAL, BASELINE}
   private final static int PORT = 8000;
   public static TOPKSSearcher topksSearcher;
 
@@ -58,6 +59,7 @@ public class TOPKSServer {
       //server.createContext("/supernodes", new SuperNodesHandler()); // TOPKS with super nodes (clusters)
       //server.createContext("/incremental", new ExactTopkIncVsNonincHandler()); // TOPKS time for exact topk incremental vs not
       //server.setExecutor(null); 									// creates a default executor
+      server.createContext("/baselines", new BaselineHandler());
       server.start();
       System.out.println("Server started on port " + PORT);
     } catch (IOException e) {
@@ -78,64 +80,7 @@ public class TOPKSServer {
   private static class TOPKSHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange t) throws IOException {
-      Map<String, String> params = TOPKSServer.queryToMap(t.getRequestURI().getQuery());
-      Headers h = t.getResponseHeaders();
-      h.add("Content-Type", "application/json; charset=UTF-8");
-      // put the response text in this buffer to be sent out at the end
-      StringBuilder responseBuffer = new StringBuilder();
-      String response;
-      JsonObject jsonResponse = new JsonObject();
-      Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-      // If we didn't receive a request in the right format
-      if (!params.containsKey("q") && !params.containsKey("seeker")) {
-        jsonResponse.add("status", new JsonPrimitive(0));
-        responseBuffer.append(jsonResponse.toString());
-        response = responseBuffer.toString();
-        t.sendResponseHeaders(400, response.length());
-      }
-      else {
-        System.out.println(t.getRequestURI());
-
-        jsonResponse.add("status", new JsonPrimitive(1));
-
-        // Create the query List of words
-        List<String> query;
-        query = Arrays.asList(params.get("q").split("\\+"));
-
-        // Execute the TOPKS query with data parsed from the URI
-        JsonObject jsonAnswer;
-        try {
-          jsonAnswer = TOPKSServer.topksSearcher.executeQuery(
-              Integer.parseInt(params.get("seeker")), 
-              query, 
-              Integer.parseInt(params.get("k")), 
-              Integer.parseInt(params.get("t")),
-              Integer.parseInt(params.get("nNeigh")),
-              Float.parseFloat(params.get("alpha"))
-              );
-
-          System.out.println(jsonAnswer.toString());
-
-          // Create JSON response
-          jsonResponse.add("n", jsonAnswer.get("n"));
-          jsonResponse.add("status", jsonAnswer.get("status"));
-          jsonResponse.add("nLoops", jsonAnswer.get("nLoops"));
-          jsonResponse.add("results", jsonAnswer.get("results"));
-
-        } catch (NumberFormatException e) {
-          e.printStackTrace();
-        }
-        responseBuffer.append(gson.toJson(jsonResponse).toString());
-        response = responseBuffer.toString();
-        t.sendResponseHeaders(200, response.length());
-      }
-
-      OutputStream os = t.getResponseBody();
-      os.write(response.getBytes("UTF-8"));
-      os.flush();
-      os.close();
-      t.close();
+      TOPKSServer.handleQuery(t, Query.TOPKS);
     }
   }
 
@@ -390,59 +335,16 @@ public class TOPKSServer {
   }*/
 
   /**
-   * query: /social_baseline?...
-   * @author lagree
+   * query: /baselines?q=term1+term2+pref&seeker=1&alpha=0&k=20&disk_budget=50
+   * @author Paul Lagrée
    *
    */
-  /*private static class SocialBaselineHandler implements HttpHandler {
+  private static class BaselineHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange t) throws IOException {
-      Map<String, String> params = TOPKSServer.queryToMap(
-          t.getRequestURI().getQuery());
-      Headers h = t.getResponseHeaders();
-      h.add("Content-Type", "application/json; charset=UTF-8");
-      // put the response text in this buffer to be sent out at the end
-      StringBuilder responseBuffer = new StringBuilder();
-      String response;
-      JsonObject jsonResponse = new JsonObject();
-      Gson gson = new GsonBuilder().setPrettyPrinting().create();
-      // If we didn't receive a request in the right format
-      if (!params.containsKey("q") && !params.containsKey("seeker")) {
-        jsonResponse.add("status", new JsonPrimitive(0));
-        responseBuffer.append(jsonResponse.toString());
-        response = responseBuffer.toString();
-        t.sendResponseHeaders(400, response.length());
-      }
-      else {
-        System.out.println(t.getRequestURI());
-
-        // Create the query List of words
-        List<String> query = new ArrayList<String>();
-        query.add(params.get("q"));
-        try {
-          jsonResponse = TOPKSServer.topksSearcher.executeSocialBaseline(
-              params.get("seeker"),
-              query,
-              Integer.parseInt(params.get("k")),
-              true,
-              Float.parseFloat(params.get("alpha")),
-              Integer.parseInt(params.get("disk_budget")) // Number of accesses allowed to the disk (budget)
-              );
-        } catch (NumberFormatException e) {
-          e.printStackTrace();
-        }
-        responseBuffer.append(gson.toJson(jsonResponse).toString());
-        response = responseBuffer.toString();
-        t.sendResponseHeaders(200, response.length());
-      }
-
-      OutputStream os = t.getResponseBody();
-      os.write(response.getBytes("UTF-8"));
-      os.flush();
-      os.close();
-      t.close();
+      TOPKSServer.handleQuery(t, Query.BASELINE);
     }
-  }*/
+  }
 
   /**
    * 
@@ -501,7 +403,7 @@ public class TOPKSServer {
     }
   }*/
 
-  public static Map<String, String> queryToMap(String query){
+  public static Map<String, String> queryToMap(String query) {
     Map<String, String> result = new HashMap<String, String>();
     if (query == null)
       return result;
@@ -514,6 +416,100 @@ public class TOPKSServer {
       }
     }
     return result;
+  }
+
+  /**
+   * Run the query, this method is common to all types of queries.
+   * @param type Type of the query to handle (among the enumeration types)
+   * @return <code>true</code> if the query was correct, <code>false</code>
+   *         otherwise
+   * @throws IOException
+   */
+  private static void handleQuery(HttpExchange t, Query type) throws IOException {
+    Map<String, String> params = TOPKSServer.queryToMap(
+            t.getRequestURI().getQuery());
+    JsonObject jsonResponse = new JsonObject();
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    Headers h = t.getResponseHeaders();
+    h.add("Content-Type", "application/json; charset=UTF-8");
+    // put the response text in this buffer to be sent out at the end
+    StringBuilder responseBuffer = new StringBuilder();
+    String response;
+    System.out.println(t.getRequestURI());
+    try {
+      switch (type) {
+        case BASELINE: jsonResponse = TOPKSServer.runBaseline(params);
+          break;
+        case TOPKS: jsonResponse = TOPKSServer.runTOPKS(params);
+          break;
+        default: jsonResponse = null;
+      }
+    } catch (NumberFormatException e) {
+      e.printStackTrace();
+    }
+    if (jsonResponse != null) {
+      responseBuffer.append(gson.toJson(jsonResponse).toString());
+      response = responseBuffer.toString();
+      t.sendResponseHeaders(200, response.length());
+    } else { // Query not in right format
+      jsonResponse = new JsonObject();
+      jsonResponse.add("status", new JsonPrimitive(0));
+      responseBuffer.append(jsonResponse.toString());
+      response = responseBuffer.toString();
+      t.sendResponseHeaders(400, response.length());
+    }
+    OutputStream os = t.getResponseBody();
+    os.write(response.getBytes("UTF-8"));
+    os.flush();
+    os.close();
+    t.close();
+  }
+
+  /**
+   * Method to call classic TOPKS-ASYT Algorithm.
+   * @param params
+   * @return
+   */
+  public static JsonObject runTOPKS(Map<String, String> params) {
+    JsonObject jsonResponse;
+    if (params.containsKey("q") && params.containsKey("seeker") &&
+            params.containsKey("alpha") && params.containsKey("t")
+            && params.containsKey("nNeigh")) {
+      // Create the query List of words
+      List<String> query = Arrays.asList(params.get("q").split("\\+"));
+      jsonResponse = TOPKSServer.topksSearcher.executeQuery(
+              Integer.parseInt(params.get("seeker")), query, 
+              Integer.parseInt(params.get("k")), 
+              Integer.parseInt(params.get("t")),
+              Integer.parseInt(params.get("nNeigh")),
+              Float.parseFloat(params.get("alpha"))
+              );
+    } else {
+      jsonResponse = null;
+    }
+    return jsonResponse;
+  }
+
+  /**
+   * Method to call compare TOPKS-ASYT to different baselines.
+   * @param params
+   * @return
+   */
+  public static JsonObject runBaseline(Map<String, String> params) {
+    JsonObject jsonResponse;
+    if (params.containsKey("q") && params.containsKey("seeker") &&
+            params.containsKey("alpha") && params.containsKey("disk_budget")) {
+      // Create the query List of words
+      List<String> query = Arrays.asList(params.get("q").split("\\+"));
+      jsonResponse = TOPKSServer.topksSearcher.executeBaseline(
+              Integer.parseInt(params.get("seeker")), query,
+              Integer.parseInt(params.get("k")),
+              Float.parseFloat(params.get("alpha")),
+              Integer.parseInt(params.get("disk_budget")));
+    } else {
+      jsonResponse = null;
+    }
+    return jsonResponse;
   }
 
 }

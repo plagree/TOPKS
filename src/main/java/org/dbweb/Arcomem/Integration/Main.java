@@ -7,13 +7,12 @@ import org.dbweb.socialsearch.topktrust.algorithm.score.TfIdfScore;
 public class Main {
 
 	public static void main(String[] args) {
-		// Index data and prepare TOPKS algorithm
-
 		if (args.length != 4) {
-			System.out.println("Usage: java -jar -Xmx13000m executable.jar /path/to/files.txt "
-					+ "networkFile triplesFile thresholdRef \nYou gave "+args.length+" parameters");
+			System.out.println("Usage: java -jar -Xmx13000m executable.jar"
+			        + "/path/to/files.txt networkFile triplesFile thresholdRef"
+			        + "\nYou gave "+args.length+" parameters");
 			for (int i=0; i<args.length; i++) {
-				System.out.println("Argument "+(i+1)+": "+args[i]);
+				System.out.println("Argument " + (i + 1) + ": " + args[i]);
 			}
 			System.exit(0);
 		}

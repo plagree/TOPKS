@@ -54,7 +54,7 @@ public class Item implements Comparable<Item> {
    * @return true if the Item is still relevant, false otherwise
    */
   public boolean filterNextWord(String previousWord,
-      Set<Pair<Long, String>> unknownTf) {
+          Set<Pair<Long, String>> unknownTf) {
     if (!this.mapWordsData.containsKey(previousWord)) {
       for (String tag: this.mapWordsData.keySet())
         unknownTf.remove(new Pair<Long, String>(this.itemId, tag));
@@ -134,6 +134,15 @@ public class Item implements Comparable<Item> {
   }
 
   /**
+   * Update alpha (useful for baseline textual -> social)
+   * @param alpha New alpha parameter
+   */
+  public void updateAlpha(float alpha) {
+    this.alpha = alpha;
+    this.computeWorstScore();
+  }
+
+  /**
    * Compute the best score possible for the item, given the state of all its
    * parameters (e.g. TF value, social score gathered so far, ...). Keep in
    * mind that the value of the upper bound (best social score) changes
@@ -145,8 +154,8 @@ public class Item implements Comparable<Item> {
    * @return Best score (upper bound)
    */
   public float computeBestScore(List<String> query,
-      List<ReadingHead> topReadingHead, List<Float> userWeights,
-      RadixTreeImpl idf) {
+          List<ReadingHead> topReadingHead, List<Float> userWeights,
+          RadixTreeImpl idf) {
 
     this.bestscore = 0;
     float best_score_completion = 0, current_score_completion = 0, uw = 0;
@@ -172,14 +181,14 @@ public class Item implements Comparable<Item> {
       comb = this.alpha * tf + (1 - this.alpha) * social;
       if (this.mapWordsData.get(tag).isCompletion()) {
         current_score_completion = this.score.getScore(comb,
-            this.mapWordsData.get(tag).getIdf());
+                this.mapWordsData.get(tag).getIdf());
         if (current_score_completion > best_score_completion) {
           best_score_completion = current_score_completion;
           this.bestCompletion = tag;
         }
       } else {
         this.bestscore += this.score.getScore(comb,
-            this.mapWordsData.get(tag).getIdf());
+                this.mapWordsData.get(tag).getIdf());
       }
     }
     // We add the worst for words in positions which were not met yet
@@ -194,10 +203,10 @@ public class Item implements Comparable<Item> {
       comb = this.alpha * tf + (1 - this.alpha) * tf * userWeights.get(pos);
       if (pos == query.size() - 1) // Prefix
         this.bestscore += this.score.getScore(comb,
-            idf.searchPrefix(query.get(pos), false).getValue());
+                idf.searchPrefix(query.get(pos), false).getValue());
       else
         this.bestscore += this.score.getScore(comb,
-            idf.searchPrefix(query.get(pos), true).getValue());
+                idf.searchPrefix(query.get(pos), true).getValue());
     }
     this.bestscore += best_score_completion;
     return this.bestscore;
@@ -210,9 +219,9 @@ public class Item implements Comparable<Item> {
     float wscore_without_completion = 0, wscore_best_completion = 0;
     for (String tag: this.mapWordsData.keySet()) {
       float wpartial = this.mapWordsData.get(tag)
-          .computeWorstScore(this.alpha, this.score);
+              .computeWorstScore(this.alpha, this.score);
       if (this.mapWordsData.get(tag).isCompletion()
-          && wpartial > wscore_best_completion)
+              && wpartial > wscore_best_completion)
         wscore_best_completion = wpartial;
       else if (!this.mapWordsData.get(tag).isCompletion())
         wscore_without_completion += wpartial;
@@ -228,7 +237,7 @@ public class Item implements Comparable<Item> {
   private void updateWorstScore(String tag) {
     float old_wscore = this.mapWordsData.get(tag).getWorstScore();
     float new_wscore = this.mapWordsData.get(tag)
-        .computeWorstScore(this.alpha, this.score);
+            .computeWorstScore(this.alpha, this.score);
     // We update only if the total worst score increased
     if (this.mapWordsData.get(tag).isCompletion()) {
       if (this.worstscore < this.worstscore_without_prefix + new_wscore)
@@ -249,7 +258,7 @@ public class Item implements Comparable<Item> {
     for (String word: this.mapWordsData.keySet()) {
       if (this.mapWordsData.get(word).isCompletion()) { // the word is a prefix
         currentPrefixScore = this.mapWordsData.get(word)
-            .computeWorstScore(this.alpha, this.score);
+                .computeWorstScore(this.alpha, this.score);
         if (currentPrefixScore >= bestPrefixScore) {
           bestPrefixScore = currentPrefixScore;
           bestPrefix = word;
@@ -273,19 +282,19 @@ public class Item implements Comparable<Item> {
     for (String word: this.mapWordsData.keySet()) {
       if (this.mapWordsData.get(word).isCompletion()) { // the word is a prefix
         currentPrefixScore = this.mapWordsData.get(word)
-            .computeWorstScore(this.alpha, this.score);
+                .computeWorstScore(this.alpha, this.score);
         if (currentPrefixScore >= bestPrefixScore) {
           bestPrefixScore = currentPrefixScore;
           bestPrefix = word;
         }
       } else { // the word is not a prefix
         textualScore += this.mapWordsData.get(word)
-            .computeTextualScore(this.score);
+                .computeTextualScore(this.score);
       }
     }
     if (bestPrefix != null)
       textualScore += this.mapWordsData.get(bestPrefix)
-          .computeTextualScore(this.score);
+      .computeTextualScore(this.score);
     return textualScore;
   }
 
@@ -296,7 +305,7 @@ public class Item implements Comparable<Item> {
    * @return List of the textual heuristic for each word
    */
   public List<Float> getTextualBranchHeuristic(int nbWord,
-      List<ReadingHead> topReadingHead) {
+          List<ReadingHead> topReadingHead) {
     List<Float> res = new ArrayList<Float>();
     int pos = 0, tf = 0;
     for (pos = 0; pos < nbWord; pos++)
@@ -304,13 +313,13 @@ public class Item implements Comparable<Item> {
     float curContrib = 0;
     for (String tag: this.mapWordsData.keySet()) {
       if (!this.mapWordsData.get(tag).isCompletion()
-          || tag.equals(this.bestCompletion)) {
+              || tag.equals(this.bestCompletion)) {
         pos = this.mapWordsData.get(tag).getPosition();
         tf = 0;
         if (topReadingHead.get(pos) != null)
           tf = topReadingHead.get(pos).getValue();
         curContrib = this.mapWordsData.get(tag).getTextualBranchHeuristic(
-            this.alpha, tf);
+                this.alpha, tf);
         res.set(pos, curContrib);
       }
     }
@@ -325,8 +334,8 @@ public class Item implements Comparable<Item> {
    * @return List of the social heuristic for each word
    */
   public List<Float> getSocialBranchHeuristic(int nbWord,
-      List<ReadingHead> topReadingHead,
-      List<Float> userWeights) {
+          List<ReadingHead> topReadingHead,
+          List<Float> userWeights) {
     List<Float> res = new ArrayList<Float>();
     int pos = 0, tf = 0;
     for (pos = 0; pos < nbWord; pos++)
@@ -334,13 +343,13 @@ public class Item implements Comparable<Item> {
     float curContrib = 0;
     for (String tag: this.mapWordsData.keySet()) {
       if (!this.mapWordsData.get(tag).isCompletion()
-          || tag.equals(this.bestCompletion)) {
+              || tag.equals(this.bestCompletion)) {
         pos = this.mapWordsData.get(tag).getPosition();
         tf = 0;
         if (topReadingHead.get(pos) != null)
           tf = topReadingHead.get(pos).getValue();
         curContrib = this.mapWordsData.get(tag).getSocialBranchHeuristic(
-            this.alpha, tf, userWeights.get(pos));
+                this.alpha, tf, userWeights.get(pos));
         res.set(pos, curContrib);
       }
     }
@@ -384,9 +393,9 @@ public class Item implements Comparable<Item> {
     String res = "Item: " + String.valueOf(this.itemId) + "; ";
     for (String word: this.mapWordsData.keySet()) {
       res += word + " = (" + this.mapWordsData.get(word)
-          .computeSocialScore(this.score) + ", " + this.mapWordsData.get(word)
-          .computeTextualScore(this.score) + ", " +
-          this.mapWordsData.get(word).getWorstScore() + "), ";
+      .computeSocialScore(this.score) + ", " + this.mapWordsData.get(word)
+      .computeTextualScore(this.score) + ", " +
+      this.mapWordsData.get(word).getWorstScore() + "), ";
     }
     return res;
   }

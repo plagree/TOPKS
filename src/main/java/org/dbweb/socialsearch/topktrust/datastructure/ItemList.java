@@ -376,5 +376,19 @@ public class ItemList {
   public Item getItem(long itemId) {
     return this.items.get(itemId);
   }
+  
+  /**
+   * Update alpha values of Item objects (useful for textual -> social baseline)
+   * @param alpha New alpha value
+   */
+  public void updateAlpha(float alpha) {
+    for (long itemId: this.items.keySet()) {
+      Item item = this.items.get(itemId);
+      this.sorted_items.remove(item);
+      item.updateAlpha(alpha);
+      // After update, it must be re-added to the TreeSet
+      this.sorted_items.add(item);
+    }
+  }
 
 }
