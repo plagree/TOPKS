@@ -49,13 +49,18 @@ public class ItemList {
    */
   public void updateSocialScore(long itemId, String tag, float userWeight) {
     Item item = this.items.get(itemId);
+    if (itemId == 30661l) {
+      if (this.bug(itemId)) {
+        System.out.println("upSocial before");
+      }
+    }
     this.sorted_items.remove(item);
     item.updateSocialScore(tag, userWeight);
     // After update, it must be re-added to the TreeSet
     this.sorted_items.add(item);
     if (itemId == 30661l) {
       if (this.bug(itemId)) {
-        System.out.println("upSocial");
+        System.out.println("upSocial after");
         System.exit(1);
       }
     }
@@ -112,8 +117,14 @@ public class ItemList {
         c++;
       }
     }
-    if (c > 0)
+    if (c > 1) {
+      for (Item e: this.sorted_items) {
+        if (e.getItemId() == itemId) {
+          System.out.println(e);
+        }
+      }
       return true;
+    }
     return false;
   }
 
