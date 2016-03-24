@@ -523,6 +523,8 @@ public class TopKAlgorithm {
                 itemId = it.next();
                 // Add the item if not discovered yet
                 if (!this.candidates.containsItemId(itemId)) {
+                  if (itemId == 30661l)
+                    System.out.println("l527");
                   this.candidates.addItem(itemId, this.alpha);
                   this.possible.add(itemId);
                 }
@@ -548,6 +550,8 @@ public class TopKAlgorithm {
               itemId = it.next();
               // Add the item if not discovered yet
               if (!this.candidates.containsItemId(itemId)) {
+                if (itemId == 30661l)
+                  System.out.println("l553");
                 this.candidates.addItem(itemId, this.alpha);
                 this.possible.add(itemId);
               }
@@ -634,6 +638,8 @@ public class TopKAlgorithm {
       keyword = currentEntry.getCompletion();
       // Add the item if it is not resent in the candidate list
       if (!this.candidates.containsItemId(itemId)) {
+        if (itemId == 30661l)
+          System.out.println("l642");
         this.candidates.addItem(itemId, this.alpha);
         this.possible.add(itemId);
       }
