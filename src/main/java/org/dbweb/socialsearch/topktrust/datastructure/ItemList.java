@@ -58,7 +58,7 @@ public class ItemList {
     if (itemId == 30661l) {
       for (Item e: this.sorted_items) {
         if (e.getItemId() == itemId)
-          System.out.println("still here");
+          System.out.println(item);
       }
     }
     item.updateSocialScore(tag, userWeight);

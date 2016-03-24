@@ -598,7 +598,9 @@ public class TopKAlgorithm {
         if (this.unknownTf.contains(currentReadingHead.getItemKeywordPair())) {
           found = true;	// The entry has been discovered in the graph
           if (this.candidates.containsItemId(currentReadingHead.getItemId())) {
-            this.candidates.getItem(currentReadingHead.getItemId()).updateTDFScore(
+            //this.candidates.getItem(currentReadingHead.getItemId()).updateTDFScore(
+            //        keyword, currentReadingHead.getValue());
+            this.candidates.updateTextualScore(currentReadingHead.getItemId(),
                     keyword, currentReadingHead.getValue());
           }
           // We found the entry in IL
