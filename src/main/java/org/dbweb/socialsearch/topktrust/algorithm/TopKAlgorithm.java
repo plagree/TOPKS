@@ -523,8 +523,6 @@ public class TopKAlgorithm {
                 itemId = it.next();
                 // Add the item if not discovered yet
                 if (!this.candidates.containsItemId(itemId)) {
-                  if (itemId == 30661l)
-                    System.out.println("l527");
                   this.candidates.addItem(itemId, this.alpha);
                   this.possible.add(itemId);
                 }
@@ -532,8 +530,7 @@ public class TopKAlgorithm {
                 if (!this.candidates.getItem(itemId).containsTag(completion)) {
                   float idf = this.tagIdf.searchPrefix(
                           completion, true).getValue();
-                  this.candidates.getItem(itemId).addTag(
-                          completion, true, idf, pos);
+                  this.candidates.addTagToItem(itemId, completion, true, idf, pos);
                   // TF for (itemId, tag) is unknown
                   this.unknownTf.add(new Pair<Long,String>(itemId, completion));
                 }
@@ -550,8 +547,6 @@ public class TopKAlgorithm {
               itemId = it.next();
               // Add the item if not discovered yet
               if (!this.candidates.containsItemId(itemId)) {
-                if (itemId == 30661l)
-                  System.out.println("l553");
                 this.candidates.addItem(itemId, this.alpha);
                 this.possible.add(itemId);
               }
@@ -559,7 +554,8 @@ public class TopKAlgorithm {
               if (!this.candidates.getItem(itemId).containsTag(tag)) {
                 float idf = this.tagIdf.searchPrefix(tag, true).getValue();
                 // Add new tag to the corresponding Item
-                this.candidates.getItem(itemId).addTag(tag, false, idf, pos);
+                // this.candidates.getItem(itemId).addTag(tag, false, idf, pos);
+                this.candidates.addTagToItem(itemId, tag, false, idf, pos);
                 // TF for (itemId, tag) is unknown
                 this.unknownTf.add(new Pair<Long, String>(itemId, tag));
               }
@@ -638,8 +634,6 @@ public class TopKAlgorithm {
       keyword = currentEntry.getCompletion();
       // Add the item if it is not resent in the candidate list
       if (!this.candidates.containsItemId(itemId)) {
-        if (itemId == 30661l)
-          System.out.println("l642");
         this.candidates.addItem(itemId, this.alpha);
         this.possible.add(itemId);
       }
@@ -647,10 +641,14 @@ public class TopKAlgorithm {
       if (!this.candidates.getItem(itemId).containsTag(keyword)) {
         float idf = this.tagIdf.searchPrefix(keyword, true).getValue();
         // Add new tag to the corresponding Item
-        if (pos == query.size() - 1)	// prefix
-          this.candidates.getItem(itemId).addTag(keyword, true, idf, pos);
-        else	// Not a prefix
-          this.candidates.getItem(itemId).addTag(keyword, false, idf, pos);
+        if (pos == query.size() - 1) { // prefix
+          //this.candidates.getItem(itemId).addTag(keyword, true, idf, pos);
+          this.candidates.addTagToItem(itemId, keyword, true, idf, pos);
+        }
+        else {	// Not a prefix
+          //this.candidates.getItem(itemId).addTag(keyword, false, idf, pos);
+          this.candidates.addTagToItem(itemId, keyword, true, idf, pos);
+        }
       }
       // Update TF value
       this.candidates.updateTextualScore(itemId, keyword, currentEntry.getValue());

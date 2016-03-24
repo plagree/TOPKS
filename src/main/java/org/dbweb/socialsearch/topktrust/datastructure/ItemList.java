@@ -56,6 +56,23 @@ public class ItemList {
   }
   
   /**
+   * Adds a new to an existing item.
+   * @param itemId
+   * @param completion
+   * @param isCompletion
+   * @param idf
+   * @param pos
+   */
+  public void addTagToItem(long itemId, String completion, boolean isCompletion,
+          float idf, int pos) {
+    Item item = this.items.get(itemId);
+    this.sorted_items.remove(item);
+    item.addTag(completion, isCompletion, idf, pos);
+    // After update, it must be re-added to the TreeSet
+    this.sorted_items.add(item);
+  }
+  
+  /**
    * Updates textual (and sometimes social) score of itemId for the specified
    * tag. They both must exist.
    * @param itemId
@@ -95,8 +112,6 @@ public class ItemList {
   public void addItem(Long itemId, float alpha) {
     Item item = new Item(itemId, alpha, this.score);
     this.items.put(itemId, item);
-    if(this.sorted_items.contains(item))
-      System.out.println("ERROR " + alpha);
     this.sorted_items.add(item);
   }
 
