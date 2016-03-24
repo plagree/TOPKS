@@ -412,5 +412,15 @@ public class ItemList {
       this.sorted_items.add(item);
     }
   }
+  
+  public void debug(int k) {
+    int i = 0;
+    for (Item e: this.sorted_items) {
+      i++;
+      System.out.println(e);
+      if (i >= k)
+        break;
+    }
+  }
 
 }

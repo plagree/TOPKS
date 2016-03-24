@@ -816,7 +816,12 @@ public class TopKAlgorithm {
    * @return NDCG measure between last top-k and oracle.
    */
   public double computeNDCG(int k) {
-    return NDCG.getNDCG(this.candidates.getLongListTopk(k), this.oracleNDCG, k);
+    double v = NDCG.getNDCG(this.candidates.getLongListTopk(k),
+            this.oracleNDCG, k);
+    if (v > 1) {
+      this.candidates.debug();
+    }
+    return v;
   }
 
   /**
@@ -893,10 +898,6 @@ public class TopKAlgorithm {
         ordered.add(items.get(itemId));
       List<Long> listBaseline = new ArrayList<Long>();
       int i = 0;
-      System.out.println("===============");
-      System.out.println("Oracle");
-      System.out.println(this.oracleNDCG);
-      System.out.println("Baseline");
       for (ItemBaseline e: ordered) {
         i++;
         listBaseline.add(e.getItemId());
