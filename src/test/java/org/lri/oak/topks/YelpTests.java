@@ -3,6 +3,7 @@ package org.lri.oak.topks;
 import java.util.Arrays;
 import java.util.List;
 
+import org.dbweb.Arcomem.Integration.Experiment;
 import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
 import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
@@ -36,7 +37,7 @@ public class YelpTests {
     String multiQuery = "chinese+restaur";
     List<String> query;
     query = Arrays.asList(multiQuery.split("\\+"));
-    this.algo.executeQuery(1, query, 20, 0f, 2000, 30000);
+    this.algo.executeQuery(1, query, 20, 0f, 2000, 30000, Experiment.DEFAULT);
 
     Assert.assertEquals(this.algo.getNumloops(), 2795);
   }

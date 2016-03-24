@@ -9,8 +9,6 @@ public class Params {
   public static String networkFile = "user-to-user.txt";
   public static String ILFile = "tag-inverted.txt";
   public static String triplesFile = "triples.txt";
-  public static String inputTestFile = "test-file.txt";
-  public static String outputTestFile = "output-test-result.txt";
   public static Map<String, Integer> numberOfNeighbours;
   public static float threshold = 0.05f;
   public static int numberLinks = 0;

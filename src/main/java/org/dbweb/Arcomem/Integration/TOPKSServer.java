@@ -495,14 +495,26 @@ public class TOPKSServer {
   public static JsonObject runBaseline(Map<String, String> params) {
     JsonObject jsonResponse;
     if (params.containsKey("q") && params.containsKey("seeker") &&
-            params.containsKey("alpha") && params.containsKey("disk_budget")) {
+            params.containsKey("alpha") && params.containsKey("disk_budget") &&
+            params.containsKey("base")) {
       // Create the query List of words
       List<String> query = Arrays.asList(params.get("q").split("\\+"));
+      if (params.get("base").equals("textual_social")) {
       jsonResponse = TOPKSServer.topksSearcher.executeBaseline(
               Integer.parseInt(params.get("seeker")), query,
               Integer.parseInt(params.get("k")),
               Float.parseFloat(params.get("alpha")),
-              Integer.parseInt(params.get("disk_budget")));
+              Integer.parseInt(params.get("disk_budget")),
+              Baseline.TEXTUAL_SOCIAL);
+      } else if (params.get("base").equals("topk_merge")) {
+        jsonResponse = TOPKSServer.topksSearcher.executeBaseline(
+                Integer.parseInt(params.get("seeker")), query,
+                Integer.parseInt(params.get("k")),
+                Float.parseFloat(params.get("alpha")),
+                Integer.parseInt(params.get("disk_budget")),
+                Baseline.TOPK_MERGE);
+      } else
+        jsonResponse = null;
     } else {
       jsonResponse = null;
     }

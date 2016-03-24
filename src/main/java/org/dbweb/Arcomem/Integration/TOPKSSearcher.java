@@ -116,7 +116,7 @@ public class TOPKSSearcher {
 	}*/
 
   public JsonObject executeBaseline(int seeker, List<String> query,
-          int k, float alpha, int budget) {
+          int k, float alpha, int budget, Baseline baseline) {
 
     Params.DISK_BUDGET = budget;
     // Oracle computation (visit of whole graph)
@@ -128,8 +128,16 @@ public class TOPKSSearcher {
 
     // Computation for top-k exact: normal version
     this.setSkippedTests(1);
-    this.topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000,
-            Experiment.NDCG_DISK_ACCESS);
+
+    if (baseline == Baseline.TEXTUAL_SOCIAL) {
+      this.topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000,
+              Experiment.NDCG_DISK_ACCESS);
+    } else if (baseline == Baseline.TOPK_MERGE) {
+      this.topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000,
+              Experiment.DEFAULT);
+    } else {
+      throw new UnsupportedOperationException();
+    }
     this.topk_alg.reset(query, 1);
 
     JsonObject obj_topk_asyt = new JsonObject();
@@ -141,7 +149,7 @@ public class TOPKSSearcher {
 
     // Computation for top-k exact: baseline
     this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha,
-            30000, 100000, Experiment.NDCG_DISK_ACCESS);
+            30000, 100000, baseline);
     this.topk_alg.reset(query, 1);
     JsonObject obj_baseline = new JsonObject();
     obj_baseline.add("users_visited", new JsonPrimitive(

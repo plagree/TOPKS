@@ -10,9 +10,11 @@ import org.dbweb.socialsearch.topktrust.datastructure.ItemList;
 import org.dbweb.socialsearch.topktrust.datastructure.ReadingHead;
 import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
 import org.dbweb.topktrust.socialsearch.importer.CSVFileImporter;
+import org.dbweb.Arcomem.Integration.Baseline;
 import org.dbweb.Arcomem.Integration.Experiment;
 import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.completion.trie.RadixTreeNode;
+import org.externals.Tools.ItemBaseline;
 import org.externals.Tools.NDCG;
 import org.externals.Tools.NDCGResults;
 
@@ -31,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeSet;
 
 /**
  *
@@ -866,28 +869,67 @@ public class TopKAlgorithm {
   }
 
   public void executeJournalBaselineQuery(int seeker, List<String> query,
-          int k, float alpha, int t, int nVisited, Experiment type) {
-    // Step 1: Fully textual
-    this.skippedTests = 100000;
-    this.executeQuery(seeker, query, k, 1, t, nVisited, type);
+          int k, float alpha, int t, int nVisited, Baseline baseline) {
 
-    // Step 2: Fully social now
-    this.alpha = alpha;
-    this.values = new ArrayList<Float>();
-    this.optpath.setValues(values);
-    this.optpath.setDistFunc(distFunc);
-    this.userWeight = 1.0f;
-    this.userWeights = new ArrayList<Float>();
-    this.nbNeighbour = 0;
-    this.queryNbNeighbour = new ArrayList<Integer>();
-    // Initialise the heap for Dijkstra
-    this.currentUser = optpath.initiateHeapCalculation(seeker);
-    for (int i = 0; i < query.size(); i++) {
-      this.userWeights.add(this.userWeight);
-      this.queryNbNeighbour.add(0);
+    if (baseline == Baseline.TEXTUAL_SOCIAL) {
+      // Step 1: Fully textual
+      this.skippedTests = 100000;
+      this.executeQuery(seeker, query, k, 1, t, nVisited,
+              Experiment.NDCG_DISK_ACCESS);
+
+      // Step 2: Fully social now
+      this.alpha = alpha;
+      this.values = new ArrayList<Float>();
+      this.optpath.setValues(values);
+      this.optpath.setDistFunc(distFunc);
+      this.userWeight = 1.0f;
+      this.userWeights = new ArrayList<Float>();
+      this.nbNeighbour = 0;
+      this.queryNbNeighbour = new ArrayList<Integer>();
+      // Initialise the heap for Dijkstra
+      this.currentUser = optpath.initiateHeapCalculation(seeker);
+      for (int i = 0; i < query.size(); i++) {
+        this.userWeights.add(this.userWeight);
+        this.queryNbNeighbour.add(0);
+      }
+      this.candidates.updateAlpha(alpha);
+      this.mainLoop(k, seeker, query, 2000);
     }
-    this.candidates.updateAlpha(alpha);
-    this.mainLoop(k, seeker, query, 2000);
+    else if (baseline == Baseline.TOPK_MERGE) {
+      this.skippedTests = 1;
+      this.executeQuery(seeker, query, k, 1, t, nVisited,
+              Experiment.DEFAULT);
+      List<Item> topkTextual = this.candidates.getListTopk(k);
+      this.reset(query, 1);
+      this.executeQuery(seeker, query, k, 0, t, nVisited,
+              Experiment.DEFAULT);
+      List<Item> topkSocial = this.candidates.getListTopk(k);
+      this.reset(query, 1);
+      // Merge lists
+      Map<Long, ItemBaseline> items = new HashMap<Long, ItemBaseline>();
+      for (Item e: topkTextual) {
+        ItemBaseline newItem = new ItemBaseline(e.getItemId(), alpha);
+        newItem.setTextualScore(e.getTextualScore());
+        items.put(e.getItemId(), newItem);
+      }
+      Set<ItemBaseline> ordered = new TreeSet<ItemBaseline>();
+      for (Item e: topkSocial) {
+        ItemBaseline newItem;
+        if (items.containsKey(e.getItemId()))
+          newItem = items.get(e.getItemId());
+        else {
+          newItem = new ItemBaseline(e.getItemId(), alpha);
+          items.put(e.getItemId(), newItem);
+        }
+        newItem.setSocialScore(e.getSocialScore());
+        newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
+        ordered.add(newItem);
+      }
+      for (ItemBaseline e: ordered) {
+        System.out.println(e.getItemId() + ", " + e.getScore() + ", "
+                + e.getSocialScore() + ", " + e.getTextualScore());
+      }
+    }
   }
 
 }
