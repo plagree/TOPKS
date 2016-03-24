@@ -55,6 +55,12 @@ public class ItemList {
       }
     }
     this.sorted_items.remove(item);
+    if (itemId == 30661l) {
+      for (Item e: this.sorted_items) {
+        if (e.getItemId() == itemId)
+          System.out.println("still here");
+      }
+    }
     item.updateSocialScore(tag, userWeight);
     // After update, it must be re-added to the TreeSet
     this.sorted_items.add(item);
@@ -109,7 +115,7 @@ public class ItemList {
       }
     }
   }
-  
+
   private boolean bug(long itemId) {
     int c = 0;
     for (Item e: this.sorted_items) {
