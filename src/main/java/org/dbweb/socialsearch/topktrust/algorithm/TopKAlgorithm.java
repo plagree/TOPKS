@@ -778,54 +778,6 @@ public class TopKAlgorithm {
     return this.topk_infinity;
   }
 
-  /*public JsonObject getJsonNDCG_vs_time(int k) {
-    JsonObject jsonResult = new JsonObject();
-    JsonArray arrayResults = new JsonArray();
-    JsonObject currItem;
-
-    List<Double> ndcgs = this.ndcgResults.getNdcgs();
-    List<Long> times = this.ndcgResults.getSteps();
-    for (int i=0; i<this.ndcgResults.size(); i++) {
-      currItem = new JsonObject();
-      currItem.add("t", new JsonPrimitive(times.get(i)));					// time spent
-      currItem.add("ndcg", new JsonPrimitive(ndcgs.get(i)));				// ndcg score
-      arrayResults.add(currItem);
-    }
-
-    jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
-    jsonResult.add("results", arrayResults);
-
-    return jsonResult;
-  }
-
-  public JsonObject getJsonNDCG_vs_nbusers(int k) {
-    JsonObject jsonResult = new JsonObject();
-    JsonArray arrayResults = new JsonArray();
-    JsonObject currItem;
-
-    List<Double> ndcgs = this.ndcgResults.getNdcgs();
-    List<Long> nbusers = this.ndcgResults.getSteps();
-    for (int i=0; i<this.ndcgResults.size(); i++) {
-      currItem = new JsonObject();
-      currItem.add("nb_users", new JsonPrimitive(nbusers.get(i)));					// time spent
-      currItem.add("ndcg", new JsonPrimitive(ndcgs.get(i)));				// ndcg score
-      arrayResults.add(currItem);
-    }
-
-    jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
-    jsonResult.add("results", arrayResults);
-
-    return jsonResult;
-  }
-
-  public JsonObject getJsonExactTopK_vs_t(int k) {
-    JsonObject jsonResult = new JsonObject();
-    jsonResult.add("status", new JsonPrimitive(1)); 						// No problem appeared in TOPKS
-    jsonResult.add("time", new JsonPrimitive(this.time_topk));
-
-    return jsonResult;
-  }*/
-
   public long getTimeTopK() {
     return this.time_topk;
   }
@@ -864,13 +816,7 @@ public class TopKAlgorithm {
    * @return NDCG measure between last top-k and oracle.
    */
   public double computeNDCG(int k) {
-    double f = NDCG.getNDCG(this.candidates.getLongListTopk(k),
-            this.oracleNDCG, k);
-    if (f > 1) {
-      System.out.println("Size: " + this.candidates.getLongListTopk(k).size() +
-              this.oracleNDCG.size());
-    }
-    return (float)f;
+    return NDCG.getNDCG(this.candidates.getLongListTopk(k), this.oracleNDCG, k);
   }
 
   /**

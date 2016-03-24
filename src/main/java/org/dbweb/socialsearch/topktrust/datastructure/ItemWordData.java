@@ -1,6 +1,5 @@
 package org.dbweb.socialsearch.topktrust.datastructure;
 
-import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 
 public class ItemWordData {

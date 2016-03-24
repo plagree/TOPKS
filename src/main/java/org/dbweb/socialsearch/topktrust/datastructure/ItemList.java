@@ -95,6 +95,8 @@ public class ItemList {
   public void addItem(Long itemId, float alpha) {
     Item item = new Item(itemId, alpha, this.score);
     this.items.put(itemId, item);
+    if(this.sorted_items.contains(item))
+      System.out.println("ERROR " + alpha);
     this.sorted_items.add(item);
   }
 
