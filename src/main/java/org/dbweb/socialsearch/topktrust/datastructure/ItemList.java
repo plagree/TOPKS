@@ -53,8 +53,14 @@ public class ItemList {
     item.updateSocialScore(tag, userWeight);
     // After update, it must be re-added to the TreeSet
     this.sorted_items.add(item);
+    if (itemId == 30661l) {
+      if (this.bug(itemId)) {
+        System.out.println("upSocial");
+        System.exit(1);
+      }
+    }
   }
-  
+
   /**
    * Adds a new to an existing item.
    * @param itemId
@@ -70,8 +76,14 @@ public class ItemList {
     item.addTag(completion, isCompletion, idf, pos);
     // After update, it must be re-added to the TreeSet
     this.sorted_items.add(item);
+    if (itemId == 30661l) {
+      if (this.bug(itemId)) {
+        System.out.println("addTagItem");
+        System.exit(1);
+      }
+    }
   }
-  
+
   /**
    * Updates textual (and sometimes social) score of itemId for the specified
    * tag. They both must exist.
@@ -85,6 +97,24 @@ public class ItemList {
     item.updateTDFScore(tag, tdf);
     // After update, it must be re-added to the TreeSet
     this.sorted_items.add(item);
+    if (itemId == 30661l) {
+      if (this.bug(itemId)) {
+        System.out.println("upTextual");
+        System.exit(1);
+      }
+    }
+  }
+  
+  private boolean bug(long itemId) {
+    int c = 0;
+    for (Item e: this.sorted_items) {
+      if (e.getItemId() == itemId) {
+        c++;
+      }
+    }
+    if (c > 0)
+      return true;
+    return false;
   }
 
   /**
@@ -113,6 +143,12 @@ public class ItemList {
     Item item = new Item(itemId, alpha, this.score);
     this.items.put(itemId, item);
     this.sorted_items.add(item);
+    if (itemId == 30661l) {
+      if (this.bug(itemId)) {
+        System.out.println("addItem");
+        System.exit(1);
+      }
+    }
   }
 
   /**
@@ -309,9 +345,9 @@ public class ItemList {
         scoremin = item.getComputedWorstScore();
       else if (possible.contains(itemId)) {
         currentUB = item.computeBestScore(query, topReadingHead, userWeights, idf);
-        if (currentUB < scoremin)   // This item can't be in the final list
+        if (currentUB < scoremin) // This item can't be in the final list
           possible.remove(itemId);
-        if(scoremax < currentUB) {
+        if (scoremax < currentUB) {
           scoremax = currentUB;
           this.bestSuboptimal = itemId;
         }
@@ -413,7 +449,7 @@ public class ItemList {
   public Item getItem(long itemId) {
     return this.items.get(itemId);
   }
-  
+
   /**
    * Update alpha values of Item objects (useful for textual -> social baseline)
    * @param alpha New alpha value
@@ -427,7 +463,7 @@ public class ItemList {
       this.sorted_items.add(item);
     }
   }
-  
+
   public void debug(int k) {
     int i = 0;
     for (Item e: this.sorted_items) {
