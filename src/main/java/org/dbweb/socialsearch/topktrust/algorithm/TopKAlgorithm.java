@@ -868,7 +868,20 @@ public class TopKAlgorithm {
             this.oracleNDCG, k);
   }
 
-  public void executeJournalBaselineQuery(int seeker, List<String> query,
+  /**
+   * This method returns the NDCG of a baseline specified in parameter with
+   * respect to the infinite algorithm.
+   * 
+   * @param seeker
+   * @param query
+   * @param k
+   * @param alpha
+   * @param t
+   * @param nVisited
+   * @param baseline
+   * @return
+   */
+  public float executeJournalBaselineQuery(int seeker, List<String> query,
           int k, float alpha, int t, int nVisited, Baseline baseline) {
 
     if (baseline == Baseline.TEXTUAL_SOCIAL) {
@@ -894,6 +907,7 @@ public class TopKAlgorithm {
       }
       this.candidates.updateAlpha(alpha);
       this.mainLoop(k, seeker, query, 2000);
+      return (float)this.computeNDCG(k);
     }
     else if (baseline == Baseline.TOPK_MERGE) {
       this.skippedTests = 1;
@@ -923,13 +937,15 @@ public class TopKAlgorithm {
         }
         newItem.setSocialScore(e.getSocialScore());
         newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
-        ordered.add(newItem);
       }
-      for (ItemBaseline e: ordered) {
-        System.out.println(e.getItemId() + ", " + e.getScore() + ", "
-                + e.getSocialScore() + ", " + e.getTextualScore());
-      }
+      for (long itemId: items.keySet())
+        ordered.add(items.get(itemId));
+      List<Long> listBaseline = new ArrayList<Long>();
+      for (ItemBaseline e: ordered)
+        listBaseline.add(e.getItemId());
+      return (float)NDCG.getNDCG(listBaseline, this.oracleNDCG, k);
     }
+    return 0;
   }
 
 }

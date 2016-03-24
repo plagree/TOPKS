@@ -5,7 +5,7 @@ package org.externals.Tools;
  * @author paul
  *
  */
-public class ItemBaseline {
+public class ItemBaseline implements Comparable<ItemBaseline> {
 
   private float ts, sc, alpha;
   private long itemId;

@@ -434,14 +434,4 @@ public class Item implements Comparable<Item> {
     return completion;
   }
 
-  public void debugging() {
-    //System.out.println("Number of users seen: "+this.nbUsersSeen.toString());	  // number of users seen
-    //System.out.println("Tag in: "+this.tags.toString()); // 1 for tag in
-    //System.out.println("Sum of weights of users found: "+this.uf.toString());  // sum of weights of users found
-    //System.out.println("IDF of tag: "+this.idf.toString()); // IDF of tag
-    //System.out.println("Real TDF in IL: "+this.tdf.toString());  // real tdf in ILs
-    //System.out.println("alpha: "+this.alpha);
-    //System.out.println("score: "+this.score.toString());TODO
-  }
-
 }

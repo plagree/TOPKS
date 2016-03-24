@@ -148,7 +148,7 @@ public class TOPKSSearcher {
     obj_topk_asyt.add("ndcg", new JsonPrimitive(this.topk_alg.computeNDCG(k)));
 
     // Computation for top-k exact: baseline
-    this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha,
+    float ndcg = this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha,
             30000, 100000, baseline);
     this.topk_alg.reset(query, 1);
     JsonObject obj_baseline = new JsonObject();
@@ -156,7 +156,7 @@ public class TOPKSSearcher {
             this.topk_alg.getNumberUsersSeen()));
     obj_baseline.add("inverted_lists_algo", new JsonPrimitive(
             this.topk_alg.getNumberInvertedListUsed()));
-    obj_baseline.add("ndcg", new JsonPrimitive(topk_alg.computeNDCG(k)));
+    obj_baseline.add("ndcg", new JsonPrimitive(ndcg));
 
     // Create JSON Response
     JsonObject jsonResult = new JsonObject();

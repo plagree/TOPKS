@@ -22,8 +22,6 @@ public class JsonBuilder {
     int n = 0;
     for (Item item: alg.getCandidates().getListTopk(k)) {
       n++;
-      if (item.getItemId() == 35397)
-        item.debugging();
       currItem = new JsonObject();
       // id of the item
       currItem.add("id", new JsonPrimitive(item.getItemId()));
