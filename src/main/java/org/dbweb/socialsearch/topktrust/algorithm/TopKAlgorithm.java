@@ -819,7 +819,7 @@ public class TopKAlgorithm {
     double v = NDCG.getNDCG(this.candidates.getLongListTopk(k),
             this.oracleNDCG, k);
     if (v > 1) {
-      this.candidates.debug();
+      this.candidates.debug(k);
     }
     return v;
   }
@@ -901,7 +901,6 @@ public class TopKAlgorithm {
       for (ItemBaseline e: ordered) {
         i++;
         listBaseline.add(e.getItemId());
-        System.out.println(e.getItemId() + ", " + e.getSocialScore() + ", " + e.getTextualScore() + ", " + e.getScore());
         if (i >= k)
           break;
       }
