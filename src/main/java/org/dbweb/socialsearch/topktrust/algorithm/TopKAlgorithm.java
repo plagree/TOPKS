@@ -941,8 +941,13 @@ public class TopKAlgorithm {
       for (long itemId: items.keySet())
         ordered.add(items.get(itemId));
       List<Long> listBaseline = new ArrayList<Long>();
-      for (ItemBaseline e: ordered)
+      int i = 0;
+      for (ItemBaseline e: ordered) {
+        i++;
         listBaseline.add(e.getItemId());
+        if (i >= k)
+          break;
+      }
       return (float)NDCG.getNDCG(listBaseline, this.oracleNDCG, k);
     }
     return 0;
