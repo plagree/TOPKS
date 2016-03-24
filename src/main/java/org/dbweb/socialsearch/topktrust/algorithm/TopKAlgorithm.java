@@ -385,11 +385,6 @@ public class TopKAlgorithm {
               long bef = System.nanoTime();
               double ndcg = NDCG.getNDCG(this.candidates.getLongListTopk(k), 
                       this.oracleNDCG, k);
-              if (ndcg > 1) {
-                System.out.println(ndcg);
-                System.out.println(this.candidates.getLongListTopk(k).toString()
-                        + ",   " + oracleNDCG.toString());
-              }
               this.ndcgResults.addPoint(currentTime, ndcg);
               timeNDCG += (System.nanoTime() - bef);
               timeThresholdNDCG += Params.TIME_NDCG;
