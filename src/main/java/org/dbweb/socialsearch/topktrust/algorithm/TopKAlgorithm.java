@@ -873,7 +873,7 @@ public class TopKAlgorithm {
               Experiment.DEFAULT);
       List<Item> topkTextual = this.candidates.getListTopk(k);
       System.out.println("TEXTUAL");
-      int i =0;
+      int i = 0;
       for (Item e: this.candidates.getListTopk(k + 3)) {
         if (i < (k + 5))
           System.out.println(e);
@@ -910,7 +910,6 @@ public class TopKAlgorithm {
         }
         newItem.setSocialScore(e.getSocialScore());
         newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
-
       }
       for (long itemId: items.keySet())
         ordered.add(items.get(itemId));
@@ -919,6 +918,8 @@ public class TopKAlgorithm {
       for (ItemBaseline e: ordered) {
         i++;
         listBaseline.add(e.getItemId());
+        System.out.println(e.getItemId() + ": " + e.getSocialScore() + ", "
+                + e.getTextualScore() + ", "+ e.getScore());
         if (i >= k)
           break;
       }
