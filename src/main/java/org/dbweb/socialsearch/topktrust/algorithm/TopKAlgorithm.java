@@ -916,17 +916,13 @@ public class TopKAlgorithm {
       Set<ItemBaseline> ordered = new TreeSet<ItemBaseline>();
       for (long itemId: items.keySet()) {
         int s = ordered.size();
+        boolean var = false;
         if (itemId == 36599l) {
           System.out.println("what1: ");
           System.out.println(items.get(itemId).getItemId());
           System.out.println(savedItem.getItemId());
           System.out.println(savedItem.equals(items.get(itemId)));
-          System.exit(1);
-        }
-        if (savedItem.equals(items.get(itemId))) {
-          System.out.println("what: ");
-          System.out.println(savedItem);
-          System.out.println(items.get(itemId));
+          var = true;
         }
         ordered.add(items.get(itemId));
         if (ordered.size() <= s) {
@@ -934,6 +930,8 @@ public class TopKAlgorithm {
           System.out.println(items.get(itemId).getItemId());
           System.out.println(items.get(itemId).getScore());
           System.out.println(ordered.contains(items.get(itemId)));
+          if (var)
+            System.exit(1);
         }
       }
       List<Long> listBaseline = new ArrayList<Long>();
