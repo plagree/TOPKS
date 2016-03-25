@@ -123,9 +123,6 @@ public class TOPKSSearcher {
     this.topk_alg.setSkippedTests(100000);
     this.topk_alg.executeQuery(seeker, query, k, alpha, 10000, 100000,
             Experiment.DEFAULT);
-    System.out.println("ORACLE");
-    for (Item e: this.topk_alg.getCandidates().getListTopk(k))
-      System.out.println(e);
     this.topk_alg.computeOracleNDCG(k);
     this.topk_alg.reset(query, 1);
 
@@ -148,16 +145,11 @@ public class TOPKSSearcher {
             this.topk_alg.getNumberUsersSeen()));
     obj_topk_asyt.add("inverted_lists_algo", new JsonPrimitive(
             this.topk_alg.getNumberInvertedListUsed()));
-    System.out.println("TOPKS");
-    for (Item e: this.topk_alg.getCandidates().getListTopk(k))
-      System.out.println(e);
     obj_topk_asyt.add("ndcg", new JsonPrimitive(this.topk_alg.computeNDCG(k)));
 
     // Computation for top-k exact: baseline
     float ndcg = this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha,
             30000, 100000, baseline);
-    System.out.println(ndcg);
-    System.exit(1);
     this.topk_alg.reset(query, 1);
     JsonObject obj_baseline = new JsonObject();
     obj_baseline.add("users_visited", new JsonPrimitive(
