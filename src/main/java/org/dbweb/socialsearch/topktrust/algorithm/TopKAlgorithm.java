@@ -886,7 +886,7 @@ public class TopKAlgorithm {
         ItemBaseline newItem = new ItemBaseline(e.getItemId(), alpha);
         newItem.setTextualScore(e.getTextualScore());
         items.put(e.getItemId(), newItem);
-        if (i < k)
+        if (i < (k + 5))
           System.out.println(e);
         i++;
       }
@@ -903,7 +903,7 @@ public class TopKAlgorithm {
         }
         newItem.setSocialScore(e.getSocialScore());
         newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
-        if (i < k)
+        if (i < (k + 5))
           System.out.println(e);
         i++;
       }
