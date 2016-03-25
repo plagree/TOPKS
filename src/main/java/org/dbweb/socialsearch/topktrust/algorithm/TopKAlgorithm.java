@@ -917,7 +917,7 @@ public class TopKAlgorithm {
         ordered.add(items.get(itemId));
         if (ordered.size() <= s) {
           System.out.println("error " + itemId);
-          System.out.println(items.get(itemId));
+          System.out.println(items.get(itemId).getItemId());
           System.out.println(items.get(itemId).getScore());
           System.out.println(ordered.contains(items.get(itemId)));
         }
