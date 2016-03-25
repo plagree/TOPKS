@@ -899,6 +899,7 @@ public class TopKAlgorithm {
         newItem.setTextualScore(e.getTextualScore());
         items.put(e.getItemId(), newItem);
       }
+      Item savedItem = null;
       for (Item e: topkSocial) {
         ItemBaseline newItem;
         if (items.containsKey(e.getItemId()))
@@ -907,16 +908,19 @@ public class TopKAlgorithm {
           newItem = new ItemBaseline(e.getItemId(), alpha);
           items.put(e.getItemId(), newItem);
         }
+        if (e.getItemId() == 36599l)
+          savedItem = e;
         newItem.setSocialScore(e.getSocialScore());
         newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
       }
       Set<ItemBaseline> ordered = new TreeSet<ItemBaseline>();
       for (long itemId: items.keySet()) {
-        if (itemId == 36599l)
-          System.out.println("hello");
         int s = ordered.size();
-        if (ordered.contains(items.get(itemId)))
+        if (savedItem.equals(items.get(itemId))) {
           System.out.println("what: ");
+          System.out.println(savedItem);
+          System.out.println(items.get(itemId));
+        }
         ordered.add(items.get(itemId));
         if (ordered.size() <= s) {
           System.out.println("error " + itemId);
