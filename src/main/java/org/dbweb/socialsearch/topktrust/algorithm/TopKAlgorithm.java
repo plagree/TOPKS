@@ -932,7 +932,8 @@ public class TopKAlgorithm {
           System.out.println(items.get(itemId).getItemId());
           System.out.println(items.get(itemId).getScore());
           System.out.println(ordered.contains(items.get(itemId)));
-          System.exit(1);
+          if (itemId == 36599l)
+            System.exit(1);
         }
       }
       System.out.println("hhhh");
