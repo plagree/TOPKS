@@ -62,7 +62,7 @@ public class ItemBaseline implements Comparable<ItemBaseline> {
   @Override
   public int hashCode() {
     int hash = 1;
-    hash = hash * 23 + (int)(this.itemId ^ (this.itemId >>> 32));
+    hash = hash * 31 + (int)(this.itemId ^ (this.itemId >>> 32));
     return hash;
   }
 }

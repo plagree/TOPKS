@@ -912,13 +912,17 @@ public class TopKAlgorithm {
         newItem.setSocialScore(e.getSocialScore());
         newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
       }
+      ItemBaseline myitem = null;
       for (long itemId: items.keySet()) {
         ordered.add(items.get(itemId));
         if (itemId == 53356l) {
+          myitem = items.get(itemId);
           System.out.println("eureka");
           System.out.println(items.get(itemId).getItemId());
+          System.out.println(ordered.contains(myitem));
         }
       }
+      System.out.println(ordered.contains(myitem));
       List<Long> listBaseline = new ArrayList<Long>();
       i = 0;
       for (ItemBaseline e: ordered) {

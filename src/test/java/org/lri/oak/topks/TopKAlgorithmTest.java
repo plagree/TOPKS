@@ -114,7 +114,7 @@ public class TopKAlgorithmTest {
 
     Assert.assertEquals(this.algo.getNumloops(), 10);
 
-    List<Item> results = this.algo.getTopk(2);
+    List<Item> results = this.algo.getTopk(5);
 
     // id: 6 completion: "glasses"
     Assert.assertEquals(results.get(0).getItemId(), 6);
