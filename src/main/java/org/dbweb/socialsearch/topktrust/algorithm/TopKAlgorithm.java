@@ -867,23 +867,28 @@ public class TopKAlgorithm {
       return (float)this.computeNDCG(k);
     }
     else if (baseline == Baseline.TOPK_MERGE) {
+      // Step 1: fully textual
       this.skippedTests = 1;
       this.executeQuery(seeker, query, k, 1, t, nVisited,
               Experiment.DEFAULT);
       List<Item> topkTextual = this.candidates.getListTopk(k);
       this.reset(query, 1);
+      // Step 2: fully social
       this.executeQuery(seeker, query, k, 0, t, nVisited,
               Experiment.DEFAULT);
       List<Item> topkSocial = this.candidates.getListTopk(k);
       this.reset(query, 1);
       // Merge lists
       Map<Long, ItemBaseline> items = new HashMap<Long, ItemBaseline>();
+      System.out.println("TEXTUAL");
       for (Item e: topkTextual) {
         ItemBaseline newItem = new ItemBaseline(e.getItemId(), alpha);
         newItem.setTextualScore(e.getTextualScore());
         items.put(e.getItemId(), newItem);
+        System.out.println(e);
       }
       Set<ItemBaseline> ordered = new TreeSet<ItemBaseline>();
+      System.out.println("SOCIAL");
       for (Item e: topkSocial) {
         ItemBaseline newItem;
         if (items.containsKey(e.getItemId()))
@@ -894,6 +899,7 @@ public class TopKAlgorithm {
         }
         newItem.setSocialScore(e.getSocialScore());
         newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
+        System.out.println(e);
       }
       for (long itemId: items.keySet())
         ordered.add(items.get(itemId));
