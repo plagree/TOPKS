@@ -46,7 +46,7 @@ public class ItemBaseline implements Comparable<ItemBaseline> {
       return 1;
     else if (o.getScore() < this.getScore())
       return -1;
-    return 0;
+    return Long.compare(this.itemId, o.itemId);
   }
 
   @Override
