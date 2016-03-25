@@ -917,11 +917,10 @@ public class TopKAlgorithm {
       i = 0;
       for (ItemBaseline e: ordered) {
         i++;
-        listBaseline.add(e.getItemId());
         System.out.println(e.getItemId() + ": " + e.getSocialScore() + ", "
                 + e.getTextualScore() + ", "+ e.getScore());
-        if (i >= k)
-          break;
+        if (i <= k)
+          listBaseline.add(e.getItemId());
       }
       return (float)NDCG.getNDCG(listBaseline, this.oracleNDCG, k);
     }
