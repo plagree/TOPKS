@@ -916,6 +916,11 @@ public class TopKAlgorithm {
       Set<ItemBaseline> ordered = new TreeSet<ItemBaseline>();
       for (long itemId: items.keySet()) {
         int s = ordered.size();
+        if (itemId == 36599l) {
+          System.out.println("what1: ");
+          System.out.println(items.get(itemId).getItemId());
+          System.out.println(savedItem.getItemId());
+        }
         if (savedItem.equals(items.get(itemId))) {
           System.out.println("what: ");
           System.out.println(savedItem);
