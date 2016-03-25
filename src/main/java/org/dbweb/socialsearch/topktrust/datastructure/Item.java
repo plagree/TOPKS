@@ -369,7 +369,7 @@ public class Item implements Comparable<Item> {
       else if(o.getBestscore() < this.getBestscore())
         return -1;
       else
-        return Long.compare(o.getItemId(), this.itemId);
+        return Long.compare(this.itemId, o.getItemId());
     }
   }
 

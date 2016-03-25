@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.dbweb.completion.trie.RadixTreeImpl;
-import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.Pair;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 

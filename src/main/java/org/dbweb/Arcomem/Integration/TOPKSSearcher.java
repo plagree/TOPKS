@@ -156,8 +156,8 @@ public class TOPKSSearcher {
     // Computation for top-k exact: baseline
     float ndcg = this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha,
             30000, 100000, baseline);
-    if (ndcg < 0.9)
-      System.exit(1);
+    System.out.println(ndcg);
+    System.exit(1);
     this.topk_alg.reset(query, 1);
     JsonObject obj_baseline = new JsonObject();
     obj_baseline.add("users_visited", new JsonPrimitive(

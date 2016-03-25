@@ -872,24 +872,10 @@ public class TopKAlgorithm {
       this.executeQuery(seeker, query, k, 1, t, nVisited,
               Experiment.DEFAULT);
       List<Item> topkTextual = this.candidates.getListTopk(k);
-      System.out.println("TEXTUAL");
-      int i = 0;
-      for (Item e: this.candidates.getListTopk(k + 3)) {
-        if (i < (k + 5))
-          System.out.println(e);
-        i++;
-      }
       this.reset(query, 1);
       // Step 2: fully social
       this.executeQuery(seeker, query, k, 0, t, nVisited,
               Experiment.DEFAULT);
-      System.out.println("SOCIAL");
-      i = 0;
-      for (Item e: this.candidates.getListTopk(k + 3)) {
-        if (i < (k + 5))
-          System.out.println(e);
-        i++;
-      }
       List<Item> topkSocial = this.candidates.getListTopk(k);
       this.reset(query, 1);
       // Merge lists
@@ -899,7 +885,6 @@ public class TopKAlgorithm {
         newItem.setTextualScore(e.getTextualScore());
         items.put(e.getItemId(), newItem);
       }
-      Item savedItem = null;
       for (Item e: topkSocial) {
         ItemBaseline newItem;
         if (items.containsKey(e.getItemId()))
@@ -908,37 +893,15 @@ public class TopKAlgorithm {
           newItem = new ItemBaseline(e.getItemId(), alpha);
           items.put(e.getItemId(), newItem);
         }
-        if (e.getItemId() == 36599l)
-          savedItem = e;
         newItem.setSocialScore(e.getSocialScore());
         newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
       }
       Set<ItemBaseline> ordered = new TreeSet<ItemBaseline>();
-      ItemBaseline ii = items.get(36599l);
-      System.out.println(items);
       for (long itemId: items.keySet()) {
-        if (ii.equals(items.get(itemId)))
-          System.out.println("AAAAA: " + ordered);
-        int s = ordered.size();
-        if (itemId == 36599l) {
-          System.out.println("what1: ");
-          System.out.println(items.get(itemId).getItemId());
-          System.out.println(savedItem.getItemId());
-          System.out.println(ordered.contains(items.get(itemId)));
-        }
         ordered.add(items.get(itemId));
-        if (ordered.size() <= s) {
-          System.out.println("error " + itemId);
-          System.out.println(items.get(itemId).getItemId());
-          System.out.println(items.get(itemId).getScore());
-          System.out.println(ordered.contains(items.get(itemId)));
-          if (itemId == 36599l)
-            System.exit(1);
-        }
       }
-      System.out.println("hhhh");
       List<Long> listBaseline = new ArrayList<Long>();
-      i = 0;
+      int i = 0;
       for (ItemBaseline e: ordered) {
         i++;
         System.out.println(e.getItemId() + ": " + e.getSocialScore() + ", "
