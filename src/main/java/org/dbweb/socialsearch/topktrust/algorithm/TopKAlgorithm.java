@@ -881,14 +881,18 @@ public class TopKAlgorithm {
       // Merge lists
       Map<Long, ItemBaseline> items = new HashMap<Long, ItemBaseline>();
       System.out.println("TEXTUAL");
+      int i = 0;
       for (Item e: topkTextual) {
         ItemBaseline newItem = new ItemBaseline(e.getItemId(), alpha);
         newItem.setTextualScore(e.getTextualScore());
         items.put(e.getItemId(), newItem);
-        System.out.println(e);
+        if (i < k)
+          System.out.println(e);
+        i++;
       }
       Set<ItemBaseline> ordered = new TreeSet<ItemBaseline>();
       System.out.println("SOCIAL");
+      i = 0;
       for (Item e: topkSocial) {
         ItemBaseline newItem;
         if (items.containsKey(e.getItemId()))
@@ -899,12 +903,14 @@ public class TopKAlgorithm {
         }
         newItem.setSocialScore(e.getSocialScore());
         newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
-        System.out.println(e);
+        if (i < k)
+          System.out.println(e);
+        i++;
       }
       for (long itemId: items.keySet())
         ordered.add(items.get(itemId));
       List<Long> listBaseline = new ArrayList<Long>();
-      int i = 0;
+      i = 0;
       for (ItemBaseline e: ordered) {
         i++;
         listBaseline.add(e.getItemId());
