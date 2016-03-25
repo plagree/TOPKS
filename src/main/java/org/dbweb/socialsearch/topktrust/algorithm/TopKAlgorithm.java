@@ -918,13 +918,12 @@ public class TopKAlgorithm {
       System.out.println(items);
       for (long itemId: items.keySet()) {
         if (ii.equals(items.get(itemId)))
-          System.out.println("AAAA: " + ii.equals(items.get(itemId)));
+          System.out.println("AAAAA: " + ordered);
         int s = ordered.size();
         if (itemId == 36599l) {
           System.out.println("what1: ");
           System.out.println(items.get(itemId).getItemId());
           System.out.println(savedItem.getItemId());
-          System.out.println(savedItem.equals(items.get(itemId)));
           System.out.println(ordered.contains(items.get(itemId)));
         }
         ordered.add(items.get(itemId));
@@ -933,9 +932,9 @@ public class TopKAlgorithm {
           System.out.println(items.get(itemId).getItemId());
           System.out.println(items.get(itemId).getScore());
           System.out.println(ordered.contains(items.get(itemId)));
+          System.exit(1);
         }
       }
-      System.out.println(ordered);
       System.out.println("hhhh");
       List<Long> listBaseline = new ArrayList<Long>();
       i = 0;
