@@ -377,9 +377,13 @@ public class Item implements Comparable<Item> {
   public boolean equals(Object o){
     if(!(o instanceof Item))
       return false;
+    System.out.println("debug");
     if (o == this)
       return true;
+    System.out.println("debug2");
     Item rhs = (Item)o;
+    System.out.println(this.itemId);
+    System.out.println(rhs.itemId);
     return this.itemId == rhs.itemId;
   }
 

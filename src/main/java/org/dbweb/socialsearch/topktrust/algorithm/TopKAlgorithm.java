@@ -920,6 +920,8 @@ public class TopKAlgorithm {
           System.out.println("what1: ");
           System.out.println(items.get(itemId).getItemId());
           System.out.println(savedItem.getItemId());
+          System.out.println(savedItem.equals(items.get(itemId)));
+          System.exit(1);
         }
         if (savedItem.equals(items.get(itemId))) {
           System.out.println("what: ");
