@@ -342,8 +342,12 @@ public class ItemList {
    */
   public List<Item> getListTopk(int k) {
     List<Item> topk = new ArrayList<Item>();
+    int i = 0;
     for (Item item: this.sorted_items) {
+      i++;
       topk.add(item);
+      if (i >= k)
+        break;
     }
     return topk;
   }
