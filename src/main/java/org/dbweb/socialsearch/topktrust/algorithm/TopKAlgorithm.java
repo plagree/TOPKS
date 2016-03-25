@@ -914,15 +914,18 @@ public class TopKAlgorithm {
         newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
       }
       Set<ItemBaseline> ordered = new TreeSet<ItemBaseline>();
+      ItemBaseline ii = items.get(36599l);
+      System.out.println(items);
       for (long itemId: items.keySet()) {
+        if (ii.equals(items.get(itemId)))
+          System.out.println("AAAA: " + ii.equals(items.get(itemId)));
         int s = ordered.size();
-        boolean var = false;
         if (itemId == 36599l) {
           System.out.println("what1: ");
           System.out.println(items.get(itemId).getItemId());
           System.out.println(savedItem.getItemId());
           System.out.println(savedItem.equals(items.get(itemId)));
-          var = true;
+          System.out.println(ordered.contains(items.get(itemId)));
         }
         ordered.add(items.get(itemId));
         if (ordered.size() <= s) {
@@ -930,10 +933,10 @@ public class TopKAlgorithm {
           System.out.println(items.get(itemId).getItemId());
           System.out.println(items.get(itemId).getScore());
           System.out.println(ordered.contains(items.get(itemId)));
-          if (var)
-            System.exit(1);
         }
       }
+      System.out.println(ordered);
+      System.out.println("hhhh");
       List<Long> listBaseline = new ArrayList<Long>();
       i = 0;
       for (ItemBaseline e: ordered) {

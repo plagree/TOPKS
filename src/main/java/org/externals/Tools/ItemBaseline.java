@@ -65,4 +65,9 @@ public class ItemBaseline implements Comparable<ItemBaseline> {
     hash = hash * 31 + (int)(this.itemId ^ (this.itemId >>> 32));
     return hash;
   }
+  
+  @Override
+  public String toString() {
+    return "(" + this.itemId + ", " + this.getScore() + ")";
+  }
 }
