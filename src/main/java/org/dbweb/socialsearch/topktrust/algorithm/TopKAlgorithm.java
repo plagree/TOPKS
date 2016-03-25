@@ -872,27 +872,34 @@ public class TopKAlgorithm {
       this.executeQuery(seeker, query, k, 1, t, nVisited,
               Experiment.DEFAULT);
       List<Item> topkTextual = this.candidates.getListTopk(k);
-      this.reset(query, 1);
-      // Step 2: fully social
-      this.executeQuery(seeker, query, k, 0, t, nVisited,
-              Experiment.DEFAULT);
-      List<Item> topkSocial = this.candidates.getListTopk(k);
-      this.reset(query, 1);
-      // Merge lists
-      Map<Long, ItemBaseline> items = new HashMap<Long, ItemBaseline>();
       System.out.println("TEXTUAL");
-      int i = 0;
-      for (Item e: topkTextual) {
-        ItemBaseline newItem = new ItemBaseline(e.getItemId(), alpha);
-        newItem.setTextualScore(e.getTextualScore());
-        items.put(e.getItemId(), newItem);
+      int i =0;
+      for (Item e: this.candidates.getListTopk(k + 3)) {
         if (i < (k + 5))
           System.out.println(e);
         i++;
       }
-      Set<ItemBaseline> ordered = new TreeSet<ItemBaseline>();
+      this.reset(query, 1);
+      // Step 2: fully social
+      this.executeQuery(seeker, query, k, 0, t, nVisited,
+              Experiment.DEFAULT);
       System.out.println("SOCIAL");
       i = 0;
+      for (Item e: this.candidates.getListTopk(k + 3)) {
+        if (i < (k + 5))
+          System.out.println(e);
+        i++;
+      }
+      List<Item> topkSocial = this.candidates.getListTopk(k);
+      this.reset(query, 1);
+      // Merge lists
+      Map<Long, ItemBaseline> items = new HashMap<Long, ItemBaseline>();
+      for (Item e: topkTextual) {
+        ItemBaseline newItem = new ItemBaseline(e.getItemId(), alpha);
+        newItem.setTextualScore(e.getTextualScore());
+        items.put(e.getItemId(), newItem);
+      }
+      Set<ItemBaseline> ordered = new TreeSet<ItemBaseline>();
       for (Item e: topkSocial) {
         ItemBaseline newItem;
         if (items.containsKey(e.getItemId()))
@@ -903,9 +910,7 @@ public class TopKAlgorithm {
         }
         newItem.setSocialScore(e.getSocialScore());
         newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
-        if (i < (k + 5))
-          System.out.println(e);
-        i++;
+
       }
       for (long itemId: items.keySet())
         ordered.add(items.get(itemId));
