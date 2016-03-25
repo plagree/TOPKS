@@ -912,21 +912,16 @@ public class TopKAlgorithm {
         newItem.setSocialScore(e.getSocialScore());
         newItem.setTextualScore(Math.max(e.getTextualScore(), newItem.getTextualScore()));
       }
-      ItemBaseline myitem = null;
       for (long itemId: items.keySet()) {
         int s = ordered.size();
         ordered.add(items.get(itemId));
-        if (ordered.size() <= s)
+        if (ordered.size() <= s) {
           System.out.println("error " + itemId);
-        if (itemId == 53356l) {
-          myitem = items.get(itemId);
-          System.out.println("eureka");
-          System.out.println(items.get(itemId).getItemId());
-          System.out.println(ordered.contains(myitem));
+          System.out.println(items.get(itemId));
+          System.out.println(items.get(itemId).getScore());
+          System.out.println(ordered.contains(items.get(itemId)));
         }
       }
-      System.out.println(ordered.contains(myitem));
-      System.out.println(ordered.size());
       List<Long> listBaseline = new ArrayList<Long>();
       i = 0;
       for (ItemBaseline e: ordered) {
