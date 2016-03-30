@@ -37,10 +37,13 @@ public class TOPKSSearcher {
    */
   public JsonObject executeQuery(int seeker, List<String> query, int k,
           int t, int nNeigh, float alpha) {
-    this.topk_alg.setSkippedTests(1);
+    this.topk_alg.setSkippedTests(50);
     this.topk_alg.executeQuery(seeker, query, k, alpha, t, nNeigh,
             Experiment.DEFAULT);
     this.topk_alg.reset(query, 1);
+    float fixing[] = {70, 40, 20, 10, 5, 2, 1, 1, 1, 1};
+    if (query.size() > 1)
+      this.topk_alg.reorder(fixing[query.get(query.size()-1).length() - 1]);
     JsonObject jsonResult = JsonBuilder.getJsonAnswer(query, this.topk_alg, k);
     return jsonResult;
   }

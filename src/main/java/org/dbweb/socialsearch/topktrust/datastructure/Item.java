@@ -247,6 +247,21 @@ public class Item implements Comparable<Item> {
     this.worstscore = wscore_without_completion + wscore_best_completion;
     this.worstscore_without_prefix = wscore_without_completion;
   }
+  
+  public void recomputeWorstScore(float v) {
+    float wscore_without_completion = 0, wscore_best_completion = 0;
+    for (String tag: this.mapWordsData.keySet()) {
+      float wpartial = this.mapWordsData.get(tag)
+              .computeWorstScore(this.alpha, this.score);
+      if (this.mapWordsData.get(tag).isCompletion()
+              && wpartial > wscore_best_completion)
+        wscore_best_completion = wpartial;
+      else if (!this.mapWordsData.get(tag).isCompletion())
+        wscore_without_completion += wpartial;
+    }
+    this.worstscore = wscore_without_completion + wscore_best_completion / v;
+    this.worstscore_without_prefix = wscore_without_completion;
+  }
 
   /**
    * Update the score of the Item given we changed only one tag

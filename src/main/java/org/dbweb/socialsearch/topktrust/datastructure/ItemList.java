@@ -440,5 +440,14 @@ public class ItemList {
         break;
     }
   }
+  
+  public void reorder(float v) {
+    this.sorted_items = new TreeSet<Item>();
+    for (long itemId: this.items.keySet()) {
+      Item e = this.items.get(itemId);
+      e.recomputeWorstScore(v);
+      this.sorted_items.add(e);
+    }
+  }
 
 }

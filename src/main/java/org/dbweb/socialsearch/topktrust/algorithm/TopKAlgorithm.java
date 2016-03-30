@@ -913,5 +913,9 @@ public class TopKAlgorithm {
     }
     return 0;
   }
+  
+  public void reorder(float v) {
+    this.candidates.reorder(v);
+  }
 
 }
