@@ -1,5 +1,7 @@
 package org.dbweb.experiments;
 
+import java.util.List;
+
 import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
 import org.dbweb.socialsearch.topktrust.datastructure.Item;
 
@@ -15,18 +17,28 @@ public class JsonBuilder {
    * @param k Number of items in top-k
    * @return JsonObject: JSON response
    */
-  public static JsonObject getJsonAnswer(TopKAlgorithm alg, int k) {
+  public static JsonObject getJsonAnswer(List<String> query,
+          TopKAlgorithm alg, int k) {
     JsonObject jsonResult = new JsonObject();
     JsonArray arrayResults = new JsonArray();
     JsonObject currItem;
     int n = 0;
     for (Item item: alg.getCandidates().getListTopk(k)) {
+      // AND semantic
+      if (!item.containsAllTerms(query))
+        continue;
       n++;
       currItem = new JsonObject();
       // id of the item
       currItem.add("id", new JsonPrimitive(item.getItemId()));
       // position of item
       currItem.add("rank", new JsonPrimitive(n));
+      // scores of each term in the query
+      JsonArray arrayScores = new JsonArray();
+      for (float score: item.getEachScore(query)) {
+        arrayScores.add(new JsonPrimitive(score));
+      }
+      currItem.add("scores", arrayScores);
       // completion of the term (term if already complete word)
       currItem.add("completion", new JsonPrimitive(item.getCompletion()));
       // sum( idf(t) * tf(item | t) for t in query)

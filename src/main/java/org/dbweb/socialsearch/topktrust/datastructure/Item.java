@@ -33,6 +33,22 @@ public class Item implements Comparable<Item> {
   }
 
   /**
+   * Method to filter items when using a AND semantic for queries.
+   * @param query List of terms of the query
+   * @return <code>true</code> if the item is valid (all terms from query are
+   * present), <code>false</code> otherwise
+   */
+  public boolean containsAllTerms(List<String> query) {
+    if (this.mapWordsData.size() < query.size())
+      return false;
+    for (int i = 0; i < query.size() - 1; i++) {
+      if (!this.mapWordsData.containsKey(query.get(i)))
+        return false;
+    }
+    return true;
+  }
+
+  /**
    * Adds a word to the Item. This word can be a new word from the query
    * (<code>isCompletion</code> is <code>false</code>) or a completion of the
    * last tag in the query that corresponds to a prefix (<code>true</code>)
@@ -432,6 +448,27 @@ public class Item implements Comparable<Item> {
       }
     }
     return completion;
+  }
+
+  /**
+   * Gives the score contribution of each term
+   * @param query
+   * @return
+   */
+  public float[] getEachScore(List<String> query) {
+    float res[] = new float[query.size()];
+    String tag;
+    for (int pos = 0; pos < query.size(); pos++) {
+      if (pos == query.size() - 1) { // Prefix
+        tag = this.getCompletion();
+      } else {
+        tag = query.get(pos);
+      }
+      if (!this.mapWordsData.containsKey(tag))
+        res[pos] = 0;
+      res[pos] = this.mapWordsData.get(tag).computeWorstScore(alpha, score);
+    }
+    return res;
   }
 
 }

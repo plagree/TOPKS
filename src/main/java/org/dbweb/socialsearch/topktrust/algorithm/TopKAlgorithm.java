@@ -420,7 +420,7 @@ public class TopKAlgorithm {
 
       loops++;
       long time_1 = System.currentTimeMillis();
-      if ((time_1-before_main_loop) > Math.max(max_t + 25, max_t)) {
+      if ((time_1 - before_main_loop) > Math.max(max_t + 25, max_t)) {
         System.out.println("time not under limit");
         break;
       }

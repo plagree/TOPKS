@@ -41,7 +41,7 @@ public class TOPKSSearcher {
     this.topk_alg.executeQuery(seeker, query, k, alpha, t, nNeigh,
             Experiment.DEFAULT);
     this.topk_alg.reset(query, 1);
-    JsonObject jsonResult = JsonBuilder.getJsonAnswer(this.topk_alg, k);
+    JsonObject jsonResult = JsonBuilder.getJsonAnswer(query, this.topk_alg, k);
     return jsonResult;
   }
 
