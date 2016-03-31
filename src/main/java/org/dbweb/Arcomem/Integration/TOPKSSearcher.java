@@ -36,7 +36,7 @@ public class TOPKSSearcher {
    * @return JsonObject containing the lower and upper score for every returned item
    */
   public JsonObject executeQuery(int seeker, List<String> query, int k,
-          int t, int nNeigh, float alpha) {
+          int t, int nNeigh, float alpha, boolean multiWordsQuery) {
     this.topk_alg.setSkippedTests(50);
     this.topk_alg.executeQuery(seeker, query, k, alpha, t, nNeigh,
             Experiment.DEFAULT);
@@ -48,7 +48,7 @@ public class TOPKSSearcher {
                         //{64, 40, 18, 10, 5, 2, 1, 1, 1, 1}, // alpha == 0.1
                         {1000, 200, 50, 20, 8, 2, 1, 1, 1, 1},
                         {1000, 200, 50, 20, 8, 2, 1, 1, 1}};// alpha = 1.
-    /*if (query.size() > 1) {
+    if (query.size() > 1 && multiWordsQuery) {
       if (alpha < 0.005)
           this.topk_alg.reorder(fixing[0][query.get(query.size()-1).length() - 1]);
       else if (alpha < 0.05)
@@ -59,7 +59,7 @@ public class TOPKSSearcher {
           this.topk_alg.reorder(fixing[3][query.get(query.size()-1).length() - 1]);
       else
         System.out.println("Error: forbidden correction");
-    }*/ /* NO FIXING */
+    }
     JsonObject jsonResult = JsonBuilder.getJsonAnswer(query, this.topk_alg, k);
     return jsonResult;
   }

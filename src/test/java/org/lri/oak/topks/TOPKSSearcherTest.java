@@ -41,7 +41,7 @@ public class TOPKSSearcherTest {
     query.add("style");
 
     JsonObject jsonResults = searcher.executeQuery(
-            1, query, 2, 200, 200, 0f);
+            1, query, 2, 200, 200, 0f, false);
 
     Assert.assertEquals(jsonResults.get("status").getAsInt(), 1);
     Assert.assertEquals(jsonResults.get("n").getAsInt(), 2);
@@ -74,7 +74,7 @@ public class TOPKSSearcherTest {
     List<String> query = new ArrayList<String>();
     query.add("style");
 
-    JsonObject jsonResults = searcher.executeQuery(1, query, 2, 200, 200, 0f);
+    JsonObject jsonResults = searcher.executeQuery(1, query, 2, 200, 200, 0f, false);
 
     Assert.assertEquals(jsonResults.get("status").getAsInt(), 1);
     Assert.assertEquals(jsonResults.get("n").getAsInt(), 2);
@@ -110,7 +110,7 @@ public class TOPKSSearcherTest {
     int nNeigh = 200;
     float alpha = 0f;
 
-    JsonObject jsonResults = searcher.executeQuery(seeker, query, k, t, nNeigh, alpha);
+    JsonObject jsonResults = searcher.executeQuery(seeker, query, k, t, nNeigh, alpha, false);
 
     Assert.assertEquals(jsonResults.get("status").getAsInt(), 1);
     Assert.assertEquals(jsonResults.get("n").getAsInt(), 5);
@@ -180,7 +180,7 @@ public class TOPKSSearcherTest {
     query.add("style");
 
     JsonObject jsonResults = searcher.executeQuery(
-            8, query, 5, 100, 200, 0.44444444f);
+            8, query, 5, 100, 200, 0.44444444f, false);
     System.out.println(jsonResults.toString());
     Assert.assertEquals(jsonResults.get("status").getAsInt(), 1);
     Assert.assertEquals(jsonResults.get("n").getAsInt(), 3);

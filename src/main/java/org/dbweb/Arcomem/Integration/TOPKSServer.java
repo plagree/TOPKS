@@ -479,7 +479,8 @@ public class TOPKSServer {
               Integer.parseInt(params.get("k")), 
               Integer.parseInt(params.get("t")),
               Integer.parseInt(params.get("nNeigh")),
-              Float.parseFloat(params.get("alpha"))
+              Float.parseFloat(params.get("alpha")),
+              Boolean.parseBoolean(params.get("multiWordsQuery"))
               );
     } else {
       jsonResponse = null;
