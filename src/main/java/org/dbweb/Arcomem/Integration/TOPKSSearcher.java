@@ -48,7 +48,7 @@ public class TOPKSSearcher {
                         //{64, 40, 18, 10, 5, 2, 1, 1, 1, 1}, // alpha == 0.1
                         {64, 20, 5, 2, 1, 2, 1, 1, 1, 1},
                         {160, 60, 30, 10, 5, 2, 1, 1, 1, 1}};// alpha = 1.
-    if (query.size() > 1) {
+    /*if (query.size() > 1) {
       if (alpha < 0.005)
           this.topk_alg.reorder(fixing[0][query.get(query.size()-1).length() - 1]);
       else if (alpha < 0.05)
@@ -59,7 +59,7 @@ public class TOPKSSearcher {
           this.topk_alg.reorder(fixing[3][query.get(query.size()-1).length() - 1]);
       else
         System.out.println("Error: forbidden correction");
-    }
+    }*/
     JsonObject jsonResult = JsonBuilder.getJsonAnswer(query, this.topk_alg, k);
     return jsonResult;
   }
