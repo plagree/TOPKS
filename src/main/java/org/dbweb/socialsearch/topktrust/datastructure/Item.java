@@ -259,9 +259,6 @@ public class Item implements Comparable<Item> {
       else if (!this.mapWordsData.get(tag).isCompletion())
         wscore_without_completion += wpartial;
     }
-    if (wscore_without_completion > 0)
-      System.out.println("word: " + wscore_without_completion + ", completion: "
-                        + wscore_best_completion);
     this.worstscore = wscore_without_completion + wscore_best_completion / v;
     this.worstscore_without_prefix = wscore_without_completion;
   }

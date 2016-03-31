@@ -41,8 +41,10 @@ public class TOPKSSearcher {
     this.topk_alg.executeQuery(seeker, query, k, alpha, t, nNeigh,
             Experiment.DEFAULT);
     this.topk_alg.reset(query, 1);
-    float fixing[][] = {{200, 100, 50, 40, 20, 10, 5, 2, 1, 1}, // alpha == 0
-                        {100, 50, 25, 13, 16, 3, 2, 1, 1, 1}, // alpha == 0.01
+    float fixing[][] = {//{200, 100, 50, 40, 20, 10, 5, 2, 1, 1}, // alpha == 0
+                        {64, 40, 18, 10, 5, 2, 1, 1, 1, 1},
+                        //{100, 50, 25, 13, 16, 3, 2, 1, 1, 1}, // alpha == 0.01
+                        {64, 40, 18, 10, 5, 2, 1, 1, 1, 1},
                         {64, 40, 18, 10, 5, 2, 1, 1, 1, 1}, // alpha == 0.1
                         {160, 60, 30, 10, 5, 2, 1, 1, 1, 1}};// alpha = 1.
     if (query.size() > 1) {
