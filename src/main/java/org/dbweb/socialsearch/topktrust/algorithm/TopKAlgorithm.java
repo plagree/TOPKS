@@ -927,5 +927,17 @@ public class TopKAlgorithm {
   public void reorder(float v) {
     this.candidates.reorder(v);
   }
+  
+  public long fast_il() {
+    return 0l;
+  }
+  
+  public long complete_il() {
+    return 0l;
+  }
+  
+  public long p_space() {
+    return 0l;
+  }
 
 }
