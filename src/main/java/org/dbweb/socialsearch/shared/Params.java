@@ -23,4 +23,5 @@ public class Params {
   public static boolean TEST = false;
   public static boolean DEBUG = false;
   public static boolean VERBOSE = false;
+  public static boolean SIMRANK = false;
 }

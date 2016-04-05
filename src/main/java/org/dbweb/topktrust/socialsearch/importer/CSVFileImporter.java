@@ -1,6 +1,7 @@
 package org.dbweb.topktrust.socialsearch.importer;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,7 +17,9 @@ import org.apache.commons.collections4.trie.PatriciaTrie;
 import org.dbweb.completion.trie.RadixTreeImpl;
 import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.DocumentNumTag;
+import org.dbweb.socialsearch.topktrust.algorithm.Pair;
 import org.dbweb.socialsearch.topktrust.algorithm.score.InverseDocumentFrequency;
+import org.dbweb.socialsearch.topktrust.datastructure.SimrankUserEntry;
 
 import gnu.trove.iterator.TIntObjectIterator;
 import gnu.trove.map.TIntObjectMap;
@@ -176,6 +179,36 @@ public class CSVFileImporter {
 
     if (Params.VERBOSE)
       System.out.println("TagFreq file = " + size3 + "M");
+  }
+
+  /**
+   * The simrank score file must be sorted.
+   * @param simrank
+   * @throws IOException
+   */
+  public static void loadSimRank(Map<Integer, List<SimrankUserEntry>> simrank)
+          throws IOException {
+    BufferedReader br_users = new BufferedReader(new FileReader(
+            Params.dir + "simrank/id.input"));
+    BufferedReader br;
+    String lineUser, lineSimrank;
+    while ((lineUser = br_users.readLine()) != null) {
+      int user = Integer.parseInt(lineUser);
+      List<SimrankUserEntry> simrankList = new ArrayList<SimrankUserEntry>();
+      br = new BufferedReader(new FileReader(
+              Params.dir + "simrank/" + user + ".data"));
+      while ((lineSimrank = br.readLine()) != null) {
+        String[] data = lineSimrank.split("\t");
+        if (data.length != 2)
+          System.out.println("Error in file " + user + ".data");
+        simrankList.add(new SimrankUserEntry(
+                Integer.parseInt(data[0]), Float.parseFloat(data[1])));
+      }
+      Collections.sort(simrankList, Collections.reverseOrder());
+      simrank.put(user, simrankList);
+      br.close();
+    }
+    br_users.close();
   }
 
 }

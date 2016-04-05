@@ -8,6 +8,7 @@ import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 import org.dbweb.socialsearch.topktrust.datastructure.Item;
 import org.dbweb.socialsearch.topktrust.datastructure.ItemList;
 import org.dbweb.socialsearch.topktrust.datastructure.ReadingHead;
+import org.dbweb.socialsearch.topktrust.datastructure.SimrankUserEntry;
 import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
 import org.dbweb.topktrust.socialsearch.importer.CSVFileImporter;
 import org.dbweb.Arcomem.Integration.Baseline;
@@ -56,6 +57,8 @@ public class TopKAlgorithm {
   private Map<String, List<DocumentNumTag>> invertedLists = new HashMap<String,
           List<DocumentNumTag>>();
   private OptimalPaths optpath;
+  private Map<Integer, List<SimrankUserEntry>> simrank =
+          new HashMap<Integer, List<SimrankUserEntry>>();
 
   /* 2. Session-dependent structures */
   private ItemList candidates;			// Buffer of candidates
@@ -115,6 +118,8 @@ public class TopKAlgorithm {
       CSVFileImporter.loadInMemory(this.completionTrie, this.tagIdf,
               this.invertedListPositions, this.invertedLists,
               this.dictionaryTrie, this.userSpaces);
+      if (Params.SIMRANK)
+        CSVFileImporter.loadSimRank(this.simrank);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -156,7 +161,11 @@ public class TopKAlgorithm {
     // New buffer because new query
     this.candidates = new ItemList(this.score);
     // Initialise the heap for Dijkstra
-    this.currentUser = optpath.initiateHeapCalculation(seeker);
+    if (!Params.SIMRANK)
+      this.currentUser = optpath.initiateHeapCalculation(seeker);
+    else if (Params.SIMRANK) {
+      this.currentUser = new UserEntry<Float>(seeker, 1f);
+    }
     // Initialise ChooseBranch heuristics
     this.candidates.setBranchHeuristics(query, this.completionTrie);
     for (int i = 0; i < query.size(); i++) {
@@ -564,8 +573,17 @@ public class TopKAlgorithm {
 
     if (pspaceExploration) // Here we check user space access
       this.nbPSpacesAccesses += 1;
+    if (!Params.SIMRANK)
+      currentUser = optpath.advanceFriendsList(currentUser); // Go to next user
+    else {
+      if (this.simrank.get(seeker).size() <= this.nbNeighbour)
+        this.currentUser = null;
+      else
+        this.currentUser = new UserEntry<Float>(
+              this.simrank.get(seeker).get(this.nbNeighbour).getUserId(),
+              this.simrank.get(seeker).get(this.nbNeighbour).getSimrank());
+    }
     this.nbNeighbour++;
-    currentUser = optpath.advanceFriendsList(currentUser); // Go to next user
     if(currentUser != null)
       this.userWeight = currentUser.getDist().floatValue();
     else
@@ -802,14 +820,6 @@ public class TopKAlgorithm {
   public int getPSpaceAccesses() {
     return this.nbPSpacesAccesses;
   }
-
-  /*public JsonObject getILaccesses() {
-    JsonObject accesses = new JsonObject();
-    accesses.add("fast", new JsonPrimitive(this.nbILFastAccesses));
-    accesses.add("slow", new JsonPrimitive(this.nbILAccesses));
-    accesses.add("il_topks_asyt",  new JsonPrimitive(this.invertedListsUsed.size()));
-    return accesses;
-  }*/
 
   /**
    * Compute NDCG with oracle list
