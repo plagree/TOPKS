@@ -26,12 +26,14 @@ import gnu.trove.set.TLongSet;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeSet;
@@ -580,8 +582,8 @@ public class TopKAlgorithm {
         this.currentUser = null;
       else
         this.currentUser = new UserEntry<Float>(
-              this.simrank.get(seeker).get(this.nbNeighbour).getUserId(),
-              this.simrank.get(seeker).get(this.nbNeighbour).getSimrank());
+                this.simrank.get(seeker).get(this.nbNeighbour).getUserId(),
+                this.simrank.get(seeker).get(this.nbNeighbour).getSimrank());
     }
     this.nbNeighbour++;
     if(currentUser != null)
@@ -917,27 +919,145 @@ public class TopKAlgorithm {
         listBaseline.add(e.getItemId());
         if (i >= k)
           break;
-          
+
       }
       return (float)NDCG.getNDCG(listBaseline, this.oracleNDCG, k);
     }
     return 0;
   }
-  
+
   public void reorder(float v) {
     this.candidates.reorder(v);
   }
-  
-  public long fast_il() {
-    return 0l;
+
+  public long fast_il(int N) {
+    long total = 0;
+    Random random = new Random();
+    List<String> words = new ArrayList<String>(this.invertedLists.keySet());
+    this.invertedListsUsed = new HashSet<String>();
+    for (int n = 0; n < N; n++) {
+      String randomKey = words.get(random.nextInt(words.size()));
+      int l = 2 + (int)(Math.random() * (8 - 2 + 1));
+      String tag = randomKey.substring(0, Math.min(l, randomKey.length()));
+      int pos = random.nextInt(this.invertedLists.get(randomKey).size());
+      long before = System.currentTimeMillis();
+
+      RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, false)
+              .getBestDescendant();
+      String keyword = current_best_leaf.getWord();
+      this.invertedListsUsed.add(keyword);
+      // Get inverted list of keyword
+      List<DocumentNumTag> invertedList = this.invertedLists.get(keyword);
+      // Read one position
+      this.invertedListPositions.put(keyword, pos + 1);
+      int ILposition = this.invertedListPositions.get(keyword);
+      if (ILposition < invertedList.size())
+        current_best_leaf.updatePreviousBestValue(
+                invertedList.get(ILposition).getNum());
+      else {
+        current_best_leaf.updatePreviousBestValue(0);
+        continue;
+      }
+      current_best_leaf = this.completionTrie.searchPrefix(tag, false)
+              .getBestDescendant();
+      ILposition = this.invertedListPositions.get(keyword);
+      DocumentNumTag current_read = this.invertedLists.get(keyword).get(ILposition);
+      ReadingHead new_top_rh = new_top_rh = new ReadingHead(
+              keyword, current_read.getDocId(), current_read.getNum());
+      //this.topReadingHead.set(pos, new_top_rh);
+      total += (System.currentTimeMillis() - before);
+    }
+    return total;
   }
-  
-  public long complete_il() {
-    return 0l;
+
+  public long complete_il(int N) {
+    long total = 0;
+    Random random = new Random();
+    List<String> words = new ArrayList<String>(this.invertedLists.keySet());
+    this.invertedListsUsed = new HashSet<String>();
+    for (int n = 0; n < N; n++) {
+      String randomKey = words.get(random.nextInt(words.size()));
+      int l = 2 + (int)(Math.random() * (8 - 2 + 1));
+      String tag = randomKey.substring(0, Math.min(l, randomKey.length()));
+      //int pos = random.nextInt(this.invertedLists.get(randomKey).size());
+      long before = System.currentTimeMillis();
+
+      RadixTreeNode current_best_leaf = completionTrie.searchPrefix(tag, false)
+              .getBestDescendant();
+      String keyword = current_best_leaf.getWord();
+      this.invertedListsUsed.add(keyword);
+      // Get inverted list of keyword
+      List<DocumentNumTag> invertedList = this.invertedLists.get(keyword);
+      // Read one position
+      int pos = 0;
+      while (pos < invertedList.size()) {
+        DocumentNumTag current_read = this.invertedLists.get(keyword).get(pos);
+        ReadingHead new_top_rh = new_top_rh = new ReadingHead(
+                keyword, current_read.getDocId(), current_read.getNum());
+        pos++;
+      }
+      //this.topReadingHead.set(pos, new_top_rh);
+      total += (System.currentTimeMillis() - before);
+    }
+    return total;
   }
-  
-  public long p_space() {
-    return 0l;
+
+  public long p_space(int N) {
+    long total = 0;
+    Random random = new Random();
+    List<String> words = new ArrayList<String>(this.invertedLists.keySet());
+    int array[] = this.userSpaces.keySet().toArray();
+    List<Integer> users = new ArrayList<Integer>();
+    for (int index = 0; index < array.length; index++) {
+      users.add(array[index]);
+    }
+    this.possible = new HashSet<Long>();
+    for (int n = 0; n < N; n++) {
+      String randomKey = words.get(random.nextInt(words.size()));
+      int l = 2 + (int)(Math.random() * (8 - 2 + 1));
+      String tag = randomKey.substring(0, Math.min(l, randomKey.length()));
+      int seeker = users.get(random.nextInt(users.size()));
+      long before = System.currentTimeMillis();
+      this.candidates = new ItemList(score);
+
+      int currentUserId = seeker;
+      if (this.userSpaces.containsKey(currentUserId)) { // Case 1: we are at a prefix
+        SortedMap<String, TLongSet> completions = this.userSpaces
+                .get(currentUserId).prefixMap(tag);
+        if (completions.size() > 0) {
+          Iterator<Entry<String, TLongSet>> iterator = completions
+                  .entrySet().iterator();
+          // Iteration over every possible completion
+          while (iterator.hasNext()) {
+            Entry<String, TLongSet> currentEntry = iterator.next();
+            String completion = currentEntry.getKey();
+            for (TLongIterator it = currentEntry.getValue()
+                    .iterator(); it.hasNext(); ) {
+              long itemId = it.next();
+              // Add the item if not discovered yet
+              if (!this.candidates.containsItemId(itemId)) {
+                this.candidates.addItem(itemId, this.alpha);
+                this.possible.add(itemId);
+              }
+              // Add the tag if not seen for this item yet
+              if (!this.candidates.getItem(itemId).containsTag(completion)) {
+                float idf = this.tagIdf.searchPrefix(
+                        completion, true).getValue();
+                this.candidates.addTagToItem(itemId, completion, true, idf, 0);
+                // TF for (itemId, tag) is unknown
+                //this.unknownTf.add(new Pair<Long,String>(itemId, completion));
+              }
+              // Update the social score
+              this.candidates.updateSocialScore(
+                      itemId, completion, this.userWeight);        
+            }
+          }
+        }
+      }
+      //this.topReadingHead.set(pos, new_top_rh);
+      total += (System.currentTimeMillis() - before);
+    }
+    return total;
   }
 
 }

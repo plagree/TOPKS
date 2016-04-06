@@ -19,7 +19,7 @@ import com.google.gson.JsonObject;
 
 public class Play {
   
-  private static final int N_EXPERIMENTS = 100;
+  private static final int N_EXPERIMENTS = 100000;
 
   public static void main(String[] args) {
     Params.dir = System.getProperty("user.dir") + "/test/yelp/TOPZIP/small/";
@@ -30,22 +30,16 @@ public class Play {
     OptimalPaths optpath = new OptimalPaths("network", true);
     TopKAlgorithm algo = new TopKAlgorithm(score, 0f, new PathMultiplication(), optpath);
     // Experiment IL fast read
-    long fast_il = 0;
-    for (int i = 0; i < N_EXPERIMENTS; i++)
-      fast_il += algo.fast_il();
-    System.out.println((float)fast_il / N_EXPERIMENTS);
+    long fast_il = algo.fast_il(N_EXPERIMENTS);
+    System.out.println((float)fast_il);
     
     // Experiment complete IL read
-    long complete_il = 0;
-    for (int i = 0; i < N_EXPERIMENTS; i++)
-      complete_il += algo.complete_il();
-    System.out.println((float)complete_il / N_EXPERIMENTS);
+    long complete_il = algo.complete_il(N_EXPERIMENTS);
+    System.out.println((float)complete_il);
     
     // Experiment P-SPACE READ
-    long p_space = 0;
-    for (int i = 0; i < N_EXPERIMENTS; i++)
-      p_space += algo.p_space();
-    System.out.println((float)p_space / N_EXPERIMENTS);
+    long p_space = algo.p_space(N_EXPERIMENTS);
+    System.out.println((float)p_space);
     
     /*List<String> query = new ArrayList<String>();
     query.add("restaurant");
