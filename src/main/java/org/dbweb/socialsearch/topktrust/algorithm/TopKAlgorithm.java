@@ -369,9 +369,9 @@ public class TopKAlgorithm {
     do {
       double currBudget = 0;
       if (Params.BASELINE)
-        currBudget = 1.3 * currVisited * + 15 * this.invertedListsUsed.size();
+        currBudget = 1.3 * currVisited + 15 * this.invertedListsUsed.size();
       else
-        currBudget = 1.3 * currVisited * + 1 * fast;
+        currBudget = 1.3 * currVisited + 1 * fast;
       if (this.type == Experiment.NDCG_DISK_ACCESS && currBudget >= Params.DISK_BUDGET)
         break;
       boolean socialBranch = chooseBranch(query);
