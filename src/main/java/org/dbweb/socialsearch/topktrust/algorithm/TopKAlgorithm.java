@@ -1060,4 +1060,40 @@ public class TopKAlgorithm {
     return total;
   }
 
+  public List<Float> userSequenceDistribution() {
+    List<Float> res = new ArrayList<Float>();
+    Random random = new Random();
+    int array[] = this.userSpaces.keySet().toArray();
+    List<Integer> users = new ArrayList<Integer>();
+    for (int index = 0; index < array.length; index++) {
+      users.add(array[index]);
+    }
+    int seeker = users.get(random.nextInt(users.size()));
+    List<Long> oracle = this.userSequence(seeker);
+    int N = 1000;
+    for (int i=0; i<N; i++) {
+      int u = users.get(random.nextInt(users.size()));
+      if (u == seeker)
+        continue;
+      res.add((float)NDCG.getNDCG(this.userSequence(u), oracle, 1000));
+      if (i % 100 == 0)
+        System.out.println(i);
+      if (i == 2000)
+        break;
+    }
+    return res;
+  }
+
+  private List<Long> userSequence(int seeker) {
+    List<Long> l = new ArrayList<Long>();
+    UserEntry<Float> currUser = optpath.initiateHeapCalculation(seeker);
+    this.optpath.setValues(new ArrayList<Float>());
+    this.optpath.setDistFunc(distFunc);
+    while (currUser != null) {
+      l.add((long)currUser.getEntryId());
+      currUser = optpath.advanceFriendsList(currUser);
+    }
+    return l;
+  }
+
 }
