@@ -99,6 +99,7 @@ public class TopKAlgorithm {
   private int skippedTests = 1;  // Number of loops before testing the exit condition
   private int maximumNodeVisited;// Maximum number of users to visit
   private int numberUsersSeen;	 // Current number of users seen
+  private int fast;
 
 
   /**
@@ -354,6 +355,7 @@ public class TopKAlgorithm {
     this.nbILAccesses = 0;
     this.nbILFastAccesses = 0;
     this.nbPSpacesAccesses = 0;
+    this.fast = 1;
 
     // Local Variables
     int loops = 0;
@@ -365,8 +367,12 @@ public class TopKAlgorithm {
     long before_main_loop = System.currentTimeMillis();
 
     do {
-      if (this.type == Experiment.NDCG_DISK_ACCESS && (currVisited
-              + this.invertedListsUsed.size()) >= Params.DISK_BUDGET)
+      double currBudget = 0;
+      if (Params.BASELINE)
+        currBudget = 1.3 * currVisited * + 15 * this.invertedListsUsed.size();
+      else
+        currBudget = 1.3 * currVisited * + 1 * fast;
+      if (this.type == Experiment.NDCG_DISK_ACCESS && currBudget >= Params.DISK_BUDGET)
         break;
       boolean socialBranch = chooseBranch(query);
       if(socialBranch) {
@@ -689,6 +695,7 @@ public class TopKAlgorithm {
    *  (prefix)
    */
   private void advanceTextualList(String tag, int pos, boolean exact) {
+    this.fast += 1;
     if (exact) { // Not a prefix, read directly in inverted lists
       this.nbILFastAccesses += 1;
       this.invertedListsUsed.add(tag);

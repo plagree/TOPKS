@@ -17,9 +17,9 @@ public class Play {
   private static final int N_EXPERIMENTS = 1;
 
   public static void main(String[] args) {
-    Params.dir = System.getProperty("user.dir") + "/test/yelp/TOPZIP/small/";
+    Params.dir = "/home/lagree/datasets/yelp/CIKM/big/100/";
     Params.networkFile = "network.txt";
-    Params.triplesFile = "triples.txt";
+    Params.triplesFile = "triples100.txt";
     // Index files and load data in memory
     Score score = new TfIdfScore();
     OptimalPaths optpath = new OptimalPaths("network", true);
