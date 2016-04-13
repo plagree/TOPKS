@@ -3,7 +3,7 @@ package org.dbweb.socialsearch.topktrust.algorithm;
 public class Pair<L,R> {
 
   private final L left;
-  private final R right;
+  private R right;
 
   public Pair(L left, R right) {
     this.left = left;
@@ -12,6 +12,8 @@ public class Pair<L,R> {
 
   public L getLeft() { return left; }
   public R getRight() { return right; }
+  
+  public void setRight(R r) { this.right = r; }
 
   @Override
   public int hashCode() { return left.hashCode() ^ right.hashCode(); }

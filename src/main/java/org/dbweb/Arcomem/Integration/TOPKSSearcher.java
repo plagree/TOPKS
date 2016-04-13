@@ -148,7 +148,7 @@ public class TOPKSSearcher {
     // Computation for top-k exact: normal version
     this.setSkippedTests(1);
 
-    if (baseline == Baseline.TEXTUAL_SOCIAL) {
+    if (baseline == Baseline.TEXTUAL_SOCIAL || baseline == Baseline.TOPKS_M) {
       this.topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000,
               Experiment.NDCG_DISK_ACCESS);
     } else if (baseline == Baseline.TOPK_MERGE) {
@@ -168,8 +168,12 @@ public class TOPKSSearcher {
 
     // Computation for top-k exact: baseline
     Params.BASELINE = true;
-    float ndcg = this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha,
+    float ndcg = 0;
+    if (baseline == Baseline.TOPK_MERGE || baseline == Baseline.TEXTUAL_SOCIAL)
+      ndcg = this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha,
             30000, 100000, baseline);
+    else
+      ndcg = this.topk_alg.executeTOPKSMBaselineQuery(seeker, query, k, alpha, 30000, 100000);
     this.topk_alg.reset(query, 1);
     JsonObject obj_baseline = new JsonObject();
     obj_baseline.add("users_visited", new JsonPrimitive(

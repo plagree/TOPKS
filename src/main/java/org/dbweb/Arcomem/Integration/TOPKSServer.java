@@ -514,6 +514,13 @@ public class TOPKSServer {
                 Float.parseFloat(params.get("alpha")),
                 Integer.parseInt(params.get("disk_budget")),
                 Baseline.TOPK_MERGE);
+      } else if (params.get("base").equals("topks_m")) {
+        jsonResponse = TOPKSServer.topksSearcher.executeBaseline(
+                Integer.parseInt(params.get("seeker")), query,
+                Integer.parseInt(params.get("k")),
+                Float.parseFloat(params.get("alpha")),
+                Integer.parseInt(params.get("disk_budget")),
+                Baseline.TOPKS_M);
       } else
         jsonResponse = null;
     } else {

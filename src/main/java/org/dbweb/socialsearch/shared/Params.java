@@ -25,5 +25,7 @@ public class Params {
   public static boolean VERBOSE = false;
   public static boolean SIMRANK = false;
   public static boolean BASELINE = false;
+  public static int NUMBER_ILS = 0;
+  public static String WORD_TOPKS_M = "ABCDEFGHIJK__#";
 
 }

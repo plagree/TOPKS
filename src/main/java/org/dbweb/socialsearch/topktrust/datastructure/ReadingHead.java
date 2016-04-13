@@ -26,6 +26,10 @@ public class ReadingHead implements Comparable<ReadingHead> {
   public String getCompletion() {
     return this.itemKeywordPair.getRight();
   }
+  
+  public void setCompletion(String completion) {
+    this.itemKeywordPair.setRight(completion);
+  }
 
   public long getItemId() {
     return this.itemKeywordPair.getLeft();

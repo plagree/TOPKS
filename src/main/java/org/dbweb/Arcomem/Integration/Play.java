@@ -3,6 +3,8 @@ package org.dbweb.Arcomem.Integration;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.dbweb.socialsearch.shared.Params;
@@ -17,13 +19,17 @@ public class Play {
   private static final int N_EXPERIMENTS = 1;
 
   public static void main(String[] args) {
-    Params.dir = "/home/lagree/datasets/yelp/CIKM/big/100/";
+    Params.dir = "/home/paul/Workspace/TOPKS/test/yelp/TOPZIP/small/";
     Params.networkFile = "network.txt";
-    Params.triplesFile = "triples100.txt";
+    Params.triplesFile = "triples.txt";
     // Index files and load data in memory
     Score score = new TfIdfScore();
     OptimalPaths optpath = new OptimalPaths("network", true);
     TopKAlgorithm algo = new TopKAlgorithm(score, 0f, new PathMultiplication(), optpath);
+    List<String> query = new ArrayList<String>();
+    query.add("stand");
+    Params.DISK_BUDGET = 400;
+    algo.executeTOPKSMBaselineQuery(29643, query, 5, 0.001f, 30000, 100000);
     PrintWriter writer;
     try {
       writer = new PrintWriter("ndcg.csv", "UTF-8");
