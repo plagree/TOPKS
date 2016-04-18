@@ -34,17 +34,17 @@ public class Play {
     PrintWriter writer;
     try {
       writer = new PrintWriter("ndcg.csv", "UTF-8");
+      long before = System.currentTimeMillis();
+      int c = 0;
       for (int seeker: algo.getUsers().keySet().toArray()) {
-        long before = System.currentTimeMillis();
         Map<Integer, Float> ndcgDistribution = algo.userSequenceDistribution(seeker);
         writer.print(seeker+"#");
         for (int u: ndcgDistribution.keySet())
-          writer.print(u+":"+ndcgDistribution.get(seeker)+";");
-        writer.print(ndcgDistribution.get(ndcgDistribution.size()-1)+"\n");
+          writer.print(u+":"+ndcgDistribution.get(u)+";");
         writer.print("\n");
-        System.out.println((System.currentTimeMillis() - before) / 1000 + "sec");
-        break;
+        c += 1;
       }
+      System.out.println((System.currentTimeMillis() - before) / 1000 + "s");
       writer.close();
     } catch (FileNotFoundException e) {
       e.printStackTrace();

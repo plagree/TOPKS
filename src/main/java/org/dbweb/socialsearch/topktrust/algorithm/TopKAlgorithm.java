@@ -1180,8 +1180,8 @@ public class TopKAlgorithm {
     Map<Integer, Float> res = new HashMap<Integer, Float>();
     int i = 0;
     Set<Integer> seen = new HashSet<Integer>();
-    while (i < 1000) {
-      int u = random.nextInt(array.length);
+    while (i < 200) {
+      int u = array[random.nextInt(array.length)];
       if (u == seeker || seen.contains(u))
         continue;
       seen.add(u);
