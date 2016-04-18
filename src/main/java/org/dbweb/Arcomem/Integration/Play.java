@@ -6,6 +6,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.dbweb.socialsearch.shared.Params;
 import org.dbweb.socialsearch.topktrust.algorithm.TopKAlgorithm;
@@ -27,17 +28,20 @@ public class Play {
     OptimalPaths optpath = new OptimalPaths("network", true);
     TopKAlgorithm algo = new TopKAlgorithm(score, 0f, new PathMultiplication(), optpath);
     List<String> query = new ArrayList<String>();
-    query.add("stand");
-    Params.DISK_BUDGET = 400;
-    algo.executeTOPKSMBaselineQuery(29643, query, 5, 0.001f, 30000, 100000);
+    //query.add("stand");
+    //Params.DISK_BUDGET = 400;
+    //algo.executeTOPKSMBaselineQuery(29643, query, 5, 0.001f, 30000, 100000);
     PrintWriter writer;
     try {
       writer = new PrintWriter("ndcg.csv", "UTF-8");
-      for (int j = 0; j < 10; j++) {
-        List<Float> ndcgDistribution = algo.userSequenceDistribution();
-        for (int i = 0; i < ndcgDistribution.size() - 1; i++)
-          writer.print(ndcgDistribution.get(i)+",");
+      for (int seeker: algo.getUsers().keySet().toArray()) {
+        Map<Integer, Float> ndcgDistribution = algo.userSequenceDistribution(seeker);
+        writer.print(seeker+"#");
+        for (int u: ndcgDistribution.keySet())
+          writer.print(u+":"+ndcgDistribution.get(seeker)+";");
         writer.print(ndcgDistribution.get(ndcgDistribution.size()-1)+"\n");
+        writer.print("\n");
+        break;
       }
       writer.close();
     } catch (FileNotFoundException e) {

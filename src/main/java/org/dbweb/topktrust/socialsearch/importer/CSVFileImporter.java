@@ -55,7 +55,27 @@ public class CSVFileImporter {
     long itemId;
 
     // 0. Initialisations of main variables specific to dataset
-    br = new BufferedReader(new FileReader(Params.dir + Params.triplesFile));
+    
+    /****
+     * ANALYSIS CLUSTERING WITH NDCG
+     */
+    int u1, u2;
+    br = new BufferedReader(new FileReader(Params.dir + Params.networkFile));
+    while ((line = br.readLine()) != null) {
+      data = line.split("\t");
+      if (data.length != 3)
+        continue;
+      u1 = Integer.parseInt(data[0]);
+      u2 = Integer.parseInt(data[1]);
+      if (!userSpaces.containsKey(u1))
+        userSpaces.put(u1, null);
+      if (!userSpaces.containsKey(u2))
+        userSpaces.put(u2, null);
+    }
+    br.close();
+    return;
+    
+    /*br = new BufferedReader(new FileReader(Params.dir + Params.triplesFile));
     Set<Long> docs = new HashSet<Long>(); // Count distinct documents
     while ((line = br.readLine()) != null) {
       data = line.split("\t");
@@ -176,7 +196,7 @@ public class CSVFileImporter {
     final long size3 = (getUsedMemory() - start3) / 1024 / 1024;
 
     if (Params.VERBOSE)
-      System.out.println("TagFreq file = " + size3 + "M");
+      System.out.println("TagFreq file = " + size3 + "M");*/
   }
 
   /**

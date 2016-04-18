@@ -1166,26 +1166,25 @@ public class TopKAlgorithm {
     return total;
   }
 
-  public List<Float> userSequenceDistribution() {
-    List<Float> res = new ArrayList<Float>();
-    Random random = new Random();
-    int array[] = this.userSpaces.keySet().toArray();
-    List<Integer> users = new ArrayList<Integer>();
-    for (int index = 0; index < array.length; index++) {
-      users.add(array[index]);
-    }
-    int seeker = users.get(random.nextInt(users.size()));
+  public Map<Integer, Float> userSequenceDistribution(int seeker) {
+    //List<Float> res = new ArrayList<Float>();
+    //Random random = new Random();
+    //int array[] = this.userSpaces.keySet().toArray();
+    //List<Integer> users = new ArrayList<Integer>();
+    //for (int index = 0; index < array.length; index++) {
+    //  users.add(array[index]);
+    //}
+    //int seeker = users.get(random.nextInt(users.size()));
     List<Long> oracle = this.userSequence(seeker);
-    int N = 1000;
-    for (int i=0; i<N; i++) {
-      int u = users.get(random.nextInt(users.size()));
+    //int N = 1000;
+    Map<Integer, Float> res = new HashMap<Integer, Float>();
+    int i = 1;
+    for (int u: this.userSpaces.keySet().toArray()) {
       if (u == seeker)
         continue;
-      res.add((float)NDCG.getNDCG(this.userSequence(u), oracle, 1000));
-      if (i % 100 == 0)
+      res.put(u, (float)NDCG.getNDCG(this.userSequence(u), oracle, 1000));
+      if (i % 1000 == 0)
         System.out.println(i);
-      if (i == 2000)
-        break;
     }
     return res;
   }
@@ -1200,6 +1199,10 @@ public class TopKAlgorithm {
       currUser = optpath.advanceFriendsList(currUser);
     }
     return l;
+  }
+  
+  public TIntObjectMap<PatriciaTrie<TLongSet>> getUsers() {
+    return this.userSpaces;
   }
 
 }
