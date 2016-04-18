@@ -20,7 +20,7 @@ public class Play {
   private static final int N_EXPERIMENTS = 1;
 
   public static void main(String[] args) {
-    Params.dir = "/home/paul/Workspace/TOPKS/test/yelp/TOPZIP/small/";
+    Params.dir = "/home/lagree/git/TOPKS/test/yelp/TOPZIP/small/";
     Params.networkFile = "network.txt";
     Params.triplesFile = "triples.txt";
     // Index files and load data in memory
@@ -35,12 +35,14 @@ public class Play {
     try {
       writer = new PrintWriter("ndcg.csv", "UTF-8");
       for (int seeker: algo.getUsers().keySet().toArray()) {
+        long before = System.currentTimeMillis();
         Map<Integer, Float> ndcgDistribution = algo.userSequenceDistribution(seeker);
         writer.print(seeker+"#");
         for (int u: ndcgDistribution.keySet())
           writer.print(u+":"+ndcgDistribution.get(seeker)+";");
         writer.print(ndcgDistribution.get(ndcgDistribution.size()-1)+"\n");
         writer.print("\n");
+        System.out.println((System.currentTimeMillis() - before) / 1000 + "sec");
         break;
       }
       writer.close();

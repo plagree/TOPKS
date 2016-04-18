@@ -1168,23 +1168,25 @@ public class TopKAlgorithm {
 
   public Map<Integer, Float> userSequenceDistribution(int seeker) {
     //List<Float> res = new ArrayList<Float>();
-    //Random random = new Random();
-    //int array[] = this.userSpaces.keySet().toArray();
-    //List<Integer> users = new ArrayList<Integer>();
-    //for (int index = 0; index < array.length; index++) {
-    //  users.add(array[index]);
-    //}
+    Random random = new Random();
+    int array[] = this.userSpaces.keySet().toArray();
+    // List<Integer> users = new ArrayList<Integer>();
+    // for (int index = 0; index < array.length; index++) {
+    //   users.add(array[index]);
+    // }
     //int seeker = users.get(random.nextInt(users.size()));
     List<Long> oracle = this.userSequence(seeker);
     //int N = 1000;
     Map<Integer, Float> res = new HashMap<Integer, Float>();
-    int i = 1;
-    for (int u: this.userSpaces.keySet().toArray()) {
-      if (u == seeker)
+    int i = 0;
+    Set<Integer> seen = new HashSet<Integer>();
+    while (i < 1000) {
+      int u = random.nextInt(array.length);
+      if (u == seeker || seen.contains(u))
         continue;
+      seen.add(u);
       res.put(u, (float)NDCG.getNDCG(this.userSequence(u), oracle, 1000));
-      if (i % 1000 == 0)
-        System.out.println(i);
+      i++;
     }
     return res;
   }
@@ -1194,9 +1196,13 @@ public class TopKAlgorithm {
     UserEntry<Float> currUser = optpath.initiateHeapCalculation(seeker);
     this.optpath.setValues(new ArrayList<Float>());
     this.optpath.setDistFunc(distFunc);
+    int counter = 0;
     while (currUser != null) {
       l.add((long)currUser.getEntryId());
       currUser = optpath.advanceFriendsList(currUser);
+      counter += 1;
+      if (counter >= 1005)
+          break;
     }
     return l;
   }
