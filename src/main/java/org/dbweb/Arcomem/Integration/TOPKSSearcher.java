@@ -1,5 +1,6 @@
 package org.dbweb.Arcomem.Integration;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.dbweb.experiments.JsonBuilder;
@@ -42,21 +43,21 @@ public class TOPKSSearcher {
             Experiment.DEFAULT);
     this.topk_alg.reset(query, 1);
     float fixing[][] = {//{200, 100, 50, 40, 20, 10, 5, 2, 1, 1}, // alpha == 0
-                        {6000, 1000, 50, 20, 8, 2, 1, 1, 1, 1},
-                        //{100, 50, 25, 13, 16, 3, 2, 1, 1, 1}, // alpha == 0.01
-                        {1000, 200, 50, 20, 8, 2, 1, 1, 1, 1},
-                        //{64, 40, 18, 10, 5, 2, 1, 1, 1, 1}, // alpha == 0.1
-                        {1000, 200, 50, 20, 8, 2, 1, 1, 1, 1},
-                        {1000, 200, 50, 20, 8, 2, 1, 1, 1}};// alpha = 1.
+        {6000, 1000, 50, 20, 8, 2, 1, 1, 1, 1},
+        //{100, 50, 25, 13, 16, 3, 2, 1, 1, 1}, // alpha == 0.01
+        {1000, 200, 50, 20, 8, 2, 1, 1, 1, 1},
+        //{64, 40, 18, 10, 5, 2, 1, 1, 1, 1}, // alpha == 0.1
+        {1000, 200, 50, 20, 8, 2, 1, 1, 1, 1},
+        {1000, 200, 50, 20, 8, 2, 1, 1, 1}};// alpha = 1.
     if (query.size() > 1 && multiWordsQuery) {
       if (alpha < 0.005)
-          this.topk_alg.reorder(fixing[0][query.get(query.size()-1).length() - 1]);
+        this.topk_alg.reorder(fixing[0][query.get(query.size()-1).length() - 1]);
       else if (alpha < 0.05)
-          this.topk_alg.reorder(fixing[1][query.get(query.size()-1).length() - 1]);
+        this.topk_alg.reorder(fixing[1][query.get(query.size()-1).length() - 1]);
       else if (alpha < 0.5)
-          this.topk_alg.reorder(fixing[2][query.get(query.size()-1).length() - 1]);
+        this.topk_alg.reorder(fixing[2][query.get(query.size()-1).length() - 1]);
       else if (alpha > 0.9)
-          this.topk_alg.reorder(fixing[3][query.get(query.size()-1).length() - 1]);
+        this.topk_alg.reorder(fixing[3][query.get(query.size()-1).length() - 1]);
       else
         System.out.println("Error: forbidden correction");
     }
@@ -145,7 +146,7 @@ public class TOPKSSearcher {
     this.topk_alg.computeOracleNDCG(k);
     this.topk_alg.reset(query, 1);
 
-    // Computation for top-k exact: normal version
+    // Computation for top-k exact: normal version (TOPKS-ASYT)
     this.setSkippedTests(1);
 
     if (baseline == Baseline.TEXTUAL_SOCIAL) {
@@ -177,6 +178,80 @@ public class TOPKSSearcher {
     obj_baseline.add("inverted_lists_algo", new JsonPrimitive(
             this.topk_alg.getNumberInvertedListUsed()));
     obj_baseline.add("ndcg", new JsonPrimitive(ndcg));
+    Params.BASELINE = false;
+
+    // Create JSON Response
+    JsonObject jsonResult = new JsonObject();
+    jsonResult.add("status", new JsonPrimitive(1));
+    jsonResult.add("topks_asyt", obj_topk_asyt);
+    jsonResult.add("baseline", obj_baseline);
+
+    return jsonResult;
+  }
+
+  public JsonObject executeBaselineAutocompletions(int seeker, List<String> query,
+          int k, float alpha, int budget, List<List<String>> autocompletions) {
+
+    Params.DISK_BUDGET = budget;
+    // Oracle computation (visit of whole graph)
+    this.topk_alg.setSkippedTests(100000);
+    this.topk_alg.executeQuery(seeker, query, k, alpha, 10000, 100000,
+            Experiment.DEFAULT);
+    this.topk_alg.computeOracleNDCG(k);
+    this.topk_alg.reset(query, 1);
+
+    // Computation for top-k exact: normal version (TOPKS-ASYT)
+    this.setSkippedTests(1);
+
+    //if (baseline == Baseline.TEXTUAL_SOCIAL || baseline == Baseline.AUTOCOMPLETION) {
+    this.topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000,
+            Experiment.NDCG_DISK_ACCESS);
+    //} else if (baseline == Baseline.TOPK_MERGE) {
+    //  this.topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000,
+    //          Experiment.DEFAULT);
+    //} else {
+    // throw new UnsupportedOperationException();
+    //}
+    this.topk_alg.reset(query, 1);
+
+    JsonObject obj_topk_asyt = new JsonObject();
+    obj_topk_asyt.add("users_visited", new JsonPrimitive(
+            this.topk_alg.getNumberUsersSeen()));
+    obj_topk_asyt.add("inverted_lists_algo", new JsonPrimitive(
+            this.topk_alg.getNumberInvertedListUsed()));
+    obj_topk_asyt.add("ndcg", new JsonPrimitive(this.topk_alg.computeNDCG(k)));
+
+    // Computation for top-k exact: baseline
+    Params.BASELINE = true;
+    List<Double> ndcgs = new ArrayList<Double>();
+    List<Integer> users_visited = new ArrayList<Integer>();
+    List<Integer> inverted_lists_algo = new ArrayList<Integer>();
+    double mean_ndcg = 0;
+    int mean_users_visited = 0, mean_inverted_lists_algo = 0;
+    int i = 0;
+    for (List<String> autocompleted_query: autocompletions) {
+      // float ndcg = this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha,
+      //         30000, 100000, baseline);
+      // TODO check for multiple words
+      this.topk_alg.executeQuery(seeker, autocompleted_query, k, alpha, 30000, 100000,
+              Experiment.NDCG_DISK_ACCESS);
+      this.topk_alg.reset(autocompleted_query, 1);
+      // Add statistics to lists
+      ndcgs.add(this.topk_alg.computeNDCG(k));
+      users_visited.add(this.topk_alg.getNumberUsersSeen());
+      inverted_lists_algo.add(this.topk_alg.getNumberInvertedListUsed());
+      // Increment for mean
+      mean_ndcg += ndcgs.get(i);
+      mean_users_visited += users_visited.get(i);
+      mean_inverted_lists_algo += inverted_lists_algo.get(i);
+      i += 1;
+    }
+    JsonObject obj_baseline = new JsonObject();
+    obj_baseline.add("users_visited", new JsonPrimitive(
+            mean_users_visited / autocompletions.size()));
+    obj_baseline.add("inverted_lists_algo", new JsonPrimitive(
+            mean_inverted_lists_algo / autocompletions.size()));
+    obj_baseline.add("ndcg", new JsonPrimitive(mean_ndcg / autocompletions.size()));
     Params.BASELINE = false;
 
     // Create JSON Response

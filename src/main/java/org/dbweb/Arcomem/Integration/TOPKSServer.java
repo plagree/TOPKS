@@ -3,6 +3,7 @@ package org.dbweb.Arcomem.Integration;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -56,6 +57,12 @@ public class TOPKSServer {
       //server.createContext("/supernodes", new SuperNodesHandler()); // TOPKS with super nodes (clusters)
       //server.createContext("/incremental", new ExactTopkIncVsNonincHandler()); // TOPKS time for exact topk incremental vs not
       //server.setExecutor(null); 									// creates a default executor
+      /*
+       * Different baselines:
+       * ====================
+       *    * topks_autocomplete: queries are autocompleted with Yelp API then normal TOPKS
+       *        - `query` = "my+prefix#first+autocompletion#second+autocompletion"
+       */
       server.createContext("/baselines", new BaselineHandler());
       server.start();
       System.out.println("Server started on port " + PORT);
@@ -470,8 +477,8 @@ public class TOPKSServer {
   public static JsonObject runTOPKS(Map<String, String> params) {
     JsonObject jsonResponse;
     if (params.containsKey("q") && params.containsKey("seeker") &&
-            params.containsKey("alpha") && params.containsKey("t")
-            && params.containsKey("nNeigh")) {
+            params.containsKey("alpha") && params.containsKey("t") &&
+            params.containsKey("nNeigh")) {
       // Create the query List of words
       List<String> query = Arrays.asList(params.get("q").split("\\+"));
       jsonResponse = TOPKSServer.topksSearcher.executeQuery(
@@ -514,6 +521,19 @@ public class TOPKSServer {
                 Float.parseFloat(params.get("alpha")),
                 Integer.parseInt(params.get("disk_budget")),
                 Baseline.TOPK_MERGE);
+      } else if (params.get("base").equals("topks_autocomplete") &&
+              params.containsKey("autocompletions")) {
+        List<List<String>> query_autocompletions = new ArrayList<List<String>>();
+        List<String> string_queries = Arrays.asList(params.get("autocompletions").split("#"));
+        for (String string_query: string_queries) {
+          query_autocompletions.add(Arrays.asList(string_query.split("\\+")));
+        }
+        jsonResponse = TOPKSServer.topksSearcher.executeBaselineAutocompletions(
+                Integer.parseInt(params.get("seeker")), query,
+                Integer.parseInt(params.get("k")),
+                Float.parseFloat(params.get("alpha")),
+                Integer.parseInt(params.get("disk_budget")),
+                query_autocompletions);
       } else
         jsonResponse = null;
     } else {
