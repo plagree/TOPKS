@@ -99,7 +99,7 @@ public class TopKAlgorithm {
   private int skippedTests = 1;  // Number of loops before testing the exit condition
   private int maximumNodeVisited;// Maximum number of users to visit
   private int numberUsersSeen;	 // Current number of users seen
-  private int fast;
+  private int fast;              // Fast access in IL
 
 
   /**
@@ -370,8 +370,8 @@ public class TopKAlgorithm {
       double currBudget = 0;
       if (Params.BASELINE)
         currBudget = 1.3 * currVisited + 15 * this.invertedListsUsed.size();
-      else
-        currBudget = 1.3 * currVisited + 1 * fast;
+      else  // Would be good to see why TOPKS-ASYT is here whereas `baselines` are with 15
+        currBudget = 1.3 * currVisited + 1 * this.fast;
       if (this.type == Experiment.NDCG_DISK_ACCESS && currBudget >= Params.DISK_BUDGET)
         break;
       boolean socialBranch = chooseBranch(query);

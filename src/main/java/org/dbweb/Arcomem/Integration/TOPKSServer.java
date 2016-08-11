@@ -523,17 +523,20 @@ public class TOPKSServer {
                 Baseline.TOPK_MERGE);
       } else if (params.get("base").equals("topks_autocomplete") &&
               params.containsKey("autocompletions")) {
+        System.err.println("l5326");
         List<List<String>> query_autocompletions = new ArrayList<List<String>>();
         List<String> string_queries = Arrays.asList(params.get("autocompletions").split("#"));
         for (String string_query: string_queries) {
           query_autocompletions.add(Arrays.asList(string_query.split("\\+")));
         }
+        System.err.println("l531");
         jsonResponse = TOPKSServer.topksSearcher.executeBaselineAutocompletions(
                 Integer.parseInt(params.get("seeker")), query,
                 Integer.parseInt(params.get("k")),
                 Float.parseFloat(params.get("alpha")),
                 Integer.parseInt(params.get("disk_budget")),
                 query_autocompletions);
+        System.err.println("l539");
       } else
         jsonResponse = null;
     } else {
