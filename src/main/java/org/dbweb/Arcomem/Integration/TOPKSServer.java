@@ -530,6 +530,7 @@ public class TOPKSServer {
           query_autocompletions.add(Arrays.asList(string_query.split("\\+")));
         }
         System.err.println("l531");
+        System.err.println(query_autocompletions);
         jsonResponse = TOPKSServer.topksSearcher.executeBaselineAutocompletions(
                 Integer.parseInt(params.get("seeker")), query,
                 Integer.parseInt(params.get("k")),

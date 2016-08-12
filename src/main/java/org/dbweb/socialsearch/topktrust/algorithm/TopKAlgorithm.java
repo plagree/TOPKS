@@ -860,7 +860,7 @@ public class TopKAlgorithm {
   public float executeJournalBaselineQuery(int seeker, List<String> query,
           int k, float alpha, int t, int nVisited, Baseline baseline) {
 
-    if (baseline == Baseline.TEXTUAL_SOCIAL) {
+    if (baseline == Baseline.TEXTUAL_SOCIAL) {  // 2D
       // Step 1: Fully textual
       this.skippedTests = 100000;
       this.executeQuery(seeker, query, k, 1, t, nVisited,
