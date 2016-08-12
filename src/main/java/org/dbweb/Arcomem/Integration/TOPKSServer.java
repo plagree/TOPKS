@@ -525,8 +525,10 @@ public class TOPKSServer {
               params.containsKey("autocompletions")) {
         System.err.println("l5326");
         List<List<String>> query_autocompletions = new ArrayList<List<String>>();
+        System.err.println(params.get("autocompletions"));
         List<String> string_queries = Arrays.asList(params.get("autocompletions").split("#"));
         for (String string_query: string_queries) {
+          System.err.println(string_query);
           query_autocompletions.add(Arrays.asList(string_query.split("\\+")));
         }
         System.err.println("l531");
