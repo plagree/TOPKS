@@ -33,6 +33,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
@@ -99,7 +101,8 @@ public class TopKAlgorithm {
   private int skippedTests = 1;  // Number of loops before testing the exit condition
   private int maximumNodeVisited;// Maximum number of users to visit
   private int numberUsersSeen;	 // Current number of users seen
-  private int fast;              // Fast access in IL
+  private int fast;              // Fast access in IL (for TOPKS-2D)
+  private List<String> correspondingCompletions; // For TOPKS-M baseline
 
 
   /**
@@ -116,6 +119,7 @@ public class TopKAlgorithm {
     this.optpath = optPathClass;
     this.score = itemScore;
     this.type = Experiment.DEFAULT;
+    this.correspondingCompletions = null;
     long before = System.currentTimeMillis();
     try {
       CSVFileImporter.loadInMemory(this.completionTrie, this.tagIdf,
@@ -194,18 +198,25 @@ public class TopKAlgorithm {
     }
 
     // Step 2: Initialise index of prefix
-    String prefix = query.get(query.size() - 1);
-    // Get best index completion of the prefix
-    String completion = this.completionTrie.searchPrefix(prefix, false)
-            .getBestDescendant().getWord();
-    this.invertedListsUsed.add(completion);
-    // Get corresponding value and item id
-    value = (int)completionTrie.searchPrefix(prefix, false).getValue();
-    itemId = this.invertedLists.get(completion).get(0).getDocId();
-    rh = new ReadingHead(completion, itemId, value);
-    this.topReadingHead.add(rh);
-    if (this.plainTerms.contains(completion))
-      this.advanceTextualList(prefix, query.size() - 1, false);
+    if (this.correspondingCompletions == null) {    // Classic (not the TOPKS_M mode)
+      String prefix = query.get(query.size() - 1);
+      // Get best index completion of the prefix
+      String completion = this.completionTrie.searchPrefix(prefix, false)
+              .getBestDescendant().getWord();
+      this.invertedListsUsed.add(completion);
+      // Get corresponding value and item id
+      value = (int)completionTrie.searchPrefix(prefix, false).getValue();
+      itemId = this.invertedLists.get(completion).get(0).getDocId();
+      rh = new ReadingHead(completion, itemId, value);
+      this.topReadingHead.add(rh);
+      if (this.plainTerms.contains(completion))
+        this.advanceTextualList(prefix, query.size() - 1, false);
+    } else {    // TOPKS_M baseline
+      rh = new ReadingHead(this.correspondingCompletions.get(0),
+              this.invertedLists.get(Params.WORD_TOPKS_M).get(0).getDocId(),
+              this.invertedLists.get(Params.WORD_TOPKS_M).get(0).getNum());
+      this.topReadingHead.add(rh);
+    }
 
     // Step 4: Run the algorithm
     mainLoop(k, seeker, query, t);
@@ -368,8 +379,12 @@ public class TopKAlgorithm {
 
     do {
       double currBudget = 0;
-      if (Params.BASELINE)
-        currBudget = 1.3 * currVisited + 15 * this.invertedListsUsed.size();
+      if (Params.BASELINE && Params.CHOSEN_BASELINE != null) {
+        if (Params.CHOSEN_BASELINE == Baseline.TOPKS_M) // TOPKS_M
+          currBudget = 1.3 * currVisited + 15 * Params.NUMBER_ILS;
+        else    // TOPKS_AUTOCOMPLETION / TOPKS_2D
+          currBudget = 1.3 * currVisited + 15 * this.invertedListsUsed.size();
+      }
       else  // Would be good to see why TOPKS-ASYT is here whereas `baselines` are with 15
         currBudget = 1.3 * currVisited + 1 * this.fast;
       if (this.type == Experiment.NDCG_DISK_ACCESS && currBudget >= Params.DISK_BUDGET)
@@ -696,7 +711,23 @@ public class TopKAlgorithm {
    */
   private void advanceTextualList(String tag, int pos, boolean exact) {
     this.fast += 1;
-    if (exact) { // Not a prefix, read directly in inverted lists
+    if (this.correspondingCompletions != null) {    // TOPKS_M baseline
+      List<DocumentNumTag> invertedList = this.invertedLists.get(Params.WORD_TOPKS_M);
+      this.invertedListPositions.put(tag, this.invertedListPositions
+              .get(Params.WORD_TOPKS_M) + 1);
+      int ILposition = this.invertedListPositions.get(Params.WORD_TOPKS_M);
+      if (ILposition == invertedList.size()) {
+        this.topReadingHead.set(pos, null);
+        return;
+      }
+      ILposition = this.invertedListPositions.get(Params.WORD_TOPKS_M);
+      DocumentNumTag current_read = this.invertedLists.get(Params.WORD_TOPKS_M).get(ILposition);
+      ReadingHead new_top_rh = null;
+      new_top_rh = new ReadingHead(
+              this.correspondingCompletions.get(ILposition), current_read.getDocId(), current_read.getNum());
+      this.topReadingHead.set(pos, new_top_rh);
+    }
+    else if (exact) { // Not a prefix, read directly in inverted lists
       this.nbILFastAccesses += 1;
       this.invertedListsUsed.add(tag);
       // Get inverted list of keyword
@@ -860,7 +891,10 @@ public class TopKAlgorithm {
   public float executeJournalBaselineQuery(int seeker, List<String> query,
           int k, float alpha, int t, int nVisited, Baseline baseline) {
 
-    if (baseline == Baseline.TEXTUAL_SOCIAL) {  // 2D
+    if (baseline == Baseline.TOPKS_M) {  // First baseline of journal paper
+      return this.executeTOPKSMBaselineQuery(seeker, query, k, alpha, t, nVisited);
+    }
+    else if (baseline == Baseline.TEXTUAL_SOCIAL) {  // 2D
       // Step 1: Fully textual
       this.skippedTests = 100000;
       this.executeQuery(seeker, query, k, 1, t, nVisited,
@@ -1101,6 +1135,80 @@ public class TopKAlgorithm {
       currUser = optpath.advanceFriendsList(currUser);
     }
     return l;
+  }
+
+  /**
+   * TOPKS-M baseline (TOPKS-merge)
+   * @param alg
+   * @param seeker
+   * @param query
+   * @param k
+   * @param t
+   * @param newQuery
+   * @param nVisited
+   * @return
+   */
+  public float executeTOPKSMBaselineQuery(int seeker,
+          List<String> query, int k, float alpha, int t, int nVisited) {
+    String prefix = query.get(0);
+    RadixTreeNode radixTreeNode = completionTrie.searchPrefix(prefix, false);
+    RadixTreeNode originalNode = radixTreeNode.clone();
+    radixTreeNode.setBestDescendant(radixTreeNode);
+    radixTreeNode.setReal(true);
+    radixTreeNode.setWord(prefix);
+
+    // Union of inverted lists of possible completions
+    Map<String, Integer> indexPosition = new HashMap<String, Integer>();
+    Queue<ReadingHead> queue = new PriorityQueue<ReadingHead>();
+
+    Map<String, String> completions = this.dictionaryTrie.prefixMap(prefix);
+    Iterator<Entry<String, String>> iterator = completions.entrySet().iterator();
+    Entry<String, String> currentEntry = null;
+    DocumentNumTag firstDoc = null;
+    int nbInvertedListsForMerge = 0;
+    while (iterator.hasNext()) {
+      currentEntry = iterator.next();
+      String completion = currentEntry.getKey();
+      indexPosition.put(completion, 0);
+      firstDoc = this.invertedLists.get(completion).get(0);
+      nbInvertedListsForMerge += 1;
+      queue.add(new ReadingHead(completion, firstDoc.getDocId(), firstDoc.getNum()));
+    }
+
+    List<DocumentNumTag> mergedList = new ArrayList<DocumentNumTag>(); // Output of the merge of inverted lists
+    ReadingHead currentHead = null;
+    String completion = null;
+    this.correspondingCompletions = new ArrayList<String>();
+    while (!queue.isEmpty()) {
+      currentHead = queue.poll();
+      mergedList.add(new DocumentNumTag(currentHead.getItemId(), currentHead.getValue()));
+      completion = currentHead.getCompletion();
+      this.correspondingCompletions.add(completion); // NO MAX
+      int count = indexPosition.get(completion);
+      indexPosition.put(completion, count+1);
+      if (count + 1 < this.invertedLists.get(completion).size()) {
+        firstDoc = this.invertedLists.get(completion).get(count + 1);
+        queue.add(new ReadingHead(completion, firstDoc.getDocId(), firstDoc.getNum()));
+      }
+    }
+    System.err.println(mergedList.size()+" size of merged list");
+    Params.NUMBER_ILS = nbInvertedListsForMerge;
+
+    this.invertedLists.put(Params.WORD_TOPKS_M, mergedList);
+    this.invertedListPositions.put(Params.WORD_TOPKS_M, 0);
+
+    // Execute query with materialised list
+    this.executeQuery(seeker, query, k, alpha, t, nVisited, Experiment.NDCG_DISK_ACCESS);
+    Params.NUMBER_ILS = 0;
+
+    radixTreeNode.setBestDescendant(originalNode.getBestDescendant());
+    radixTreeNode.setReal(originalNode.isReal());
+    radixTreeNode.setWord(originalNode.getWord());
+    radixTreeNode.setChildren(originalNode.getChildren());
+    radixTreeNode.updatePreviousBestValue(originalNode.getValue());
+    this.invertedListPositions.remove(Params.WORD_TOPKS_M);
+    this.correspondingCompletions = null;
+    return (float)this.computeNDCG(k);
   }
 
 }

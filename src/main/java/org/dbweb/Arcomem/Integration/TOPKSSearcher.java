@@ -42,13 +42,11 @@ public class TOPKSSearcher {
     this.topk_alg.executeQuery(seeker, query, k, alpha, t, nNeigh,
             Experiment.DEFAULT);
     this.topk_alg.reset(query, 1);
-    float fixing[][] = {//{200, 100, 50, 40, 20, 10, 5, 2, 1, 1}, // alpha == 0
-        {6000, 1000, 50, 20, 8, 2, 1, 1, 1, 1},
-        //{100, 50, 25, 13, 16, 3, 2, 1, 1, 1}, // alpha == 0.01
-        {1000, 200, 50, 20, 8, 2, 1, 1, 1, 1},
-        //{64, 40, 18, 10, 5, 2, 1, 1, 1, 1}, // alpha == 0.1
-        {1000, 200, 50, 20, 8, 2, 1, 1, 1, 1},
-        {1000, 200, 50, 20, 8, 2, 1, 1, 1}};// alpha = 1.
+    float fixing[][] = {
+        {6000, 1000, 50, 20, 8, 2, 1, 1, 1, 1}, // alpha == 0
+        {1000, 200, 50, 20, 8, 2, 1, 1, 1, 1},  // alpha == 0.01
+        {1000, 200, 50, 20, 8, 2, 1, 1, 1, 1},  // alpha == 0.1
+        {1000, 200, 50, 20, 8, 2, 1, 1, 1}};    // alpha = 1.
     if (query.size() > 1 && multiWordsQuery) {
       if (alpha < 0.005)
         this.topk_alg.reorder(fixing[0][query.get(query.size()-1).length() - 1]);
@@ -59,7 +57,7 @@ public class TOPKSSearcher {
       else if (alpha > 0.9)
         this.topk_alg.reorder(fixing[3][query.get(query.size()-1).length() - 1]);
       else
-        System.out.println("Error: forbidden correction");
+        System.err.println("Error: forbidden correction");
     }
     JsonObject jsonResult = JsonBuilder.getJsonAnswer(query, this.topk_alg, k);
     return jsonResult;
@@ -149,7 +147,7 @@ public class TOPKSSearcher {
     // Computation for top-k exact: normal version (TOPKS-ASYT)
     this.setSkippedTests(1);
 
-    if (baseline == Baseline.TEXTUAL_SOCIAL) {
+    if (baseline == Baseline.TEXTUAL_SOCIAL || baseline == Baseline.TOPKS_M) {
       this.topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000,
               Experiment.NDCG_DISK_ACCESS);
     } else if (baseline == Baseline.TOPK_MERGE) {

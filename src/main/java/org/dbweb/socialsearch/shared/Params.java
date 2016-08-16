@@ -2,6 +2,8 @@ package org.dbweb.socialsearch.shared;
 
 import java.util.Map;
 
+import org.dbweb.Arcomem.Integration.Baseline;
+
 public class Params {
 
   public static String[] network = {"network"};
@@ -19,11 +21,14 @@ public class Params {
   public static int STEP_NEIGH = 20;
   public static long TIME_NDCG = 1;
   public static int SIZE_OF_BLOCK = 512;
+  public static int NUMBER_ILS = 0;
+  public static String WORD_TOPKS_M = "ABCDEFGHIJK__#";
 
   public static boolean TEST = false;
   public static boolean DEBUG = false;
   public static boolean VERBOSE = false;
   public static boolean SIMRANK = false;
   public static boolean BASELINE = false;
+  public static Baseline CHOSEN_BASELINE = null;
 
 }

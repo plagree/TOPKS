@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.dbweb.socialsearch.shared.Params;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -508,14 +510,24 @@ public class TOPKSServer {
             params.containsKey("base")) {
       // Create the query List of words
       List<String> query = Arrays.asList(params.get("q").split("\\+"));
-      if (params.get("base").equals("textual_social")) {
-      jsonResponse = TOPKSServer.topksSearcher.executeBaseline(
+      if (params.get("base").equals("topks_m")) {   // TOPKS_M
+        Params.CHOSEN_BASELINE = Baseline.TOPKS_M;
+        jsonResponse = TOPKSServer.topksSearcher.executeBaseline(
+                Integer.parseInt(params.get("seeker")), query,
+                Integer.parseInt(params.get("k")),
+                Float.parseFloat(params.get("alpha")),
+                Integer.parseInt(params.get("disk_budget")),
+                Baseline.TOPKS_M);
+      } else if (params.get("base").equals("textual_social")) { // TOPKS_2D
+        Params.CHOSEN_BASELINE = Baseline.TEXTUAL_SOCIAL;
+        jsonResponse = TOPKSServer.topksSearcher.executeBaseline(
               Integer.parseInt(params.get("seeker")), query,
               Integer.parseInt(params.get("k")),
               Float.parseFloat(params.get("alpha")),
               Integer.parseInt(params.get("disk_budget")),
               Baseline.TEXTUAL_SOCIAL);
-      } else if (params.get("base").equals("topk_merge")) {
+      } else if (params.get("base").equals("topk_merge")) { // TOPK_MERGE
+        Params.CHOSEN_BASELINE = Baseline.TOPK_MERGE;
         jsonResponse = TOPKSServer.topksSearcher.executeBaseline(
                 Integer.parseInt(params.get("seeker")), query,
                 Integer.parseInt(params.get("k")),
@@ -523,7 +535,8 @@ public class TOPKSServer {
                 Integer.parseInt(params.get("disk_budget")),
                 Baseline.TOPK_MERGE);
       } else if (params.get("base").equals("topks_autocomplete") &&
-              params.containsKey("autocompletions")) {
+              params.containsKey("autocompletions")) {  // AUTOCOMPLETION
+        Params.CHOSEN_BASELINE = Baseline.AUTOCOMPLETION;
         List<List<String>> query_autocompletions = new ArrayList<List<String>>();
         List<String> string_queries = Arrays.asList(params.get("autocompletions").split("_"));
         for (String string_query: string_queries) {
@@ -540,6 +553,7 @@ public class TOPKSServer {
     } else {
       jsonResponse = null;
     }
+    Params.CHOSEN_BASELINE = null;
     return jsonResponse;
   }
 
