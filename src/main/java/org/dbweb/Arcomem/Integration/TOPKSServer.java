@@ -61,7 +61,8 @@ public class TOPKSServer {
        * Different baselines:
        * ====================
        *    * topks_autocomplete: queries are autocompleted with Yelp API then normal TOPKS
-       *        - `query` = "my+prefix#first+autocompletion#second+autocompletion"
+       *        - `query` = "my+prefix"
+       *        - `autocompletions` = "first+autocompletion_second+autocompletion"
        */
       server.createContext("/baselines", new BaselineHandler());
       server.start();
@@ -523,23 +524,17 @@ public class TOPKSServer {
                 Baseline.TOPK_MERGE);
       } else if (params.get("base").equals("topks_autocomplete") &&
               params.containsKey("autocompletions")) {
-        System.err.println("l5326");
         List<List<String>> query_autocompletions = new ArrayList<List<String>>();
-        System.err.println(params.get("autocompletions"));
-        List<String> string_queries = Arrays.asList(params.get("autocompletions").split("#"));
+        List<String> string_queries = Arrays.asList(params.get("autocompletions").split("_"));
         for (String string_query: string_queries) {
-          System.err.println(string_query);
           query_autocompletions.add(Arrays.asList(string_query.split("\\+")));
         }
-        System.err.println("l531");
-        System.err.println(query_autocompletions);
         jsonResponse = TOPKSServer.topksSearcher.executeBaselineAutocompletions(
                 Integer.parseInt(params.get("seeker")), query,
                 Integer.parseInt(params.get("k")),
                 Float.parseFloat(params.get("alpha")),
                 Integer.parseInt(params.get("disk_budget")),
                 query_autocompletions);
-        System.err.println("l539");
       } else
         jsonResponse = null;
     } else {

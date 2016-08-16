@@ -191,7 +191,6 @@ public class TOPKSSearcher {
 
   public JsonObject executeBaselineAutocompletions(int seeker, List<String> query,
           int k, float alpha, int budget, List<List<String>> autocompletions) {
-    System.err.println("l194");
     Params.DISK_BUDGET = budget;
     // Oracle computation (visit of whole graph)
     this.topk_alg.setSkippedTests(100000);
@@ -202,16 +201,8 @@ public class TOPKSSearcher {
 
     // Computation for top-k exact: normal version (TOPKS-ASYT)
     this.setSkippedTests(1);
-
-    //if (baseline == Baseline.TEXTUAL_SOCIAL || baseline == Baseline.AUTOCOMPLETION) {
     this.topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000,
             Experiment.NDCG_DISK_ACCESS);
-    //} else if (baseline == Baseline.TOPK_MERGE) {
-    //  this.topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000,
-    //          Experiment.DEFAULT);
-    //} else {
-    // throw new UnsupportedOperationException();
-    //}
     this.topk_alg.reset(query, 1);
 
     JsonObject obj_topk_asyt = new JsonObject();
@@ -229,16 +220,9 @@ public class TOPKSSearcher {
     double mean_ndcg = 0;
     int mean_users_visited = 0, mean_inverted_lists_algo = 0;
     int i = 0;
-    System.err.println("l232");
     for (List<String> autocompleted_query: autocompletions) {
-      // float ndcg = this.topk_alg.executeJournalBaselineQuery(seeker, query, k, alpha,
-      //         30000, 100000, baseline);
-      // TODO check for multiple words
-      System.err.println("l237");
-      System.err.println(autocompleted_query);
       this.topk_alg.executeQuery(seeker, autocompleted_query, k, alpha, 30000, 100000,
               Experiment.NDCG_DISK_ACCESS);
-      System.err.println("l241");
       this.topk_alg.reset(autocompleted_query, 1);
       // Add statistics to lists
       ndcgs.add(this.topk_alg.computeNDCG(k));
@@ -249,7 +233,6 @@ public class TOPKSSearcher {
       mean_users_visited += users_visited.get(i);
       mean_inverted_lists_algo += inverted_lists_algo.get(i);
       i += 1;
-      System.err.println("l252");
     }
     JsonObject obj_baseline = new JsonObject();
     obj_baseline.add("users_visited", new JsonPrimitive(
