@@ -714,8 +714,9 @@ public class TopKAlgorithm {
   private void advanceTextualList(String tag, int pos, boolean exact) {
     this.fast += 1;
     if (this.correspondingCompletions != null) {    // TOPKS_M baseline
+      System.err.println("debug717");
       List<DocumentNumTag> invertedList = this.invertedLists.get(Params.WORD_TOPKS_M);
-      this.invertedListPositions.put(tag, this.invertedListPositions
+      this.invertedListPositions.put(Params.WORD_TOPKS_M, this.invertedListPositions
               .get(Params.WORD_TOPKS_M) + 1);
       int ILposition = this.invertedListPositions.get(Params.WORD_TOPKS_M);
       if (ILposition == invertedList.size()) {
