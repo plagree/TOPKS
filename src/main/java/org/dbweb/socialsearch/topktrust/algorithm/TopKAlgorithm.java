@@ -380,8 +380,10 @@ public class TopKAlgorithm {
     do {
       double currBudget = 0;
       if (Params.BASELINE && Params.CHOSEN_BASELINE != null) {
-        if (Params.CHOSEN_BASELINE == Baseline.TOPKS_M) // TOPKS_M
+        if (Params.CHOSEN_BASELINE == Baseline.TOPKS_M) { // TOPKS_M
           currBudget = 1.3 * currVisited + 15 * Params.NUMBER_ILS;
+          System.err.println("Current budget: " + currBudget);
+        }
         else    // TOPKS_AUTOCOMPLETION / TOPKS_2D
           currBudget = 1.3 * currVisited + 15 * this.invertedListsUsed.size();
       }
@@ -1193,6 +1195,7 @@ public class TopKAlgorithm {
     }
     System.err.println(mergedList.size()+" size of merged list");
     Params.NUMBER_ILS = nbInvertedListsForMerge;
+    System.err.println("Number of ILs: " + Params.NUMBER_ILS);
 
     this.invertedLists.put(Params.WORD_TOPKS_M, mergedList);
     this.invertedListPositions.put(Params.WORD_TOPKS_M, 0);
