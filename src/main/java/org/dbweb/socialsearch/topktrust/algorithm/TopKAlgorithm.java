@@ -382,7 +382,6 @@ public class TopKAlgorithm {
       if (Params.BASELINE && Params.CHOSEN_BASELINE != null) {
         if (Params.CHOSEN_BASELINE == Baseline.TOPKS_M) { // TOPKS_M
           currBudget = 1.3 * currVisited + 15 * Params.NUMBER_ILS;
-          System.err.println("Current budget: " + currBudget);
         }
         else    // TOPKS_AUTOCOMPLETION / TOPKS_2D
           currBudget = 1.3 * currVisited + 15 * this.invertedListsUsed.size();
@@ -714,7 +713,6 @@ public class TopKAlgorithm {
   private void advanceTextualList(String tag, int pos, boolean exact) {
     this.fast += 1;
     if (this.correspondingCompletions != null) {    // TOPKS_M baseline
-      System.err.println("debug717");
       List<DocumentNumTag> invertedList = this.invertedLists.get(Params.WORD_TOPKS_M);
       this.invertedListPositions.put(Params.WORD_TOPKS_M, this.invertedListPositions
               .get(Params.WORD_TOPKS_M) + 1);
@@ -1196,7 +1194,6 @@ public class TopKAlgorithm {
     }
     System.err.println(mergedList.size()+" size of merged list");
     Params.NUMBER_ILS = nbInvertedListsForMerge;
-    System.err.println("Number of ILs: " + Params.NUMBER_ILS);
 
     this.invertedLists.put(Params.WORD_TOPKS_M, mergedList);
     this.invertedListPositions.put(Params.WORD_TOPKS_M, 0);
