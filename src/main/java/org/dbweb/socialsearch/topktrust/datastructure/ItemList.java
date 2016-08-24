@@ -383,8 +383,12 @@ public class ItemList {
   
   public List<SocialTextualItem> getListSocialTextualItems() {
     List<SocialTextualItem> list = new ArrayList<SocialTextualItem>();
+    int i = 0;
     for (Item item: this.sorted_items) {
+      if (i == 0)
+        System.err.println("oooo"+item.getComputedWorstScore());
       list.add(new SocialTextualItem((int)item.getItemId(), 0, item.getComputedWorstScore(), 0));
+      i++;
     }
     return list;
   }
