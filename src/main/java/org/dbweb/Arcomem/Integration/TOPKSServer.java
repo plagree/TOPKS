@@ -528,12 +528,13 @@ public class TOPKSServer {
               Baseline.TEXTUAL_SOCIAL);
       } else if (params.get("base").equals("topks_nra")) { // TOPKS_NRA
         Params.CHOSEN_BASELINE = Baseline.TOPKS_NRA;
-        jsonResponse = TOPKSServer.topksSearcher.executeBaseline(
-              Integer.parseInt(params.get("seeker")), query,
-              Integer.parseInt(params.get("k")),
-              Float.parseFloat(params.get("alpha")),
-              Integer.parseInt(params.get("disk_budget")),
-              Baseline.TOPKS_NRA);
+        List<String> results = Arrays.asList(params.get("results").split("_"));
+        jsonResponse = TOPKSServer.topksSearcher.executeBaselineNRA(
+                Integer.parseInt(params.get("seeker")), query,
+                Integer.parseInt(params.get("k")),
+                Float.parseFloat(params.get("alpha")),
+                Integer.parseInt(params.get("disk_budget")),
+                results, Integer.parseInt(params.get("consumed_budget")));
       } else if (params.get("base").equals("topk_merge")) { // TOPK_MERGE
         Params.CHOSEN_BASELINE = Baseline.TOPK_MERGE;
         jsonResponse = TOPKSServer.topksSearcher.executeBaseline(
