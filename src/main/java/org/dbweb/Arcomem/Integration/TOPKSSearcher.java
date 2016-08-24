@@ -293,6 +293,7 @@ public class TOPKSSearcher {
       }
     }
     Collections.sort(itemList);
+    System.err.println("alpha="+alpha);
     for (int i = 0; i < 5; i++) {
       System.err.println(itemList.get(i).getScore() + ", social=" + itemList.get(i).getSocialScore());
     }
