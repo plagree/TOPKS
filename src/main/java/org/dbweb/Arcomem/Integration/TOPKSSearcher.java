@@ -284,13 +284,17 @@ public class TOPKSSearcher {
     }
     Params.NUMBER_ILS = consumed_budget;
     this.topk_alg.executeQuery(seeker, query, k, 0, 30000, 100000, Experiment.NDCG_DISK_ACCESS);
-    for (SocialTextualItem e: this.topk_alg.getListSocialTextualItem()) {
-      for (SocialTextualItem e2: itemList) {
+    for (SocialTextualItem e: this.topk_alg.getListSocialTextualItem()) {   // Algo
+      boolean found = false;
+      for (SocialTextualItem e2: itemList) {    // Autre ?
         if (e2.getDocId() == e.getDocId()) {
           e2.setSocialScore(e.getSocialScore());
+          found = true;
           break;
         }
       }
+      if (!found)
+        itemList.add(new SocialTextualItem(e.getDocId(), 0, e.getSocialScore(), alpha));
     }
     Collections.sort(itemList);
     System.err.println("alpha="+alpha);
