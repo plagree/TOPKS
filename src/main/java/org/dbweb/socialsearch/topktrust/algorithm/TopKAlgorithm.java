@@ -9,6 +9,7 @@ import org.dbweb.socialsearch.topktrust.datastructure.Item;
 import org.dbweb.socialsearch.topktrust.datastructure.ItemList;
 import org.dbweb.socialsearch.topktrust.datastructure.ReadingHead;
 import org.dbweb.socialsearch.topktrust.datastructure.SimrankUserEntry;
+import org.dbweb.socialsearch.topktrust.datastructure.SocialTextualItem;
 import org.dbweb.socialsearch.topktrust.datastructure.UserEntry;
 import org.dbweb.topktrust.socialsearch.importer.CSVFileImporter;
 import org.dbweb.Arcomem.Integration.Baseline;
@@ -382,12 +383,14 @@ public class TopKAlgorithm {
       if (Params.BASELINE && Params.CHOSEN_BASELINE != null) {
         if (Params.CHOSEN_BASELINE == Baseline.TOPKS_M) { // TOPKS_M
           currBudget = 1.3 * currVisited + 15 * Params.NUMBER_ILS;
+        } else if (Params.CHOSEN_BASELINE == Baseline.TOPKS_NRA) {
+          currBudget = 1.3 * currVisited + Params.NUMBER_ILS;
         }
         else    // TOPKS_AUTOCOMPLETION / TOPKS_2D
           currBudget = 1.3 * currVisited + 15 * this.invertedListsUsed.size();
       }
       else  // Would be good to see why TOPKS-ASYT is here whereas `baselines` are with 15
-        currBudget = 1.3 * currVisited + 1 * this.fast;
+        currBudget = 1.3 * currVisited + 15 * this.invertedListsUsed.size(); //1 * this.fast;
       if (this.type == Experiment.NDCG_DISK_ACCESS && currBudget >= Params.DISK_BUDGET)
         break;
       boolean socialBranch = chooseBranch(query);
@@ -874,6 +877,22 @@ public class TopKAlgorithm {
       this.candidates.debug(k);
     }
     return v;
+  }
+  
+  public double computeNDCG(int k, List<SocialTextualItem> itemList) {
+    List<Long> goodList = new ArrayList<Long>();
+    for (int i = 0; i < k; i++) {
+      goodList.add((long)itemList.get(i).getDocId());
+    }
+    double v = NDCG.getNDCG(goodList, this.oracleNDCG, k);
+    if (v > 1) {
+      this.candidates.debug(k);
+    }
+    return v;
+  }
+  
+  public List<SocialTextualItem> getListSocialTextualItem() {
+    return this.candidates.getListSocialTextualItems();
   }
 
   /**

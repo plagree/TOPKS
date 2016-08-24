@@ -380,6 +380,14 @@ public class ItemList {
     }
     return topk;
   }
+  
+  public List<SocialTextualItem> getListSocialTextualItems() {
+    List<SocialTextualItem> list = new ArrayList<SocialTextualItem>();
+    for (Item item: this.sorted_items) {
+      list.add(new SocialTextualItem((int)item.getItemId(), 0, item.getComputedWorstScore(), 0));
+    }
+    return list;
+  }
 
   public int getNumberOfSortedItems() {
     return this.sorted_items.size();

@@ -7,4 +7,5 @@ public enum Baseline {
                     // (autocompletion+TOPKS)
   TOPKS_M,          // Does not benefit from CT-IL, 1. Load ILs of all possible completions + merge
                     //                              2. TOPKS
+  TOPKS_NRA,        // with Li et al.
 }

@@ -1,6 +1,7 @@
 package org.dbweb.Arcomem.Integration;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.dbweb.experiments.JsonBuilder;
@@ -11,6 +12,7 @@ import org.dbweb.socialsearch.topktrust.algorithm.functions.PathMultiplication;
 import org.dbweb.socialsearch.topktrust.algorithm.paths.OptimalPaths;
 import org.dbweb.socialsearch.topktrust.algorithm.score.Score;
 import org.dbweb.socialsearch.topktrust.datastructure.Item;
+import org.dbweb.socialsearch.topktrust.datastructure.SocialTextualItem;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -238,6 +240,68 @@ public class TOPKSSearcher {
     obj_baseline.add("inverted_lists_algo", new JsonPrimitive(
             mean_inverted_lists_algo / autocompletions.size()));
     obj_baseline.add("ndcg", new JsonPrimitive(mean_ndcg / autocompletions.size()));
+    Params.BASELINE = false;
+
+    // Create JSON Response
+    JsonObject jsonResult = new JsonObject();
+    jsonResult.add("status", new JsonPrimitive(1));
+    jsonResult.add("topks_asyt", obj_topk_asyt);
+    jsonResult.add("baseline", obj_baseline);
+
+    return jsonResult;
+  }
+  
+  public JsonObject executeBaselineNRA(int seeker, List<String> query,
+          int k, float alpha, int budget, List<String> results, int consumed_budget) {
+    Params.DISK_BUDGET = budget;
+    // Oracle computation (visit of whole graph)
+    this.topk_alg.setSkippedTests(100000);
+    this.topk_alg.executeQuery(seeker, query, k, alpha, 10000, 100000,
+            Experiment.DEFAULT);
+    this.topk_alg.computeOracleNDCG(k);
+    this.topk_alg.reset(query, 1);
+
+    // Computation for top-k exact: normal version (TOPKS-ASYT)
+    this.setSkippedTests(1);
+    this.topk_alg.executeQuery(seeker, query, k, alpha, 30000, 100000,
+            Experiment.NDCG_DISK_ACCESS);
+    this.topk_alg.reset(query, 1);
+
+    JsonObject obj_topk_asyt = new JsonObject();
+    obj_topk_asyt.add("users_visited", new JsonPrimitive(
+            this.topk_alg.getNumberUsersSeen()));
+    obj_topk_asyt.add("inverted_lists_algo", new JsonPrimitive(
+            this.topk_alg.getNumberInvertedListUsed()));
+    obj_topk_asyt.add("ndcg", new JsonPrimitive(this.topk_alg.computeNDCG(k)));
+
+    // Computation for top-k exact: baseline
+    Params.BASELINE = true;
+    List<SocialTextualItem> itemList = new ArrayList<SocialTextualItem>();
+    for (String res: results) {
+      String[] theList = res.split(",");
+      itemList.add(new SocialTextualItem(Integer.parseInt(theList[0]), Float.parseFloat(theList[1]),
+                                         0, alpha));
+    }
+    Params.NUMBER_ILS = consumed_budget;
+    this.topk_alg.executeQuery(seeker, query, k, 0, 30000, 100000, Experiment.NDCG_DISK_ACCESS);
+    for (SocialTextualItem e: this.topk_alg.getListSocialTextualItem()) {
+      for (SocialTextualItem e2: itemList) {
+        if (e2.getDocId() == e.getDocId()) {
+          e2.setSocialScore(e.getSocialScore());
+          break;
+        }
+      }
+    }
+    Collections.sort(itemList);
+    for (int i = 0; i < 5; i++) {
+      System.err.println(itemList.get(i).getScore() + ", social=" + itemList.get(i).getSocialScore());
+    }
+    Params.NUMBER_ILS = 0;
+    double ndcg = this.topk_alg.computeNDCG(k, itemList);
+    JsonObject obj_baseline = new JsonObject();
+    obj_baseline.add("users_visited", new JsonPrimitive(0));
+    obj_baseline.add("inverted_lists_algo", new JsonPrimitive(0));
+    obj_baseline.add("ndcg", new JsonPrimitive(ndcg));
     Params.BASELINE = false;
 
     // Create JSON Response
